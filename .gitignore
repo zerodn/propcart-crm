@@ -35,3 +35,4 @@ prisma/migrations/*.sql
 # Misc
 *.tsbuildinfo
 apps/web/.next/
+.dev-logs/
