@@ -13,11 +13,133 @@ SaaS bất động sản | 100k+ users | Multi-tenant workspace-based architectu
 | Database | PostgreSQL 15+ |
 | Cache | Redis |
 | Auth | JWT (access 15min / refresh 7 days) |
+| File Storage | MinIO (self-hosted S3-compatible) |
 | Web | Next.js (Admin / Manager) |
 | Mobile | Flutter (Sales / Partner) |
 | Test | Jest + Supertest |
 | Container | Docker |
 | CI/CD | GitHub Actions |
+
+---
+
+## System Architecture — Microservice Design
+
+Hệ thống tổ chức theo **microservice**. Mỗi service được deploy độc lập.
+
+```
+                          ┌─────────────────────┐
+ Client (Web/Mobile) ───► │   API Gateway        │
+                          │  (NestJS Gateway)    │
+                          └──────────┬──────────┘
+                                     │
+          ┌──────────────────────────┼──────────────────────────┐
+          │                          │                          │
+   ┌──────▼──────┐           ┌───────▼──────┐         ┌────────▼──────┐
+   │ Auth Service │           │ Core Service │         │ Upload Service │
+   │  (NestJS)   │           │  (NestJS)    │         │   (NestJS)     │
+   │             │           │              │         │                │
+   │ auth/       │           │ workspace/   │         │ /upload        │
+   │ user/       │           │ lead/        │         │ → MinIO        │
+   └─────────────┘           │ property/    │         └────────────────┘
+                             └──────────────┘
+```
+
+### Service Split Rules
+
+| Service | Trách nhiệm | Lý do tách |
+|---------|-------------|------------|
+| **auth-service** | Login, JWT, user, device | Foundation, high security |
+| **core-service** | Workspace, Lead, Property, CRM | Business logic chính |
+| **upload-service** | File upload → MinIO | Upload gây tốn tài nguyên I/O, tách để không ảnh hưởng API chính |
+
+### Communication giữa services
+- **Sync (HTTP):** API Gateway → Service (via REST/gRPC)
+- **Async (Event):** Service → Service (via Redis Pub/Sub hoặc Message Queue)
+- Upload xong → emit event `file.uploaded` → core-service xử lý link
+
+---
+
+## File Upload — MinIO
+
+Tất cả file upload đều đi qua **upload-service** → lưu vào **MinIO**.
+
+### MinIO Bucket Structure
+```
+propcart-crm/
+  avatars/          ← user avatar
+  properties/       ← ảnh bất động sản
+  documents/        ← hợp đồng, tài liệu
+  temp/             ← file tạm (TTL 24h, auto-delete)
+```
+
+### Upload Flow
+```
+1. Client → POST /upload/presign (upload-service)
+2. upload-service → tạo presigned URL từ MinIO (15 phút)
+3. Client → PUT trực tiếp lên MinIO bằng presigned URL
+4. Client → POST /upload/confirm (upload-service)
+5. upload-service → verify file tồn tại trong MinIO → return file URL
+```
+
+### File URL Pattern
+```
+https://minio.propcart.vn/{bucket}/{workspace_id}/{date}/{uuid}.{ext}
+```
+
+### Env MinIO
+```env
+MINIO_ENDPOINT=minio.propcart.vn
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=
+MINIO_BUCKET=propcart-crm
+MINIO_USE_SSL=true
+```
+
+---
+
+## Frontend Quality Standards
+
+Áp dụng cho **tất cả trang** trong Next.js Web App. Đo bằng Lighthouse CI trong pipeline.
+
+### Lighthouse Targets
+
+| Metric | Target |
+|--------|--------|
+| Performance | ≥ 95 |
+| Accessibility | ≥ 90 |
+| Best Practices | ≥ 90 |
+| SEO | ≥ 95 |
+
+### Cross-Browser & Responsive Support
+
+Phải hoạt động đúng trên:
+
+| Browser | Phiên bản |
+|---------|-----------|
+| Chrome | Latest 2 versions |
+| Firefox | Latest 2 versions |
+| Safari | Latest 2 versions |
+| Edge | Latest 2 versions |
+| Chrome Mobile (Android) | Latest |
+| Safari Mobile (iOS) | Latest |
+
+Breakpoints (Tailwind convention):
+
+| Breakpoint | Width |
+|-----------|-------|
+| Mobile | 320px – 767px |
+| Tablet | 768px – 1023px |
+| Desktop | 1024px+ |
+
+### UI/UX Rules
+- Mọi action async phải có loading state
+- Mọi form phải có error state rõ ràng (inline validation)
+- Mọi trang phải có skeleton loading (không dùng spinner toàn trang)
+- Accessibility: `aria-label` trên mọi icon button, contrast ratio ≥ 4.5:1
+- Images: dùng `next/image` với `sizes` + `priority` đúng context
+- Fonts: `next/font` để tránh layout shift (CLS = 0)
+- Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1
 
 ---
 
@@ -170,4 +292,12 @@ API_CLIENT_SECRET=
 
 # OAuth
 GOOGLE_CLIENT_ID=
+
+# MinIO (upload-service)
+MINIO_ENDPOINT=minio.propcart.vn
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=
+MINIO_BUCKET=propcart-crm
+MINIO_USE_SSL=true
 ```

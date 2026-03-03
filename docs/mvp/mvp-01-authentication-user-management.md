@@ -18,6 +18,7 @@ System must support:
 - SaaS multi-tenant architecture
 - Personal workspace auto-created per user
 - Multiple company workspace memberships per user
+- Company workspace invite flow với user approval
 - Workspace switching (new JWT per workspace)
 - RBAC per workspace
 - Secure API (HMAC signature + device binding)
@@ -32,6 +33,7 @@ System must support:
 Mỗi user:
 - Sở hữu **1 Personal Workspace** (tạo tự động khi register)
 - Có thể tham gia **nhiều Company Workspace**
+- **Company Workspace** có thể mời user tham gia và phải được user approve
 - Có **role khác nhau** ở mỗi workspace
 - Có thể **switch workspace** → nhận JWT mới cho workspace đó
 
@@ -193,7 +195,39 @@ Foreign keys:
 
 ---
 
-## 3.8 refresh_tokens — Bảng refresh token
+## 3.8 workspace_invitations — Bảng lời mời tham gia workspace
+
+| column | type | constraint | description |
+|--------|------|------------|-------------|
+| id | uuid | PK NOT NULL | Primary key |
+| workspace_id | uuid | FK NOT NULL | Workspace mời |
+| invited_by_user_id | uuid | FK NOT NULL | User gửi lời mời (OWNER/ADMIN) |
+| invited_phone | varchar(20) | NOT NULL | Số điện thoại được mời |
+| invited_user_id | uuid | FK NULLABLE | User được mời (null nếu chưa đăng ký) |
+| role_id | uuid | FK NOT NULL | Role sẽ gán khi accept |
+| token | varchar(255) | UNIQUE NOT NULL | Token để accept/decline (UUID random) |
+| status | smallint | NOT NULL DEFAULT 0 | 0=pending, 1=accepted, 2=declined, 3=expired, 4=cancelled |
+| expires_at | timestamp | NOT NULL | Hết hạn sau 7 ngày kể từ ngày tạo |
+| responded_at | timestamp | NULLABLE | Thời điểm user phản hồi |
+| created_at | timestamp | NOT NULL DEFAULT now() | |
+
+Indexes:
+- `idx_wi_workspace` → (workspace_id, status)
+- `idx_wi_invited_phone` → (invited_phone, status)
+- `idx_wi_token` → (token) UNIQUE
+- `idx_wi_invited_user` → (invited_user_id, status)
+
+Foreign keys:
+- `workspace_id` → `workspaces.id`
+- `invited_by_user_id` → `users.id`
+- `invited_user_id` → `users.id` (nullable)
+- `role_id` → `roles.id`
+
+> **Lưu ý:** Mỗi workspace chỉ có 1 invitation pending cho 1 phone. Kiểm tra UNIQUE (workspace_id, invited_phone, status=0) trước khi tạo mới.
+
+---
+
+## 3.9 refresh_tokens — Bảng refresh token
 
 | column | type | constraint | description |
 |--------|------|------------|-------------|
@@ -318,6 +352,30 @@ model UserDevice {
 
   @@unique([userId, deviceHash])
   @@map("user_devices")
+}
+
+model WorkspaceInvitation {
+  id                String    @id @default(uuid())
+  workspaceId       String
+  invitedByUserId   String
+  invitedPhone      String
+  invitedUserId     String?
+  roleId            String
+  token             String    @unique @default(uuid())
+  status            Int       @default(0) // 0=pending,1=accepted,2=declined,3=expired,4=cancelled
+  expiresAt         DateTime
+  respondedAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  invitedBy     User      @relation("InvitedBy", fields: [invitedByUserId], references: [id])
+  invitedUser   User?     @relation("InvitedUser", fields: [invitedUserId], references: [id])
+  role          Role      @relation(fields: [roleId], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([invitedPhone, status])
+  @@index([invitedUserId, status])
+  @@map("workspace_invitations")
 }
 
 model RefreshToken {
@@ -559,7 +617,140 @@ export class SendOtpDto {
 
 ---
 
-## 5.7 POST /auth/logout
+## 5.7 POST /workspaces/:workspaceId/invitations
+
+**[VI] Mô tả:** OWNER hoặc ADMIN gửi lời mời tham gia workspace đến số điện thoại.
+**Auth required:** ✅ JWT + Workspace
+**Permission:** `WORKSPACE_MEMBER_INVITE`
+
+**Request Body:**
+```json
+{
+  "phone": "+84901234567",
+  "role_code": "SALES"
+}
+```
+
+**Response 201:**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "invited_phone": "+84901234567",
+    "role": "SALES",
+    "status": "pending",
+    "expires_at": "2026-03-09T00:00:00Z"
+  }
+}
+```
+
+**Error Codes:**
+
+| Code | HTTP | Khi nào |
+|------|------|---------|
+| `INVITATION_ALREADY_PENDING` | 409 | Phone đã có invitation pending trong workspace này |
+| `MEMBER_ALREADY_EXISTS` | 409 | User đã là thành viên workspace |
+| `ROLE_NOT_FOUND` | 404 | Role code không hợp lệ |
+| `FORBIDDEN` | 403 | Không phải OWNER/ADMIN |
+
+---
+
+## 5.8 GET /me/invitations
+
+**[VI] Mô tả:** Lấy danh sách lời mời đang chờ phản hồi của user hiện tại.
+**Auth required:** ✅ JWT (bất kỳ workspace)
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "token": "uuid-token",
+      "workspace": {
+        "id": "uuid",
+        "name": "ABC Real Estate",
+        "type": "COMPANY"
+      },
+      "invited_by": {
+        "id": "uuid",
+        "phone": "+84900000001"
+      },
+      "role": "SALES",
+      "expires_at": "2026-03-09T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## 5.9 POST /invitations/:token/accept
+
+**[VI] Mô tả:** User chấp nhận lời mời → trở thành thành viên workspace.
+**Auth required:** ✅ JWT (bất kỳ workspace)
+
+**Response 200:**
+```json
+{
+  "data": {
+    "workspace": {
+      "id": "uuid",
+      "name": "ABC Real Estate",
+      "type": "COMPANY"
+    },
+    "role": "SALES",
+    "message": "Joined workspace successfully"
+  }
+}
+```
+
+**Error Codes:**
+
+| Code | HTTP | Khi nào |
+|------|------|---------|
+| `INVITATION_NOT_FOUND` | 404 | Token không tồn tại |
+| `INVITATION_EXPIRED` | 400 | Invitation quá 7 ngày |
+| `INVITATION_ALREADY_RESPONDED` | 409 | Đã accept hoặc decline trước đó |
+| `INVITATION_PHONE_MISMATCH` | 403 | Phone của JWT user khác với phone được mời |
+
+---
+
+## 5.10 POST /invitations/:token/decline
+
+**[VI] Mô tả:** User từ chối lời mời.
+**Auth required:** ✅ JWT (bất kỳ workspace)
+
+**Response 200:**
+```json
+{ "data": { "message": "Invitation declined" } }
+```
+
+**Error Codes:** (giống 5.9, trừ INVITATION_PHONE_MISMATCH vẫn áp dụng)
+
+---
+
+## 5.11 DELETE /workspaces/:workspaceId/invitations/:invitationId
+
+**[VI] Mô tả:** OWNER/ADMIN huỷ lời mời đang pending.
+**Auth required:** ✅ JWT + Workspace
+**Permission:** `WORKSPACE_MEMBER_INVITE`
+
+**Response 200:**
+```json
+{ "data": { "message": "Invitation cancelled" } }
+```
+
+**Error Codes:**
+
+| Code | HTTP | Khi nào |
+|------|------|---------|
+| `INVITATION_NOT_FOUND` | 404 | Không tồn tại |
+| `INVITATION_ALREADY_RESPONDED` | 409 | Đã được phản hồi, không huỷ được |
+
+---
+
+## 5.12 POST /auth/logout
 
 **[VI] Mô tả:** Đăng xuất — thu hồi refresh token.
 **Auth required:** ✅ JWT
@@ -645,7 +836,66 @@ POST /auth/switch-workspace:
 
 ---
 
-## 6.4 Token Refresh
+## 6.4 Workspace Invitation — Gửi lời mời
+
+**[VI] Mô tả:** OWNER/ADMIN mời user bằng số điện thoại vào workspace.
+
+```
+POST /workspaces/:workspaceId/invitations:
+1. Xác thực JWT + kiểm tra requester có role OWNER hoặc ADMIN
+2. Validate phone format
+3. Tìm user theo phone → lấy invited_user_id (nullable nếu chưa đăng ký)
+4. Kiểm tra user chưa là member: workspace_members WHERE workspace_id=? AND user_id=?
+   → Nếu đã là member → MEMBER_ALREADY_EXISTS
+5. Kiểm tra không có invitation pending:
+   workspace_invitations WHERE workspace_id=? AND invited_phone=? AND status=0
+   → Nếu có → INVITATION_ALREADY_PENDING
+6. Validate role_code tồn tại trong bảng roles
+7. Tạo WorkspaceInvitation record:
+   - token = uuid()
+   - expires_at = now() + 7 ngày
+   - status = 0 (pending)
+8. Gửi thông báo đến invited_phone (SMS hoặc in-app push nếu user đã có app)
+9. Return invitation info
+```
+
+**Error paths:**
+- Requester không phải OWNER/ADMIN → `FORBIDDEN`
+- Phone đã có invitation pending → `INVITATION_ALREADY_PENDING`
+- Phone user đã là member → `MEMBER_ALREADY_EXISTS`
+
+---
+
+## 6.5 Workspace Invitation — Accept / Decline
+
+**[VI] Mô tả:** User phản hồi lời mời tham gia workspace.
+
+```
+POST /invitations/:token/accept:
+1. Tìm invitation theo token → nếu không có → INVITATION_NOT_FOUND
+2. Kiểm tra status = 0 (pending) → nếu != 0 → INVITATION_ALREADY_RESPONDED
+3. Kiểm tra expires_at > now() → nếu hết hạn → INVITATION_EXPIRED
+4. Kiểm tra invited_phone == req.user.phone → nếu không khớp → INVITATION_PHONE_MISMATCH
+5. Tạo WorkspaceMember record:
+   - workspace_id, user_id (req.user.userId), role_id từ invitation
+   - status = 1 (active)
+6. Cập nhật WorkspaceInvitation:
+   - status = 1 (accepted)
+   - responded_at = now()
+   - invited_user_id = req.user.userId (nếu trước đó null)
+7. Return workspace info + role
+
+POST /invitations/:token/decline:
+1-4. Giống accept
+5. Cập nhật WorkspaceInvitation:
+   - status = 2 (declined)
+   - responded_at = now()
+6. Return confirmation
+```
+
+---
+
+## 6.6 Token Refresh
 
 ```
 POST /auth/refresh:
@@ -742,7 +992,11 @@ src/modules/
       require-permission.decorator.ts
   workspace/
     workspace.module.ts
+    workspace.controller.ts
     workspace.service.ts
+    invitation.service.ts
+    dto/
+      invite-member.dto.ts
   user/
     user.module.ts
     user.service.ts
@@ -783,6 +1037,14 @@ File: `src/modules/auth/auth.service.spec.ts`
 - [ ] ❌ `refreshToken`: Refresh token đã revoke → `REFRESH_TOKEN_REVOKED`
 - [ ] ❌ `refreshToken`: Device mismatch → `DEVICE_MISMATCH`
 - [ ] ❌ Request thiếu signature → `SIGNATURE_INVALID`
+- [ ] ✅ `sendInvitation`: OWNER gửi invite → tạo invitation record
+- [ ] ✅ `acceptInvitation`: User accept → tạo workspace_member record
+- [ ] ✅ `declineInvitation`: User decline → cập nhật status=2
+- [ ] ❌ `sendInvitation`: Phone đã là member → `MEMBER_ALREADY_EXISTS`
+- [ ] ❌ `sendInvitation`: Đã có invitation pending → `INVITATION_ALREADY_PENDING`
+- [ ] ❌ `sendInvitation`: Role SALES gửi invite → `FORBIDDEN`
+- [ ] ❌ `acceptInvitation`: Invitation hết hạn → `INVITATION_EXPIRED`
+- [ ] ❌ `acceptInvitation`: Phone mismatch → `INVITATION_PHONE_MISMATCH`
 
 ---
 
@@ -796,6 +1058,12 @@ File: `src/modules/auth/auth.service.spec.ts`
 ✅ API signature invalid/expired → request bị reject
 ✅ OTP hết hạn sau 120 giây
 ✅ Refresh token xoay vòng (rotate on use)
+✅ OWNER/ADMIN gửi invitation đến số điện thoại bất kỳ
+✅ User nhận và thấy danh sách invitations pending
+✅ Accept invitation → tự động trở thành member với đúng role
+✅ Decline invitation → không ảnh hưởng gì
+✅ Invitation hết hạn sau 7 ngày
+✅ Không thể accept invitation bằng tài khoản khác phone
 ✅ Tất cả unit test pass
 
 ---
@@ -830,7 +1098,12 @@ Rollback:
 - **OTP Storage:** Lưu trong Redis với TTL=120s, key = `otp:{phone}`, value = `{ code, attempts }`
 - **Refresh token rotation:** Mỗi lần refresh → revoke token cũ, issue token mới. Implement sliding window.
 - **Google + Phone linking:** Nếu email trùng với user đã đăng ký bằng phone → merge account, không tạo mới
-- **Out of scope (MVP này):** Invite member vào company workspace, tạo company workspace — thuộc MVP sau
+- **Invitation expiry job:** Cần cron job (hoặc check on-demand) để expire invitation quá 7 ngày. Set `status=3`.
+- **Invitation + unregistered user:** Nếu invited_phone chưa có tài khoản → sau khi đăng ký bằng số đó, hệ thống tự link `invited_user_id` và hiện invitation pending.
+- **Microservice context:** MVP-01 thuộc **auth-service**. Xem CLAUDE.md — System Architecture để biết service split rules.
+- **File upload:** MVP này không có file upload. Xem CLAUDE.md — File Upload MinIO cho kiến trúc upload.
+- **Frontend quality:** Trang login/auth phải đạt Lighthouse Performance ≥ 95, SEO ≥ 95. Xem CLAUDE.md — Frontend Quality Standards.
+- **Out of scope (MVP này):** Tạo Company Workspace (user tự tạo), quản lý member sau khi join — thuộc MVP sau
 
 ---
 

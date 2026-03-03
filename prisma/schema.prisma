@@ -1,0 +1,216 @@
+// ============================================================
+// PropCart CRM — Prisma Schema
+// MVP-01: Authentication & Workspace User Management
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USERS
+// ============================================================
+
+model User {
+  id           String   @id @default(uuid())
+  phone        String?  @unique
+  email        String?
+  googleId     String?  @unique
+  passwordHash String?
+  status       Int      @default(1) // 1=active, 0=inactive, 2=banned
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ownedWorkspaces     Workspace[]
+  memberships         WorkspaceMember[]
+  devices             UserDevice[]
+  refreshTokens       RefreshToken[]
+  sentInvitations     WorkspaceInvitation[] @relation("InvitedBy")
+  receivedInvitations WorkspaceInvitation[] @relation("InvitedUser")
+
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================================
+// WORKSPACES
+// ============================================================
+
+model Workspace {
+  id          String   @id @default(uuid())
+  type        String   // 'PERSONAL' | 'COMPANY'
+  name        String
+  ownerUserId String
+  status      Int      @default(1) // 1=active, 0=inactive
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  owner       User                  @relation(fields: [ownerUserId], references: [id])
+  members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
+
+  @@index([ownerUserId])
+  @@index([type])
+  @@map("workspaces")
+}
+
+// ============================================================
+// WORKSPACE MEMBERS ⭐ CRITICAL TABLE
+// ============================================================
+
+model WorkspaceMember {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String
+  roleId      String
+  status      Int      @default(1) // 1=active, 0=inactive
+  joinedAt    DateTime @default(now())
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  role      Role      @relation(fields: [roleId], references: [id])
+
+  @@unique([workspaceId, userId])
+  @@index([userId, workspaceId])
+  @@index([roleId])
+  @@map("workspace_members")
+}
+
+// ============================================================
+// ROLES
+// ============================================================
+
+model Role {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  members     WorkspaceMember[]
+  permissions RolePermission[]
+  invitations WorkspaceInvitation[]
+
+  @@map("roles")
+}
+
+// ============================================================
+// PERMISSIONS
+// ============================================================
+
+model Permission {
+  id     String @id @default(uuid())
+  code   String @unique
+  name   String
+  module String
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  roles RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+// ============================================================
+// ROLE PERMISSIONS
+// ============================================================
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================================
+// USER DEVICES (Device Binding)
+// ============================================================
+
+model UserDevice {
+  id         String   @id @default(uuid())
+  userId     String
+  deviceHash String
+  platform   String?  // 'ios' | 'android' | 'web'
+  lastActive DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id])
+  refreshTokens RefreshToken[]
+
+  @@unique([userId, deviceHash])
+  @@map("user_devices")
+}
+
+// ============================================================
+// WORKSPACE INVITATIONS
+// ============================================================
+
+model WorkspaceInvitation {
+  id                String    @id @default(uuid())
+  workspaceId       String
+  invitedByUserId   String
+  invitedPhone      String
+  invitedUserId     String?
+  roleId            String
+  token             String    @unique @default(uuid())
+  status            Int       @default(0) // 0=pending, 1=accepted, 2=declined, 3=expired, 4=cancelled
+  expiresAt         DateTime
+  respondedAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  // Relations (named to disambiguate two User relations)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  invitedBy   User      @relation("InvitedBy", fields: [invitedByUserId], references: [id])
+  invitedUser User?     @relation("InvitedUser", fields: [invitedUserId], references: [id])
+  role        Role      @relation(fields: [roleId], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([invitedPhone, status])
+  @@index([invitedUserId, status])
+  @@map("workspace_invitations")
+}
+
+// ============================================================
+// REFRESH TOKENS
+// ============================================================
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  deviceId    String
+  workspaceId String
+  tokenHash   String   @unique // SHA-256 of raw token (deterministic for indexed lookup)
+  expiresAt   DateTime
+  revoked     Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user   User       @relation(fields: [userId], references: [id])
+  device UserDevice @relation(fields: [deviceId], references: [id])
+
+  @@index([userId, deviceId])
+  @@map("refresh_tokens")
+}
