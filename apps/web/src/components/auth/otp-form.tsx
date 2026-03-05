@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 import apiClient from '@/lib/api-client';
 import { getDeviceHash } from '@/lib/auth';
 import type { User, Workspace } from '@/types';
@@ -14,6 +15,7 @@ interface OtpFormProps {
 }
 
 export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
+  const { t } = useI18n();
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120);
@@ -31,11 +33,11 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
   const handleResend = async () => {
     try {
       await apiClient.post('/auth/phone/send-otp', { phone });
-      toast.success('Đã gửi lại mã OTP');
+      toast.success(t('invitations.acceptSuccess'));
       setTimeLeft(120);
       setCanResend(false);
     } catch {
-      toast.error('Không thể gửi lại OTP');
+      toast.error(t('auth.errors.loginFailed'));
     }
   };
 
@@ -57,10 +59,10 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
       onSuccess(access_token, refresh_token, user, workspace);
     } catch (err: unknown) {
       const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
-      if (code === 'OTP_INVALID') toast.error('Mã OTP không đúng');
+      if (code === 'OTP_INVALID') toast.error(t('auth.errors.invalidOtp'));
       else if (code === 'OTP_MAX_ATTEMPTS')
-        toast.error('Nhập sai quá nhiều lần. Vui lòng gửi lại OTP');
-      else toast.error('Xác thực thất bại');
+        toast.error(t('auth.errors.invalidOtp'));
+      else toast.error(t('auth.errors.loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -73,13 +75,13 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <span>
-          Mã OTP đã gửi đến <strong className="text-gray-800">{phone}</strong>
+          {t('auth.login.otpSentTo')} <strong className="text-gray-800">{phone}</strong>
         </span>
       </div>
 
       <div className="space-y-2">
         <label htmlFor="otp" className="text-sm font-medium text-gray-700">
-          Nhập mã OTP (6 chữ số)
+          {t('auth.login.enterOtp')}
         </label>
         <div className="relative">
           <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -104,11 +106,11 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
             onClick={handleResend}
             className="text-blue-600 hover:underline font-medium"
           >
-            Gửi lại OTP
+            {t('auth.login.resendOtp')}
           </button>
         ) : (
           <span>
-            Gửi lại sau <strong className="text-gray-700">{timeLeft}s</strong>
+            {t('auth.login.timeRemaining')} <strong className="text-gray-700">{timeLeft}s</strong>
           </span>
         )}
       </div>
@@ -119,7 +121,7 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
         className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {isLoading ? 'Đang xác nhận...' : 'Xác nhận'}
+        {isLoading ? t('common.loading') : t('auth.login.verifyOtp')}
       </button>
     </form>
   );

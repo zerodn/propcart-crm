@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useI18n } from './i18n-provider';
 import {
   setTokens,
   clearTokens,
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [state, setState] = useState<AuthState>({
     user: null,
     workspace: null,
@@ -137,10 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: payload?.role ?? s.role,
           workspaceType: payload?.workspaceType ?? s.workspaceType,
         }));
-        toast.success(`Đã chuyển sang workspace "${workspace.name}"`);
+        toast.success(t('workspace.switchSuccess', { name: workspace.name }));
         router.refresh();
       } catch {
-        toast.error('Không thể chuyển workspace');
+        toast.error(t('workspace.switchError'));
       }
     },
     [router],

@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, MailCheck, Save } from 'lucide-react';
-import { useProfile } from '@/hooks/use-profile';
+import { CheckCircle2, Loader2, MailCheck, Save, Upload, Trash2, FileText, Download } from 'lucide-react';
+import { DocumentTypeOption, DocumentTypeValue, useProfile } from '@/hooks/use-profile';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
+import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
+import type { UserDocument } from '@/types';
 
 interface LocationItem {
   code: number;
@@ -45,8 +48,23 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function ProfilePage() {
+  const { t } = useI18n();
   const { refreshProfile } = useAuth();
-  const { profile, isLoading, isSaving, updateProfile, sendEmailVerification } = useProfile();
+  const {
+    profile,
+    documents,
+    isLoading,
+    isSaving,
+    updateProfile,
+    sendEmailVerification,
+    uploadDocument,
+    updateDocumentType,
+    deleteDocument,
+    downloadDocument,
+    fetchDocumentBlob,
+    activeDocumentType,
+    setDocumentTypeFilter,
+  } = useProfile();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [provinces, setProvinces] = useState<LocationItem[]>([]);
@@ -54,6 +72,13 @@ export default function ProfilePage() {
   const [locationLoading, setLocationLoading] = useState(true);
   const [wardLoading, setWardLoading] = useState(false);
   const [sendingVerify, setSendingVerify] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [uploadDocumentType, setUploadDocumentType] = useState<Exclude<DocumentTypeOption, 'ALL'>>('OTHER');
+  const [updatingTypeDocumentId, setUpdatingTypeDocumentId] = useState<string | null>(null);
+  const [previewingDocument, setPreviewingDocument] = useState<UserDocument | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewMimeType, setPreviewMimeType] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const loadProvinceWards = async (provinceCode: string) => {
     const response = await fetch(
@@ -165,6 +190,76 @@ export default function ProfilePage() {
       setSendingVerify(false);
     }
   };
+
+  const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDocument(true);
+    try {
+      await uploadDocument(file, uploadDocumentType);
+    } finally {
+      setUploadingDocument(false);
+      e.target.value = '';
+    }
+  };
+
+  const DOCUMENT_TYPE_LABELS: Record<DocumentTypeOption, string> = {
+    ALL: t('common.all'),
+    CCCD: t('profile.documents.types.CCCD'),
+    HDLD: t('profile.documents.types.HDLD'),
+    CHUNG_CHI: t('profile.documents.types.CHUNG_CHI'),
+    OTHER: t('profile.documents.types.OTHER'),
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const closePreviewDialog = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl('');
+    setPreviewMimeType('');
+    setPreviewingDocument(null);
+    setPreviewLoading(false);
+  };
+
+  const openPreviewDialog = async (doc: UserDocument) => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+    }
+
+    setPreviewingDocument(doc);
+    setPreviewLoading(true);
+    try {
+      const blob = await fetchDocumentBlob(doc);
+      setPreviewMimeType(blob.type || doc.fileType);
+      setPreviewUrl(window.URL.createObjectURL(blob));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleDocumentTypeChange = async (docId: string, newType: string) => {
+    setUpdatingTypeDocumentId(docId);
+    try {
+      await updateDocumentType(docId, newType as DocumentTypeValue);
+    } finally {
+      setUpdatingTypeDocumentId(null);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        window.URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   if (isLoading) {
     return <div className="text-sm text-gray-500">Dang tai profile...</div>;
@@ -296,7 +391,130 @@ export default function ProfilePage() {
             Luu thong tin
           </button>
         </div>
+
+        <div className="pt-6 border-t border-gray-200 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Tai lieu lien quan</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Ho tro PDF, DOC, DOCX, PNG, JPG (toi da 20MB)</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={uploadDocumentType}
+                onChange={(e) => setUploadDocumentType(e.target.value as Exclude<DocumentTypeOption, 'ALL'>)}
+                className="px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
+              >
+                <option value="CCCD">Loai: CCCD</option>
+                <option value="HDLD">Loai: HDLD</option>
+                <option value="CHUNG_CHI">Loai: Chung chi</option>
+                <option value="OTHER">Loai: Khac</option>
+              </select>
+
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer">
+                {uploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Tai len
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  onChange={handleUploadDocument}
+                  disabled={uploadingDocument}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-600">Loc theo loai</label>
+            <select
+              value={activeDocumentType}
+              onChange={(e) => setDocumentTypeFilter(e.target.value as DocumentTypeOption)}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
+            >
+              <option value="ALL">Tat ca</option>
+              <option value="CCCD">CCCD</option>
+              <option value="HDLD">HDLD</option>
+              <option value="CHUNG_CHI">Chung chi</option>
+              <option value="OTHER">Khac</option>
+            </select>
+          </div>
+
+          {documents.length === 0 ? (
+            <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4">
+              Chua co tai lieu nao duoc tai len.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between gap-3 border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => openPreviewDialog(doc)}
+                        className="text-sm font-medium text-blue-600 hover:underline truncate block text-left"
+                      >
+                        {doc.fileName}
+                      </button>
+                      <p className="text-xs text-gray-500">
+                        {DOCUMENT_TYPE_LABELS[doc.documentType]} • {formatFileSize(doc.fileSize)} •{' '}
+                        {new Date(doc.createdAt).toLocaleString('vi-VN')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={doc.documentType}
+                      onChange={(e) => handleDocumentTypeChange(doc.id, e.target.value)}
+                      disabled={updatingTypeDocumentId === doc.id}
+                      className="px-2 py-1.5 rounded-md border border-gray-300 bg-white text-xs"
+                      aria-label="document-type"
+                    >
+                      <option value="CCCD">CCCD</option>
+                      <option value="HDLD">HDLD</option>
+                      <option value="CHUNG_CHI">Chung chi</option>
+                      <option value="OTHER">Khac</option>
+                    </select>
+                    {updatingTypeDocumentId === doc.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-500" aria-label="document-type-updating" />
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => downloadDocument(doc)}
+                      className="p-2 rounded-lg text-blue-600 hover:bg-blue-50"
+                      aria-label="download-document"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteDocument(doc.id)}
+                      className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                      aria-label="delete-document"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </form>
+
+      <DocumentPreviewDialog
+        isOpen={Boolean(previewingDocument)}
+        isLoading={previewLoading}
+        fileName={previewingDocument?.fileName || 'Tai lieu'}
+        mimeType={previewMimeType}
+        previewUrl={previewUrl}
+        onClose={closePreviewDialog}
+        onDownload={() => {
+          if (!previewingDocument) return;
+          void downloadDocument(previewingDocument);
+        }}
+      />
     </div>
   );
 }

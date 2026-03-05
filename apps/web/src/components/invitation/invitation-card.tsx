@@ -7,6 +7,7 @@ import apiClient from '@/lib/api-client';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import type { Invitation } from '@/types';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/providers/i18n-provider';
 
 interface InvitationCardProps {
   invitation: Invitation;
@@ -14,6 +15,7 @@ interface InvitationCardProps {
 }
 
 export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
+  const { t } = useI18n();
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [showDeclineForm, setShowDeclineForm] = useState(false);
@@ -27,10 +29,10 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
     setAccepting(true);
     try {
       await apiClient.post(`/invitations/${invitation.token}/accept`);
-      toast.success(`Đã tham gia workspace "${invitation.workspace.name}"`);
+      toast.success(t('invitations.acceptSuccess', { name: invitation.workspace.name }));
       onUpdate();
     } catch {
-      toast.error('Không thể chấp nhận lời mời');
+      toast.error(t('invitations.acceptError'));
     } finally {
       setAccepting(false);
     }
@@ -40,10 +42,10 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
     setDeclining(true);
     try {
       await apiClient.post(`/invitations/${invitation.token}/decline`, { reason });
-      toast.success('Đã từ chối lời mời');
+      toast.success(t('invitations.declineSuccess'));
       onUpdate();
     } catch {
-      toast.error('Không thể từ chối lời mời');
+      toast.error(t('invitations.declineError'));
     } finally {
       setDeclining(false);
       setShowDeclineForm(false);
@@ -60,7 +62,7 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-900">{invitation.workspace.name}</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            {invitation.workspace.type === 'COMPANY' ? 'Doanh nghiệp' : 'Cá nhân'}
+            {invitation.workspace.type === 'COMPANY' ? t('header.workspaceCompany') : t('header.workspacePersonal')}
           </p>
 
           <div className="flex items-center gap-2 mt-2">
@@ -79,7 +81,7 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
               )}
             >
               <Clock className="h-3 w-3" />
-              {isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`}
+              {isExpired ? t('invitations.expired') : t('invitations.daysLeft', { days: daysLeft })}
             </span>
           </div>
         </div>
@@ -99,7 +101,7 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
                 ) : (
                   <CheckCircle className="h-3.5 w-3.5" />
                 )}
-                Chấp nhận
+                {t('invitations.accept')}
               </button>
               <button
                 onClick={() => setShowDeclineForm(true)}
@@ -111,7 +113,7 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
                 ) : (
                   <XCircle className="h-3.5 w-3.5" />
                 )}
-                Từ chối
+                {t('invitations.decline')}
               </button>
             </div>
           )}
@@ -121,7 +123,7 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
               <textarea
                 value={declineReason}
                 onChange={(e) => setDeclineReason(e.target.value)}
-                placeholder="Lý do từ chối (tùy chọn)"
+                placeholder={t('invitations.declineReasonPlaceholder')}
                 className="w-full border border-gray-300 rounded-lg p-2 text-sm resize-none"
                 rows={3}
               />
@@ -136,14 +138,14 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
                   ) : (
                     <XCircle className="h-3.5 w-3.5" />
                   )}
-                  Xác nhận từ chối
+                  {t('invitations.confirmDecline')}
                 </button>
                 <button
                   onClick={() => setShowDeclineForm(false)}
                   disabled={accepting || declining}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

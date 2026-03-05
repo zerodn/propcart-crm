@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Bell, CheckCircle, Mail, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useI18n } from '@/providers/i18n-provider';
 import apiClient from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,7 @@ export interface NotificationItem {
 }
 
 export default function NotificationsPage() {
+  const { t } = useI18n();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function NotificationsPage() {
       const items = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
       setNotifications(items);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể tải thông báo';
+      const message = err instanceof Error ? err.message : t('notifications.loadError');
       setError(message);
       toast.error(message);
     } finally {
@@ -44,7 +46,7 @@ export default function NotificationsPage() {
       await apiClient.patch(`/me/notifications/${id}/read`);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     } catch (err) {
-      toast.error('Không thể đánh dấu thông báo');
+      toast.error(t('notifications.markError'));
     }
   };
 
@@ -52,9 +54,9 @@ export default function NotificationsPage() {
     try {
       await apiClient.delete(`/me/notifications/${id}`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      toast.success('Xóa thông báo thành công');
+      toast.success(t('notifications.deleteSuccess'));
     } catch (err) {
-      toast.error('Không thể xóa thông báo');
+      toast.error(t('notifications.deleteError'));
     }
   };
 
@@ -72,11 +74,11 @@ export default function NotificationsPage() {
   const getNotificationMessage = (type: string, payload: any) => {
     switch (type) {
       case 'INVITATION':
-        return `Bạn được mời tham gia workspace: ${payload.workspaceName || 'N/A'}`;
+        return t('notifications.invitationMessage', { workspaceName: payload.workspaceName || 'N/A' });
       case 'PAYMENT':
-        return `Thanh toán thành công: ${payload.amount || 'N/A'}`;
+        return t('notifications.paymentMessage', { amount: payload.amount || 'N/A' });
       default:
-        return 'Thông báo mới';
+        return t('notifications.defaultMessage');
     }
   };
 
@@ -121,9 +123,9 @@ export default function NotificationsPage() {
       {!isLoading && notifications.length === 0 && (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-          <p className="font-medium text-gray-900">Không có thông báo nào</p>
+          <p className="font-medium text-gray-900">{t('notifications.emptyState')}</p>
           <p className="text-sm text-gray-500 mt-1">
-            Bạn sẽ nhận được thông báo khi có sự kiện quan trọng
+            {t('notifications.emptyDesc')}
           </p>
         </div>
       )}
@@ -132,7 +134,7 @@ export default function NotificationsPage() {
       {!isLoading && notifications.length > 0 && (
         <div className="space-y-3">
           <div className="text-xs font-medium text-gray-500 uppercase tracking-wide px-1">
-            Tổng: {notifications.length} thông báo
+            {t('notifications.total', { count: notifications.length })}
           </div>
           {notifications.map((notification) => (
             <div

@@ -5,6 +5,15 @@ import { User, UserDevice } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { MailService } from '../../common/mail/mail.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { MinioService } from '../../common/storage/minio.service';
+import { DocumentTypeValue } from './constants/document-type.constants';
+
+interface UploadedDocumentFile {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+}
 
 @Injectable()
 export class UserService {
@@ -12,6 +21,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly minioService: MinioService,
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -238,5 +248,176 @@ export class UserService {
     });
 
     return { data: { message: 'Email verified successfully' } };
+  }
+
+  async listDocuments(userId: string, documentType?: DocumentTypeValue) {
+    const documents = await this.prisma.userDocument.findMany({
+      where: {
+        userId,
+        ...(documentType ? { documentType } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        documentType: true,
+        fileName: true,
+        fileType: true,
+        fileSize: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      data: documents.map((document) => ({
+        ...document,
+        downloadUrl: `/me/profile/documents/${document.id}/download`,
+      })),
+    };
+  }
+
+  async uploadDocument(
+    userId: string,
+    workspaceId: string,
+    documentType: DocumentTypeValue,
+    file?: UploadedDocumentFile,
+  ) {
+    if (!file) {
+      throw new HttpException(
+        { code: 'FILE_REQUIRED', message: 'Document file is required' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      throw new HttpException(
+        { code: 'FILE_TOO_LARGE', message: 'Max file size is 20MB' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+    ];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new HttpException(
+        { code: 'FILE_TYPE_INVALID', message: 'Only PDF, DOC, DOCX, PNG, JPG are supported' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const uploaded = await this.minioService.uploadUserDocument(userId, file);
+
+    const document = await this.prisma.userDocument.create({
+      data: {
+        userId,
+        workspaceId: workspaceId || null,
+        documentType,
+        fileName: file.originalname,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        objectKey: uploaded.objectKey,
+        fileUrl: uploaded.fileUrl,
+      },
+      select: {
+        id: true,
+        documentType: true,
+        fileName: true,
+        fileType: true,
+        fileSize: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      data: {
+        ...document,
+        downloadUrl: `/me/profile/documents/${document.id}/download`,
+      },
+    };
+  }
+
+  async getDocumentDownload(userId: string, documentId: string) {
+    const document = await this.prisma.userDocument.findFirst({
+      where: { id: documentId, userId },
+      select: {
+        id: true,
+        fileName: true,
+        fileType: true,
+        objectKey: true,
+      },
+    });
+
+    if (!document) {
+      throw new HttpException(
+        { code: 'DOCUMENT_NOT_FOUND', message: 'Document not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const object = await this.minioService.getObject(document.objectKey);
+    return {
+      stream: object.stream,
+      size: object.size,
+      fileName: document.fileName,
+      fileType: document.fileType,
+    };
+  }
+
+  async deleteDocument(userId: string, documentId: string) {
+    const document = await this.prisma.userDocument.findFirst({
+      where: { id: documentId, userId },
+      select: { id: true, objectKey: true },
+    });
+
+    if (!document) {
+      throw new HttpException(
+        { code: 'DOCUMENT_NOT_FOUND', message: 'Document not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    await this.prisma.userDocument.delete({ where: { id: document.id } });
+    await this.minioService.deleteObject(document.objectKey);
+
+    return { data: { message: 'Document deleted' } };
+  }
+
+  async updateDocumentType(userId: string, documentId: string, documentType: DocumentTypeValue) {
+    const document = await this.prisma.userDocument.findFirst({
+      where: { id: documentId, userId },
+      select: { id: true },
+    });
+
+    if (!document) {
+      throw new HttpException(
+        { code: 'DOCUMENT_NOT_FOUND', message: 'Document not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const updated = await this.prisma.userDocument.update({
+      where: { id: document.id },
+      data: { documentType },
+      select: {
+        id: true,
+        documentType: true,
+        fileName: true,
+        fileType: true,
+        fileSize: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      data: {
+        ...updated,
+        downloadUrl: `/me/profile/documents/${updated.id}/download`,
+      },
+    };
   }
 }

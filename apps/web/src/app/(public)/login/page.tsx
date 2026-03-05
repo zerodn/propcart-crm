@@ -6,6 +6,8 @@ import { Building2 } from 'lucide-react';
 import { PhoneForm } from '@/components/auth/phone-form';
 import { OtpForm } from '@/components/auth/otp-form';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import type { User, Workspace } from '@/types';
 
 type Step = 'phone' | 'otp';
@@ -13,6 +15,7 @@ type Step = 'phone' | 'otp';
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
 
@@ -33,6 +36,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -47,12 +55,12 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              {step === 'phone' ? 'Đăng nhập' : 'Xác thực OTP'}
+              {step === 'phone' ? t('auth.login.title') : t('auth.login.enterOtp')}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               {step === 'phone'
-                ? 'Nhập số điện thoại để nhận mã OTP'
-                : 'Kiểm tra SMS và nhập mã 6 chữ số'}
+                ? t('auth.login.enterPhone')
+                : t('auth.login.verifyOtp')}
             </p>
           </div>
 

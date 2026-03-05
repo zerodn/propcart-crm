@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ClipboardList, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 import { useCatalog } from '@/hooks/use-catalog';
 import { CatalogForm } from '@/components/catalog/catalog-form';
 import { CatalogValuesDialog } from '@/components/catalog/catalog-values-dialog';
@@ -10,6 +11,7 @@ import { CATALOG_TYPES } from '@/types';
 import type { CatalogItem } from '@/hooks/use-catalog';
 
 export default function CatalogPage() {
+  const { t } = useI18n();
   const { items, isLoading, error, create, update, delete: deleteCatalog } = useCatalog();
   const [showForm, setShowForm] = useState(false);
   const [showValuesDialog, setShowValuesDialog] = useState(false);
@@ -85,10 +87,10 @@ export default function CatalogPage() {
             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
               <ClipboardList className="h-5 w-5 text-blue-600" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Quản lý Danh mục</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('catalog.title')}</h1>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Quản lý các danh mục được sử dụng trong hệ thống
+            {t('catalog.subtitle')}
           </p>
         </div>
         <button

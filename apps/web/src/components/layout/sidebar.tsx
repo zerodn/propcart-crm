@@ -4,29 +4,30 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Building2, Mail, Users, LogOut, ClipboardList, Shield, Briefcase, Bell, UserCircle2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
 import { WorkspaceSwitcher } from '@/components/workspace/workspace-switcher';
 import { cn } from '@/lib/utils';
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/workspaces', label: 'Workspaces', icon: Building2 },
-  { href: '/invitations', label: 'Lời mời', icon: Mail },
-  { href: '/notifications', label: 'Thông báo', icon: Bell },
-  { href: '/profile', label: 'Hồ sơ cá nhân', icon: UserCircle2 },
-];
-
-// links shown to owners/admins under "Quản lý" group
-const adminNavItems = [
-  { href: '/workspace/members', label: 'Thành viên', icon: Users },
-  { href: '/department', label: 'Phòng ban', icon: Briefcase },
-  { href: '/catalog', label: 'Danh mục', icon: ClipboardList },
-  { href: '/permissions', label: 'Quyền', icon: Shield },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { logout, role } = useAuth();
+  const { t } = useI18n();
   const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
+
+  const navItems = [
+    { href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard },
+    { href: '/workspaces', label: t('sidebar.workspaces'), icon: Building2 },
+    { href: '/invitations', label: t('sidebar.invitations'), icon: Mail },
+    { href: '/notifications', label: t('sidebar.notifications'), icon: Bell },
+    { href: '/profile', label: t('sidebar.profile'), icon: UserCircle2 },
+  ];
+
+  const adminNavItems = [
+    { href: '/workspace/members', label: t('sidebar.members'), icon: Users },
+    { href: '/department', label: t('sidebar.departments'), icon: Briefcase },
+    { href: '/catalog', label: t('sidebar.catalogs'), icon: ClipboardList },
+    { href: '/permissions', label: t('sidebar.permissions'), icon: Shield },
+  ];
 
   return (
     <aside className="w-64 border-r border-gray-200 bg-white flex flex-col h-full">
@@ -63,7 +64,7 @@ export function Sidebar() {
           <>
             <div className="pt-3 pb-1">
               <p className="text-xs font-medium text-gray-400 px-3 uppercase tracking-wider">
-                Quản lý
+                {t('sidebar.management')}
               </p>
             </div>
             {adminNavItems.map(({ href, label, icon: Icon }) => (
@@ -92,7 +93,7 @@ export function Sidebar() {
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
         >
           <LogOut className="h-4 w-4" />
-          Đăng xuất
+          {t('sidebar.logout')}
         </button>
       </div>
     </aside>

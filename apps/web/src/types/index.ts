@@ -23,6 +23,16 @@ export interface User {
   emailVerifiedAt?: string | null;
 }
 
+export interface UserDocument {
+  id: string;
+  documentType: 'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER';
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  downloadUrl: string;
+  createdAt: string;
+}
+
 export interface Workspace {
   id: string;
   type: 'PERSONAL' | 'COMPANY';

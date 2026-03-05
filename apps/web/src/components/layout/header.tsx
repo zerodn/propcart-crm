@@ -5,6 +5,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export function Header() {
   const { user, workspace, role } = useAuth();
@@ -30,18 +31,8 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Language switcher placeholder */}
-        <div className="hidden sm:block">
-          <select
-            aria-label="language"
-            className="border rounded px-2 py-1 text-sm"
-            onChange={(e) => setLocale(e.target.value as any)}
-            value={locale}
-          >
-            <option value="vi">Vietnamese</option>
-            <option value="en">English</option>
-          </select>
-        </div>
+        {/* Language switcher */}
+        <LanguageSwitcher />
         {/* Notification bell */}
         <button
           aria-label="notifications"

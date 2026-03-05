@@ -3,34 +3,36 @@
 import { Building2, Users, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { user, workspace, role, workspaceType } = useAuth();
+  const { t } = useI18n();
 
   const quickActions = [
     {
-      label: 'Danh sách Workspaces',
+      label: t('dashboard.workspacesListLabel'),
       href: '/workspaces',
       icon: Building2,
-      desc: 'Quản lý và chuyển đổi workspace',
+      desc: t('dashboard.workspacesListDesc'),
     },
-    { label: 'Lời mời', href: '/invitations', icon: Mail, desc: 'Xem và xử lý lời mời' },
+    { label: t('dashboard.invitationsLabel'), href: '/invitations', icon: Mail, desc: t('dashboard.invitationsDesc') },
     {
-      label: 'Thành viên',
+      label: t('dashboard.membersLabel'),
       href: '/workspace/members',
       icon: Users,
-      desc: 'Quản lý thành viên và mời thêm',
+      desc: t('dashboard.membersDesc'),
     },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('dashboard.title')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Chào mừng trở lại, {user?.phone ?? user?.email}
+          {t('dashboard.greeting', { phone: user?.phone ?? user?.email ?? '' })}
         </p>
       </div>
 
@@ -52,7 +54,7 @@ export default function DashboardPage() {
                       : 'bg-gray-100 text-gray-600',
                   )}
                 >
-                  {workspaceType === 'COMPANY' ? 'Doanh nghiệp' : 'Cá nhân'}
+                  {workspaceType === 'COMPANY' ? t('workspace.companyType') : t('workspace.personalType')}
                 </span>
                 {role && (
                   <span
@@ -77,7 +79,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Truy cập nhanh</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">{t('dashboard.quickActionsTitle')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map(({ label, href, icon: Icon, desc }) => (
             <Link

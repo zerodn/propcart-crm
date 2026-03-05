@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Building2, Plus, Edit2, Trash2, Users } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 import { useDepartment } from '@/hooks/use-department';
 import { DepartmentForm } from '@/components/department/department-form';
 import { DepartmentMembersDialog } from '@/components/department/department-members-dialog';
@@ -9,6 +10,7 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import type { Department } from '@/hooks/use-department';
 
 export default function DepartmentPage() {
+  const { t } = useI18n();
   const {
     departments,
     memberOptions,
@@ -97,10 +99,10 @@ export default function DepartmentPage() {
             <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
               <Building2 className="h-5 w-5 text-orange-600" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Quản lý Phòng ban</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('department.title')}</h1>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Quản lý danh sách phòng ban, nhân sự và phân quyền theo phòng
+            {t('department.subtitle')}
           </p>
         </div>
         <button
@@ -111,7 +113,7 @@ export default function DepartmentPage() {
           className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
         >
           <Plus className="h-4 w-4" />
-          Thêm phòng ban
+          {t('department.addBtn')}
         </button>
       </div>
 
@@ -121,7 +123,7 @@ export default function DepartmentPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
-                {editingId ? 'Chỉnh sửa phòng ban' : 'Thêm phòng ban mới'}
+                {editingId ? t('department.editTitle') : t('department.addTitle')}
               </h2>
             </div>
             <div className="p-6">

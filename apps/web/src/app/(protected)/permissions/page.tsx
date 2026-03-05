@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { Shield, Loader2, Check, X } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 import { usePermissions } from '@/hooks/use-permissions';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function PermissionsPage() {
+  const { t } = useI18n();
   const { roles, permissions, isLoading, error, assignPermission, removePermission } =
     usePermissions();
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -45,9 +47,9 @@ export default function PermissionsPage() {
           <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
             <Shield className="h-5 w-5 text-violet-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Quản lý Quyền</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('permissions.title')}</h1>
         </div>
-        <p className="text-sm text-gray-500 mt-1">Gán quyền cho các vai trò trong hệ thống</p>
+        <p className="text-sm text-gray-500 mt-1">{t('permissions.subtitle')}</p>
       </div>
 
       {/* Error Alert */}

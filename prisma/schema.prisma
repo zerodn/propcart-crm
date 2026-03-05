@@ -47,6 +47,7 @@ model User {
   receivedInvitations WorkspaceInvitation[] @relation("InvitedUser")
   notifications       Notification[]
   departmentMembers   DepartmentMember[]
+  documents           UserDocument[]
 
   @@index([email])
   @@map("users")
@@ -333,5 +334,32 @@ model Notification {
   @@index([userId])
   @@index([type])
   @@map("notifications")
+}
+
+enum DocumentType {
+  CCCD
+  HDLD
+  CHUNG_CHI
+  OTHER
+}
+
+model UserDocument {
+  id           String   @id @default(uuid())
+  userId       String
+  workspaceId  String?
+  documentType DocumentType @default(OTHER)
+  fileName     String
+  fileType     String
+  fileSize     Int
+  objectKey    String   @unique
+  fileUrl      String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, documentType])
+  @@index([workspaceId])
+  @@map("user_documents")
 }
 

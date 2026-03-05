@@ -1,10 +1,12 @@
 'use client';
 
 import { Mail } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 import { useInvitations } from '@/hooks/use-invitations';
 import { InvitationCard } from '@/components/invitation/invitation-card';
 
 export default function InvitationsPage() {
+  const { t } = useI18n();
   const { invitations, isLoading, error, refetch } = useInvitations();
   const pending = invitations.filter((i) => i.status === 0 && new Date(i.expiresAt) > new Date());
   const history = invitations.filter((i) => !(i.status === 0 && new Date(i.expiresAt) > new Date()));
@@ -12,9 +14,9 @@ export default function InvitationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Lời mời</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('invitations.title')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Lời mời tham gia workspace của bạn
+          {t('invitations.subtitle')}
           {pending.length > 0 && (
             <span className="ml-2 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
               {pending.length}
@@ -48,8 +50,8 @@ export default function InvitationsPage() {
       {!isLoading && !error && invitations.length === 0 && (
         <div className="text-center py-16 text-gray-500">
           <Mail className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-          <p className="font-medium">Không có lời mời nào</p>
-          <p className="text-sm mt-1">Khi được mời vào workspace, lời mời sẽ xuất hiện ở đây</p>
+          <p className="font-medium">{t('invitations.emptyTitle')}</p>
+          <p className="text-sm mt-1">{t('invitations.emptyDesc')}</p>
         </div>
       )}
 
@@ -57,7 +59,7 @@ export default function InvitationsPage() {
         <>
           {pending.length > 0 && (
             <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">Lời mời đang chờ</div>
+              <div className="text-sm font-medium text-gray-700 mb-2">{t('invitations.pendingTitle')}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {pending.map((inv) => (
                   <InvitationCard key={inv.id} invitation={inv} onUpdate={refetch} />
@@ -68,7 +70,7 @@ export default function InvitationsPage() {
 
           {history.length > 0 && (
             <div>
-              <div className="text-sm font-medium text-gray-700 mt-6 mb-2">Lịch sử lời mời</div>
+              <div className="text-sm font-medium text-gray-700 mt-6 mb-2">{t('invitations.historyTitle')}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {history.map((inv) => (
                   <InvitationCard key={inv.id} invitation={inv} onUpdate={refetch} />

@@ -3,6 +3,7 @@ import { UserService } from './user.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../../common/mail/mail.service';
+import { MinioService } from '../../common/storage/minio.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -35,6 +36,12 @@ describe('UserService', () => {
             userDevice: {
               upsert: jest.fn(),
             },
+            userDocument: {
+              findMany: jest.fn(),
+              create: jest.fn(),
+              findFirst: jest.fn(),
+              delete: jest.fn(),
+            },
           },
         },
         {
@@ -47,6 +54,13 @@ describe('UserService', () => {
           provide: MailService,
           useValue: {
             sendEmailVerificationEmail: jest.fn(),
+          },
+        },
+        {
+          provide: MinioService,
+          useValue: {
+            uploadUserDocument: jest.fn(),
+            deleteObject: jest.fn(),
           },
         },
       ],
