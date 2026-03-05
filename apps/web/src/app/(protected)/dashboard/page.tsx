@@ -10,16 +10,28 @@ export default function DashboardPage() {
   const { user, workspace, role, workspaceType } = useAuth();
 
   const quickActions = [
-    { label: 'Danh sách Workspaces', href: '/workspaces', icon: Building2, desc: 'Quản lý và chuyển đổi workspace' },
+    {
+      label: 'Danh sách Workspaces',
+      href: '/workspaces',
+      icon: Building2,
+      desc: 'Quản lý và chuyển đổi workspace',
+    },
     { label: 'Lời mời', href: '/invitations', icon: Mail, desc: 'Xem và xử lý lời mời' },
-    { label: 'Thành viên', href: '/workspace/members', icon: Users, desc: 'Quản lý thành viên và mời thêm' },
+    {
+      label: 'Thành viên',
+      href: '/workspace/members',
+      icon: Users,
+      desc: 'Quản lý thành viên và mời thêm',
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Chào mừng trở lại, {user?.phone ?? user?.email}</p>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Chào mừng trở lại, {user?.phone ?? user?.email}
+        </p>
       </div>
 
       {/* Workspace Info Card */}
@@ -32,13 +44,23 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{workspace?.name}</h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium',
-                  workspaceType === 'COMPANY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                )}>
+                <span
+                  className={cn(
+                    'text-xs px-2 py-0.5 rounded-full font-medium',
+                    workspaceType === 'COMPANY'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600',
+                  )}
+                >
                   {workspaceType === 'COMPANY' ? 'Doanh nghiệp' : 'Cá nhân'}
                 </span>
                 {role && (
-                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', ROLE_COLORS[role] ?? 'bg-gray-100 text-gray-600')}>
+                  <span
+                    className={cn(
+                      'text-xs px-2 py-0.5 rounded-full font-medium',
+                      ROLE_COLORS[role] ?? 'bg-gray-100 text-gray-600',
+                    )}
+                  >
                     {ROLE_LABELS[role] ?? role}
                   </span>
                 )}
@@ -47,7 +69,9 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="mt-4 pt-4 border-t border-gray-100">
-          <p className="text-xs text-gray-500">ID: <span className="font-mono text-gray-700">{workspace?.id}</span></p>
+          <p className="text-xs text-gray-500">
+            ID: <span className="font-mono text-gray-700">{workspace?.id}</span>
+          </p>
         </div>
       </div>
 

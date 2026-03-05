@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { UserPlus, Loader2, X } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 
-const INVITABLE_ROLES = [
+const DEFAULT_INVITABLE_ROLES = [
   { code: 'ADMIN', label: 'Quản trị viên' },
   { code: 'MANAGER', label: 'Quản lý' },
-  { code: 'SALES', label: 'Kinh doanh' },
+  { code: 'SALES', label: 'Nhân viên bán hàng' },
   { code: 'PARTNER', label: 'Đối tác' },
+  { code: 'OWNER', label: 'Chủ sở hữu' },
+  { code: 'VIEWER', label: 'Người xem' },
 ];
 
 interface InviteModalProps {
@@ -23,6 +25,33 @@ export function InviteModal({ onClose, onSuccess }: InviteModalProps) {
   const [phone, setPhone] = useState('');
   const [roleCode, setRoleCode] = useState('SALES');
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<{ code: string; label: string }[]>(DEFAULT_INVITABLE_ROLES);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadRoles() {
+      if (!workspace?.id) return;
+      try {
+        const res = await apiClient.get(`/workspaces/${workspace.id}/roles`);
+        console.log('[InviteModal] Response from /roles:', res);
+        const list = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        console.log('[InviteModal] Extracted list:', list);
+        if (!mounted) return;
+        const mappedRoles = list.map((r: any) => ({ code: r.code, label: r.name }));
+        console.log('[InviteModal] Mapped roles:', mappedRoles);
+        setRoles(mappedRoles.length > 0 ? mappedRoles : DEFAULT_INVITABLE_ROLES);
+        if (list.length > 0) setRoleCode(list[0].code);
+      } catch (err) {
+        console.error('[InviteModal] Error loading roles:', err);
+        // fallback to default roles
+        setRoles(DEFAULT_INVITABLE_ROLES);
+      }
+    }
+    loadRoles();
+    return () => {
+      mounted = false;
+    };
+  }, [workspace?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,8 +110,10 @@ export function InviteModal({ onClose, onSuccess }: InviteModalProps) {
               onChange={(e) => setRoleCode(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              {INVITABLE_ROLES.map(({ code, label }) => (
-                <option key={code} value={code}>{label}</option>
+              {roles.map(({ code, label }) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
               ))}
             </select>
           </div>

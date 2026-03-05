@@ -12,6 +12,15 @@ export interface User {
   id: string;
   phone: string | null;
   email: string | null;
+  fullName?: string | null;
+  addressLine?: string | null;
+  provinceCode?: string | null;
+  provinceName?: string | null;
+  districtCode?: string | null;
+  districtName?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  emailVerifiedAt?: string | null;
 }
 
 export interface Workspace {
@@ -44,6 +53,7 @@ export interface Invitation {
   status: number; // 0=pending, 1=accepted, 2=declined, 3=expired, 4=cancelled
   expiresAt: string;
   respondedAt: string | null;
+  declineReason?: string | null;
   workspace: Workspace;
   role: { id: string; code: string; name: string };
 }
@@ -62,4 +72,14 @@ export const ROLE_COLORS: Record<string, string> = {
   MANAGER: 'bg-orange-100 text-orange-700',
   SALES: 'bg-green-100 text-green-700',
   PARTNER: 'bg-yellow-100 text-yellow-700',
+};
+
+export const CATALOG_TYPES: Record<string, string> = {
+  PROPERTY_TYPE: 'Loại bất động sản',
+  PROPERTY_STATUS: 'Trạng thái bất động sản',
+  LISTING_TYPE: 'Loại danh sách',
+  PAYMENT_METHOD: 'Phương thức thanh toán',
+  AMENITY: 'Tiện nghi',
+  DISTRICT: 'Quận/Huyện',
+  CITY: 'Thành phố/Tỉnh',
 };

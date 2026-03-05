@@ -15,23 +15,36 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
   const isActive = item.id === current?.id;
 
   return (
-    <div className={cn(
-      'bg-white rounded-xl border p-5 transition-all',
-      isActive ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
-    )}>
+    <div
+      className={cn(
+        'bg-white rounded-xl border p-5 transition-all',
+        isActive
+          ? 'border-blue-300 ring-2 ring-blue-100'
+          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
+      )}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', isActive ? 'bg-blue-600' : 'bg-gray-100')}>
-            {item.type === 'COMPANY'
-              ? <Building2 className={cn('h-5 w-5', isActive ? 'text-white' : 'text-gray-500')} />
-              : <User className={cn('h-5 w-5', isActive ? 'text-white' : 'text-gray-500')} />
-            }
+          <div
+            className={cn(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              isActive ? 'bg-blue-600' : 'bg-gray-100',
+            )}
+          >
+            {item.type === 'COMPANY' ? (
+              <Building2 className={cn('h-5 w-5', isActive ? 'text-white' : 'text-gray-500')} />
+            ) : (
+              <User className={cn('h-5 w-5', isActive ? 'text-white' : 'text-gray-500')} />
+            )}
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900">{item.name}</h3>
-            <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block',
-              item.type === 'COMPANY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-            )}>
+            <span
+              className={cn(
+                'text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block',
+                item.type === 'COMPANY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600',
+              )}
+            >
               {item.type === 'COMPANY' ? 'Doanh nghiệp' : 'Cá nhân'}
             </span>
           </div>
@@ -40,7 +53,12 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', ROLE_COLORS[item.role] ?? 'bg-gray-100 text-gray-600')}>
+        <span
+          className={cn(
+            'text-xs font-medium px-2.5 py-1 rounded-full',
+            ROLE_COLORS[item.role] ?? 'bg-gray-100 text-gray-600',
+          )}
+        >
           {ROLE_LABELS[item.role] ?? item.role}
         </span>
         {isActive ? (

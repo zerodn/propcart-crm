@@ -21,7 +21,9 @@ export function useWorkspaces() {
     }
   };
 
-  useEffect(() => { refetch(); }, []);
+  useEffect(() => {
+    refetch();
+  }, []);
 
   return { workspaces, isLoading, error, refetch };
 }

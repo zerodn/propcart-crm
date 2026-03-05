@@ -36,25 +36,34 @@ export function WorkspaceSwitcher() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-          <div className="p-1">
-            <p className="text-xs font-medium text-gray-500 px-2 py-1.5">Chọn workspace</p>
-            {workspaces.map((ws) => (
-              <button
-                key={ws.id}
-                onClick={() => { switchWorkspace(ws.id); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-gray-50 transition-colors ${ws.id === workspace?.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
-              >
-                <div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-md flex-shrink-0">
-                  {ws.type === 'COMPANY' ? <Building2 className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="font-medium truncate">{ws.name}</p>
-                  <p className="text-xs text-gray-400">{ws.role}</p>
-                </div>
-                {ws.id === workspace?.id && <span className="text-xs text-blue-600 flex-shrink-0">Hiện tại</span>}
-              </button>
-            ))}
-          </div>
+            <div className="p-1">
+              <p className="text-xs font-medium text-gray-500 px-2 py-1.5">Chọn workspace</p>
+              {workspaces.map((ws) => (
+                <button
+                  key={ws.id}
+                  onClick={() => {
+                    switchWorkspace(ws.id);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-gray-50 transition-colors ${ws.id === workspace?.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
+                >
+                  <div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-md flex-shrink-0">
+                    {ws.type === 'COMPANY' ? (
+                      <Building2 className="h-3 w-3" />
+                    ) : (
+                      <User className="h-3 w-3" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="font-medium truncate">{ws.name}</p>
+                    <p className="text-xs text-gray-400">{ws.role}</p>
+                  </div>
+                  {ws.id === workspace?.id && (
+                    <span className="text-xs text-blue-600 flex-shrink-0">Hiện tại</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}

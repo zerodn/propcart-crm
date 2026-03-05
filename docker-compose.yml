@@ -1,20 +1,29 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: propcart_postgres
+  mariadb:
+    image: mariadb:11.0
+    container_name: propcart_mariadb
     restart: unless-stopped
     environment:
-      POSTGRES_DB: propcart_crm
-      POSTGRES_USER: propcart
-      POSTGRES_PASSWORD: propcart_local
+      MYSQL_ROOT_PASSWORD: propcart_root_local
+      MYSQL_DATABASE: propcart_crm
+      MYSQL_USER: propcart
+      MYSQL_PASSWORD: propcart_local
+      MYSQL_INITDB_SKIP_TZINFO: 1
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mariadb_data:/var/lib/mysql
+      - ./docker-entrypoint/mariadb-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --max_connections=1000
+      --innodb_buffer_pool_size=512M
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U propcart -d propcart_crm']
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,6 +45,50 @@ services:
       timeout: 5s
       retries: 5
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: propcart_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - '9200:9200'
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:9200/_cluster/health | grep -q "status"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: propcart_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_local
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
-  postgres_data:
-    driver: local
+  mariadb_data:
+  elasticsearch_data:
+  minio_data:
+
+networks:
+  default:
+    name: propcart_network
+

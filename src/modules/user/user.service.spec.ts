@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { MailService } from '../../common/mail/mail.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -28,10 +30,23 @@ describe('UserService', () => {
               findUnique: jest.fn(),
               findFirst: jest.fn(),
               create: jest.fn(),
+              update: jest.fn(),
             },
             userDevice: {
               upsert: jest.fn(),
             },
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            sendEmailVerificationEmail: jest.fn(),
           },
         },
       ],

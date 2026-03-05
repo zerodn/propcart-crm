@@ -3,7 +3,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { setTokens, clearTokens, getAccessToken, decodeJwt, isTokenExpired, setWorkspaceName, getWorkspaceName } from '@/lib/auth';
+import {
+  setTokens,
+  clearTokens,
+  getAccessToken,
+  decodeJwt,
+  isTokenExpired,
+  setWorkspaceName,
+  getWorkspaceName,
+} from '@/lib/auth';
 import apiClient from '@/lib/api-client';
 import type { User, Workspace } from '@/types';
 
@@ -20,6 +28,7 @@ interface AuthContextValue extends AuthState {
   login: (accessToken: string, refreshToken: string, user: User, workspace: Workspace) => void;
   logout: () => Promise<void>;
   switchWorkspace: (workspaceId: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -44,8 +53,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Re-set cookie in case it expired while localStorage token is still valid
         document.cookie = `access_token=${token}; path=/; max-age=900; SameSite=Strict`;
         setState({
-          user: { id: payload.sub, phone: null, email: null },
-          workspace: { id: payload.workspaceId, type: payload.workspaceType as 'PERSONAL' | 'COMPANY', name: getWorkspaceName() || '' },
+          user: {
+            id: payload.sub,
+            phone: null,
+            email: null,
+            fullName: null,
+            addressLine: null,
+            provinceCode: null,
+            provinceName: null,
+            districtCode: null,
+            districtName: null,
+            wardCode: null,
+            wardName: null,
+            emailVerifiedAt: null,
+          },
+          workspace: {
+            id: payload.workspaceId,
+            type: payload.workspaceType as 'PERSONAL' | 'COMPANY',
+            name: getWorkspaceName() || '',
+          },
           role: payload.role,
           workspaceType: payload.workspaceType,
           isAuthenticated: true,
@@ -83,7 +109,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ignore errors on logout
     } finally {
       clearTokens();
-      setState({ user: null, workspace: null, role: null, workspaceType: null, isAuthenticated: false, isLoading: false });
+      setState({
+        user: null,
+        workspace: null,
+        role: null,
+        workspaceType: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
       router.push('/login');
     }
   }, [router]);
@@ -91,7 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const switchWorkspace = useCallback(
     async (workspaceId: string) => {
       try {
-        const { data } = await apiClient.post('/auth/switch-workspace', { workspace_id: workspaceId });
+        const { data } = await apiClient.post('/auth/switch-workspace', {
+          workspace_id: workspaceId,
+        });
         const { access_token, refresh_token, workspace } = data.data;
         const payload = decodeJwt(access_token);
         setTokens(access_token, refresh_token);
@@ -111,8 +146,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router],
   );
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get('/me/profile');
+      const profile = data?.data;
+      if (!profile) return;
+
+      setState((s) => ({
+        ...s,
+        user: {
+          id: profile.id,
+          phone: profile.phone ?? null,
+          email: profile.email ?? null,
+          fullName: profile.fullName ?? null,
+          addressLine: profile.addressLine ?? null,
+          provinceCode: profile.provinceCode ?? null,
+          provinceName: profile.provinceName ?? null,
+          districtCode: profile.districtCode ?? null,
+          districtName: profile.districtName ?? null,
+          wardCode: profile.wardCode ?? null,
+          wardName: profile.wardName ?? null,
+          emailVerifiedAt: profile.emailVerifiedAt ?? null,
+        },
+      }));
+    } catch {
+      // Silent fail because this is a non-critical state refresh.
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, switchWorkspace }}>
+    <AuthContext.Provider value={{ ...state, login, logout, switchWorkspace, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

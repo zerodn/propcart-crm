@@ -6,10 +6,17 @@ import { APP_GUARD } from '@nestjs/core';
 
 import configuration from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
+import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
 import { ApiSignatureGuard } from './common/guards/api-signature.guard';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { WorkspaceModule } from './modules/workspace/workspace.module';
+import { MailModule } from './common/mail/mail.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { DepartmentModule } from './modules/department/department.module';
+import { RoleModule } from './modules/role/role.module';
+import { PermissionModule } from './modules/permission/permission.module';
 
 @Module({
   imports: [
@@ -34,10 +41,19 @@ import { WorkspaceModule } from './modules/workspace/workspace.module';
     // Global Prisma
     PrismaModule,
 
+    // Elasticsearch
+    ElasticsearchModule,
+
     // Feature modules
     UserModule,
     AuthModule,
     WorkspaceModule,
+    NotificationModule,
+    CatalogModule,
+    DepartmentModule,
+    MailModule,
+    RoleModule,
+    PermissionModule,
   ],
   providers: [
     // Global HMAC signature guard

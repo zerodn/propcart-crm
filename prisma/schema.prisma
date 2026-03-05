@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,6 +20,17 @@ model User {
   id           String   @id @default(uuid())
   phone        String?  @unique
   email        String?
+  fullName     String?
+  addressLine  String?
+  provinceCode String?
+  provinceName String?
+  districtCode String?
+  districtName String?
+  wardCode     String?
+  wardName     String?
+  emailVerifiedAt     DateTime?
+  emailVerifyToken    String?   @unique
+  emailVerifyExpiresAt DateTime?
   googleId     String?  @unique
   passwordHash String?
   status       Int      @default(1) // 1=active, 0=inactive, 2=banned
@@ -34,6 +45,8 @@ model User {
   refreshTokens       RefreshToken[]
   sentInvitations     WorkspaceInvitation[] @relation("InvitedBy")
   receivedInvitations WorkspaceInvitation[] @relation("InvitedUser")
+  notifications       Notification[]
+  departmentMembers   DepartmentMember[]
 
   @@index([email])
   @@map("users")
@@ -101,6 +114,7 @@ model Role {
   members     WorkspaceMember[]
   permissions RolePermission[]
   invitations WorkspaceInvitation[]
+  departmentMembers DepartmentMember[]
 
   @@map("roles")
 }
@@ -175,6 +189,7 @@ model WorkspaceInvitation {
   roleId            String
   token             String    @unique @default(uuid())
   status            Int       @default(0) // 0=pending, 1=accepted, 2=declined, 3=expired, 4=cancelled
+  declineReason     String?  // optional reason provided when declining
   expiresAt         DateTime
   respondedAt       DateTime?
 
@@ -214,3 +229,109 @@ model RefreshToken {
   @@index([userId, deviceId])
   @@map("refresh_tokens")
 }
+
+// ============================================================
+// CATALOG (danh mục chung)
+// ============================================================
+
+model Catalog {
+  id          String   @id @default(uuid())
+  type        String   // e.g. 'ROLE' | 'CATEGORY' | 'TAG' | other entity types
+  code        String
+  name        String
+  workspaceId String
+  parentId    String?  // nullable for parent catalogs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  parent       Catalog?         @relation("CatalogParent", fields: [parentId], references: [id])
+  children     Catalog[]        @relation("CatalogParent")
+  values       CatalogValue[]
+
+  @@unique([code, workspaceId])
+  @@index([workspaceId])
+  @@index([type])
+  @@index([parentId])
+  @@map("catalogs")
+}
+
+// ============================================================
+// CATALOG VALUES (giá trị của danh mục)
+// ============================================================
+
+model CatalogValue {
+  id        String   @id @default(uuid())
+  catalogId String
+  value     String
+  label     String
+  order     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  catalog Catalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogId, value])
+  @@index([catalogId])
+  @@map("catalog_values")
+}
+
+// ============================================================
+// DEPARTMENTS
+// ============================================================
+
+model Department {
+  id          String   @id @default(uuid())
+  workspaceId String
+  code        String   @default("")
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members DepartmentMember[]
+
+  @@index([workspaceId])
+  @@map("departments")
+}
+
+model DepartmentMember {
+  id            String   @id @default(uuid())
+  departmentId  String
+  userId        String
+  roleId        String
+
+  // Relations
+  department Department @relation(fields: [departmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  role       Role       @relation(fields: [roleId], references: [id])
+
+  @@unique([departmentId, userId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("department_members")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // e.g. 'INVITATION', 'SYSTEM', etc.
+  payload     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@map("notifications")
+}
+

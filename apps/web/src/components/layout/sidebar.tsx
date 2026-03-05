@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Building2, Mail, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building2, Mail, Users, LogOut, ClipboardList, Shield, Briefcase, Bell, UserCircle2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { WorkspaceSwitcher } from '@/components/workspace/workspace-switcher';
 import { cn } from '@/lib/utils';
@@ -11,10 +11,16 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/workspaces', label: 'Workspaces', icon: Building2 },
   { href: '/invitations', label: 'Lời mời', icon: Mail },
+  { href: '/notifications', label: 'Thông báo', icon: Bell },
+  { href: '/profile', label: 'Hồ sơ cá nhân', icon: UserCircle2 },
 ];
 
+// links shown to owners/admins under "Quản lý" group
 const adminNavItems = [
   { href: '/workspace/members', label: 'Thành viên', icon: Users },
+  { href: '/department', label: 'Phòng ban', icon: Briefcase },
+  { href: '/catalog', label: 'Danh mục', icon: ClipboardList },
+  { href: '/permissions', label: 'Quyền', icon: Shield },
 ];
 
 export function Sidebar() {
@@ -56,7 +62,9 @@ export function Sidebar() {
         {isAdminOrOwner && (
           <>
             <div className="pt-3 pb-1">
-              <p className="text-xs font-medium text-gray-400 px-3 uppercase tracking-wider">Quản lý</p>
+              <p className="text-xs font-medium text-gray-400 px-3 uppercase tracking-wider">
+                Quản lý
+              </p>
             </div>
             {adminNavItems.map(({ href, label, icon: Icon }) => (
               <Link

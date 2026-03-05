@@ -20,7 +20,10 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
-    if (timeLeft <= 0) { setCanResend(true); return; }
+    if (timeLeft <= 0) {
+      setCanResend(true);
+      return;
+    }
     const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(timer);
   }, [timeLeft]);
@@ -55,7 +58,8 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
     } catch (err: unknown) {
       const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
       if (code === 'OTP_INVALID') toast.error('Mã OTP không đúng');
-      else if (code === 'OTP_MAX_ATTEMPTS') toast.error('Nhập sai quá nhiều lần. Vui lòng gửi lại OTP');
+      else if (code === 'OTP_MAX_ATTEMPTS')
+        toast.error('Nhập sai quá nhiều lần. Vui lòng gửi lại OTP');
       else toast.error('Xác thực thất bại');
     } finally {
       setIsLoading(false);
@@ -68,7 +72,9 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
         <button type="button" onClick={onBack} className="hover:text-gray-700">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span>Mã OTP đã gửi đến <strong className="text-gray-800">{phone}</strong></span>
+        <span>
+          Mã OTP đã gửi đến <strong className="text-gray-800">{phone}</strong>
+        </span>
       </div>
 
       <div className="space-y-2">
@@ -93,11 +99,17 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
 
       <div className="text-center text-sm text-gray-500">
         {canResend ? (
-          <button type="button" onClick={handleResend} className="text-blue-600 hover:underline font-medium">
+          <button
+            type="button"
+            onClick={handleResend}
+            className="text-blue-600 hover:underline font-medium"
+          >
             Gửi lại OTP
           </button>
         ) : (
-          <span>Gửi lại sau <strong className="text-gray-700">{timeLeft}s</strong></span>
+          <span>
+            Gửi lại sau <strong className="text-gray-700">{timeLeft}s</strong>
+          </span>
         )}
       </div>
 

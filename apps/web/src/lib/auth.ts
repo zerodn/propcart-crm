@@ -42,7 +42,32 @@ export function getWorkspaceName(): string | null {
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  // primary source is localStorage (populated after login)
+  let token = localStorage.getItem(ACCESS_TOKEN_KEY);
+  if (token) return token;
+
+  // quick dev helper: if a token is provided via the query string we store
+  // it locally and drop the parameter. This is handy for scripts that
+  // launch the app with a token (e.g. lighthouse-auth.js) without needing
+  // to manipulate localStorage directly.
+  try {
+    const url = new URL(window.location.href);
+    const qsToken = url.searchParams.get('lh_token') || url.searchParams.get('access_token');
+    if (qsToken) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, qsToken);
+      document.cookie = `access_token=${qsToken}; path=/; max-age=900; SameSite=Strict`;
+      url.searchParams.delete('lh_token');
+      url.searchParams.delete('access_token');
+      window.history.replaceState(null, '', url.toString());
+      return qsToken;
+    }
+  } catch {
+    // ignore malformed URLs
+  }
+
+  // fallback to cookie (useful for SSR or external scripts that only send a cookie)
+  const match = document.cookie.match(/(?:^|;\\s*)access_token=([^;]+)/);
+  return match ? match[1] : null;
 }
 
 export function getRefreshToken(): string | null {

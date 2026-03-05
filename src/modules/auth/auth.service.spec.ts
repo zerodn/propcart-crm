@@ -95,6 +95,19 @@ describe('AuthService', () => {
             role: {
               findUnique: jest.fn().mockResolvedValue(mockRole),
             },
+            catalog: {
+              create: jest.fn().mockResolvedValue({
+                id: 'cat-role-1',
+                workspaceId: mockWorkspace.id,
+                type: 'ROLE',
+                code: 'ROLE',
+                name: 'Vai trò',
+                parentId: null,
+              }),
+            },
+            catalogValue: {
+              createMany: jest.fn().mockResolvedValue({ count: 5 }),
+            },
             refreshToken: {
               create: jest.fn().mockResolvedValue({ ...mockRefreshToken }),
               findUnique: jest.fn(),

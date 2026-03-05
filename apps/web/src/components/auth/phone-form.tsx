@@ -23,7 +23,9 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
       toast.success('Mã OTP đã được gửi');
       onSuccess(phone);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể gửi OTP';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Không thể gửi OTP';
       toast.error(msg);
     } finally {
       setIsLoading(false);

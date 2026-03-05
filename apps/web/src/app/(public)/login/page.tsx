@@ -58,11 +58,15 @@ export default function LoginPage() {
 
           {/* Step indicator */}
           <div className="flex items-center gap-2 mb-6">
-            <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${step === 'phone' ? 'bg-blue-600 text-white' : 'bg-green-500 text-white'}`}>
+            <div
+              className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${step === 'phone' ? 'bg-blue-600 text-white' : 'bg-green-500 text-white'}`}
+            >
               {step === 'phone' ? '1' : '✓'}
             </div>
             <div className={`flex-1 h-0.5 ${step === 'otp' ? 'bg-green-500' : 'bg-gray-200'}`} />
-            <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${step === 'otp' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+            <div
+              className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${step === 'otp' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}
+            >
               2
             </div>
           </div>
@@ -70,11 +74,7 @@ export default function LoginPage() {
           {step === 'phone' ? (
             <PhoneForm onSuccess={handlePhoneSuccess} />
           ) : (
-            <OtpForm
-              phone={phone}
-              onSuccess={handleOtpSuccess}
-              onBack={() => setStep('phone')}
-            />
+            <OtpForm phone={phone} onSuccess={handleOtpSuccess} onBack={() => setStep('phone')} />
           )}
         </div>
 

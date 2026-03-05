@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -15,10 +16,14 @@ import { SwitchWorkspaceDto } from './dto/switch-workspace.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { UserService } from '../user/user.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   // POST /auth/phone/send-otp — Public, rate limited (5/min)
   @Post('phone/send-otp')
@@ -65,5 +70,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   logout(@Body('refresh_token') refreshToken: string) {
     return this.authService.logout(refreshToken);
+  }
+
+  // GET /auth/email/verify?token=... — Public
+  @Get('email/verify')
+  verifyEmail(@Query('token') token: string) {
+    return this.userService.verifyEmailToken(token);
   }
 }

@@ -6,6 +6,12 @@ Module: auth, workspace, user
 Depends on: (none — đây là foundation)
 Status: READY
 
+Implemented Update (2026-03-04):
+- Invitation Management hoàn chỉnh: accept/decline invitation, lưu `declineReason`, hiển thị lịch sử phản hồi
+- Catalog & Role Source hoàn chỉnh: catalog cha-con + values, role mời thành viên lấy từ catalog `Vai trò`
+- Department Management hoàn chỉnh: grid phòng ban, `name + code + memberCount`, thêm/xóa nhân sự trong phòng, gán/đổi quyền theo nhân sự
+- Chuẩn hoá frontend interaction: thay `window.confirm` bằng dialog đặc thù cho các thao tác quan trọng
+
 ---
 
 # 1. MỤC TIÊU / OBJECTIVE
@@ -51,6 +57,76 @@ Authorization luôn dựa trên: **User + Workspace + Role**
 - Mỗi JWT chứa `workspaceId` + `role` → authorization theo workspace context
 - Switch workspace = issue JWT mới (không dùng lại JWT cũ)
 - Access token: 15 phút | Refresh token: 7 ngày
+
+## 2.4 Implemented Scope Snapshot (2026-03-04)
+
+### 2.4.1 Invitation Management
+
+#### Business Rules
+- Invitation lifecycle: `PENDING`, `ACCEPTED`, `DECLINED`, `EXPIRED`, `CANCELLED`
+- User có thể accept/decline lời mời
+- Decline hỗ trợ nhập lý do và lưu vào `declineReason`
+- Danh sách invitation hiển thị lịch sử phản hồi và lý do từ chối
+
+#### APIs
+- `POST /workspaces/:workspaceId/invitations` (body: `phone`, `role_code`)
+- `GET /me/invitations`
+- `POST /invitations/:token/accept`
+- `POST /invitations/:token/decline`
+- `DELETE /workspaces/:workspaceId/invitations/:invitationId`
+
+#### Permissions
+- `WORKSPACE_MEMBER_INVITE`
+
+### 2.4.2 Catalog & Role Source
+
+#### Business Rules
+- Catalog hỗ trợ cây cha-con qua `parentId`
+- Catalog hỗ trợ danh sách `values[]` (value/label/order)
+- Catalog `Vai trò` tự khởi tạo cho từng workspace
+- Vai trò mời thành viên lấy từ catalog `ROLE`, không hard-code
+
+#### APIs
+- `POST /workspaces/:workspaceId/catalogs`
+- `GET /workspaces/:workspaceId/catalogs`
+- `GET /workspaces/:workspaceId/catalogs/:id`
+- `PATCH /workspaces/:workspaceId/catalogs/:id`
+- `DELETE /workspaces/:workspaceId/catalogs/:id`
+- `GET /workspaces/:workspaceId/roles`
+
+#### Permissions
+- `CATALOG_CREATE`
+- `CATALOG_UPDATE`
+- `CATALOG_DELETE`
+
+### 2.4.3 Department Management
+
+#### Business Rules
+- Department fields: `name`, `code`, `memberCount`, `members[]`
+- UI `/department` hiển thị danh sách dạng grid card
+- Card hiển thị: tên phòng, mã phòng, số lượng nhân sự
+- Quản lý nhân sự theo phòng: thêm nhân sự, xóa nhân sự, cập nhật role theo nhân sự
+
+#### APIs
+- `POST /workspaces/:workspaceId/departments`
+- `GET /workspaces/:workspaceId/departments`
+- `PATCH /workspaces/:workspaceId/departments/:id`
+- `DELETE /workspaces/:workspaceId/departments/:id`
+- `GET /workspaces/:workspaceId/departments/member-options`
+- `GET /workspaces/:workspaceId/departments/role-options`
+- `POST /workspaces/:workspaceId/departments/:departmentId/members`
+- `PATCH /workspaces/:workspaceId/departments/:departmentId/members/:userId/role`
+- `DELETE /workspaces/:workspaceId/departments/:departmentId/members/:userId`
+
+#### Permissions
+- `DEPARTMENT_CREATE`
+- `DEPARTMENT_UPDATE`
+- `DEPARTMENT_DELETE`
+
+### 2.4.4 Frontend Interaction Standards (Applied)
+- Không dùng `window.confirm` cho nghiệp vụ chính
+- Dùng dialog đặc thù: `ConfirmDialog`, `CatalogValuesDialog`, `DepartmentMembersDialog`
+- Mọi action async phải có loading state + toast feedback
 
 ---
 

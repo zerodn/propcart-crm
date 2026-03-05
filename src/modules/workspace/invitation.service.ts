@@ -1,6 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
+import { MailService } from '../../common/mail/mail.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 
@@ -9,6 +10,7 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
+    private readonly mailService: MailService,
   ) {}
 
   // ============================================================
@@ -73,7 +75,29 @@ export class InvitationService {
     });
 
     // TODO: Send SMS/push notification to invited phone
+    // fetch workspace name for notifications / email
+    const workspace = await this.prisma.workspace.findUnique({ where: { id: invitation.workspaceId } });
 
+    // Create notification record for existing user
+    if (invitedUser) {
+      await this.prisma.notification.create({
+        data: {
+          userId: invitedUser.id,
+          type: 'INVITATION',
+          payload: JSON.stringify({
+            invitationId: invitation.id,
+            workspaceId: invitation.workspaceId,
+            workspaceName: workspace?.name || null,
+            role: invitation.role.code,
+          }),
+        },
+      });
+    }
+    // Send email if invited phone maps to a user with email
+    if (invitedUser?.email) {
+      const acceptUrl = `${process.env.FRONTEND_URL || ''}/invitations/${invitation.token}/accept`;
+      await this.mailService.sendInvitationEmail(invitedUser.email, workspace?.name || '', sender.sub, acceptUrl);
+    }
     return {
       data: {
         id: invitation.id,
@@ -81,6 +105,93 @@ export class InvitationService {
         role: invitation.role.code,
         status: 'pending',
         expires_at: invitation.expiresAt,
+      },
+    };
+  }
+
+  // ============================================================
+  // LIST WORKSPACE INVITATIONS (sent from workspace)
+  // ============================================================
+
+  async listWorkspaceInvitations(workspaceId: string) {
+    const invitations = await this.prisma.workspaceInvitation.findMany({
+      where: {
+        workspaceId,
+        status: 0, // only pending invitations
+      },
+      include: {
+        role: true,
+        invitedBy: { select: { id: true, phone: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const data = invitations.map((inv) => ({
+      id: inv.id,
+      workspaceId: inv.workspaceId,
+      invitedPhone: inv.invitedPhone,
+      invitedByUserId: inv.invitedByUserId,
+      roleId: inv.roleId,
+      token: inv.token,
+      status: inv.status,
+      expiresAt: inv.expiresAt,
+      createdAt: inv.createdAt,
+      role: { id: inv.role.id, code: inv.role.code, name: inv.role.name },
+      invitedBy: inv.invitedBy,
+    }));
+
+    return { data };
+  }
+
+  // ============================================================
+  // LIST DECLINED INVITATIONS (status 2) with pagination
+  // ============================================================
+
+  async listDeclinedInvitations(workspaceId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [invitations, total] = await Promise.all([
+      this.prisma.workspaceInvitation.findMany({
+        where: {
+          workspaceId,
+          status: 2, // DECLINED
+        },
+        include: {
+          role: true,
+          invitedBy: { select: { id: true, phone: true, email: true } },
+        },
+        orderBy: { respondedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.workspaceInvitation.count({
+        where: { workspaceId, status: 2 },
+      }),
+    ]);
+
+    const data = invitations.map((inv) => ({
+      id: inv.id,
+      workspaceId: inv.workspaceId,
+      invitedPhone: inv.invitedPhone,
+      invitedByUserId: inv.invitedByUserId,
+      roleId: inv.roleId,
+      token: inv.token,
+      status: inv.status,
+      expiresAt: inv.expiresAt,
+      createdAt: inv.createdAt,
+      respondedAt: inv.respondedAt,
+      declineReason: inv.declineReason,
+      role: { id: inv.role.id, code: inv.role.code, name: inv.role.name },
+      invitedBy: inv.invitedBy,
+    }));
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -95,11 +206,12 @@ export class InvitationService {
       return { data: [] };
     }
 
+    // Return invitations for this phone (pending + history)
+    // EXCLUDE status 4 (CANCELLED) - invitations cancelled by sender should not be visible to invitee
     const invitations = await this.prisma.workspaceInvitation.findMany({
       where: {
         invitedPhone: user.phone,
-        status: 0,
-        expiresAt: { gt: new Date() },
+        status: { not: 4 }, // Exclude CANCELLED invitations
       },
       include: {
         workspace: true,
@@ -108,13 +220,20 @@ export class InvitationService {
       },
     });
 
+    // map to camelCase shape expected by frontend
     const data = invitations.map((inv) => ({
       id: inv.id,
+      workspaceId: inv.workspaceId,
+      invitedPhone: inv.invitedPhone,
+      invitedByUserId: inv.invitedByUserId,
+      roleId: inv.roleId,
       token: inv.token,
+      status: inv.status,
+      expiresAt: inv.expiresAt,
+      respondedAt: inv.respondedAt,
+      declineReason: inv.declineReason,
       workspace: { id: inv.workspace.id, name: inv.workspace.name, type: inv.workspace.type },
-      invited_by: { id: inv.invitedBy.id, phone: inv.invitedBy.phone },
-      role: inv.role.code,
-      expires_at: inv.expiresAt,
+      role: { id: inv.role.id, code: inv.role.code, name: inv.role.name },
     }));
 
     return { data };
@@ -164,12 +283,13 @@ export class InvitationService {
   // DECLINE INVITATION
   // ============================================================
 
-  async declineInvitation(token: string, currentUser: JwtPayload) {
+  async declineInvitation(token: string, currentUser: JwtPayload, reason?: string) {
     const invitation = await this.findAndValidateInvitation(token, currentUser);
 
+    // update status and optionally record reason
     await this.prisma.workspaceInvitation.update({
       where: { id: invitation.id },
-      data: { status: 2, respondedAt: new Date() },
+      data: { status: 2, respondedAt: new Date(), declineReason: reason || null },
     });
 
     return { data: { message: 'Invitation declined' } };

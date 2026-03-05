@@ -389,7 +389,68 @@ export class AuthService {
       },
     });
 
+    // Initialize default catalogs for the workspace
+    await this.initializeWorkspaceCatalogs(workspace.id);
+
     return workspace;
+  }
+
+  private async initializeWorkspaceCatalogs(workspaceId: string) {
+    // Create "Vai trò" (Role) parent catalog
+    const roleCatalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'ROLE',
+        code: 'ROLE',
+        name: 'Vai trò',
+        parentId: null,
+      },
+    });
+
+    // Create role values
+    await this.prisma.catalogValue.createMany({
+      data: [
+        {
+          catalogId: roleCatalog.id,
+          value: 'ADMIN',
+          label: 'Quản trị viên',
+          order: 0,
+        },
+        {
+          catalogId: roleCatalog.id,
+          value: 'MANAGER',
+          label: 'Quản lý',
+          order: 1,
+        },
+        {
+          catalogId: roleCatalog.id,
+          value: 'SALES',
+          label: 'Nhân viên bán hàng',
+          order: 2,
+        },
+        {
+          catalogId: roleCatalog.id,
+          value: 'PARTNER',
+          label: 'Đối tác',
+          order: 3,
+        },
+        {
+          catalogId: roleCatalog.id,
+          value: 'OWNER',
+          label: 'Chủ sở hữu',
+          order: 4,
+        },
+        {
+          catalogId: roleCatalog.id,
+          value: 'VIEWER',
+          label: 'Người xem',
+          order: 5,
+        },
+      ],
+    });
+
+    // Create "Danh mục khác" catalogs for future use
+    // These can be extended as needed for other combobox data sources
   }
 
   private async issueTokenResponse(user: any, workspace: any, deviceId: string) {
@@ -412,7 +473,20 @@ export class AuthService {
       data: {
         access_token: accessToken,
         refresh_token: refreshToken,
-        user: { id: user.id, phone: user.phone },
+        user: {
+          id: user.id,
+          phone: user.phone,
+          email: user.email,
+          fullName: user.fullName,
+          addressLine: user.addressLine,
+          provinceCode: user.provinceCode,
+          provinceName: user.provinceName,
+          districtCode: user.districtCode,
+          districtName: user.districtName,
+          wardCode: user.wardCode,
+          wardName: user.wardName,
+          emailVerifiedAt: user.emailVerifiedAt,
+        },
         workspace: { id: workspace.id, type: workspace.type, name: workspace.name },
       },
     };

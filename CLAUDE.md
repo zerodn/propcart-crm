@@ -248,6 +248,98 @@ Luôn dùng `class-validator` + `class-transformer` cho mọi request body.
 
 ---
 
+## Implemented Business Scope (Updated 2026-03-04)
+
+### 1) Invitation Management (Implemented)
+
+#### Business Rules
+- Lời mời workspace hỗ trợ đầy đủ trạng thái: `PENDING`, `ACCEPTED`, `DECLINED`, `EXPIRED`, `CANCELLED`
+- User có thể **accept** hoặc **decline** lời mời
+- Khi decline, user có thể nhập `reason` và được lưu vào `declineReason`
+- Danh sách lời mời hiển thị đầy đủ lịch sử phản hồi (bao gồm lý do từ chối)
+
+#### APIs
+- `POST /workspaces/:workspaceId/invitations` (body: `phone`, `role_code`)
+- `GET /me/invitations`
+- `POST /invitations/:token/accept`
+- `POST /invitations/:token/decline`
+- `DELETE /workspaces/:workspaceId/invitations/:invitationId`
+
+#### Permissions
+- `WORKSPACE_MEMBER_INVITE`
+
+### 2) Catalog & Role Source (Implemented)
+
+#### Business Rules
+- Danh mục hỗ trợ cấu trúc cha-con qua `parentId`
+- Danh mục hỗ trợ danh sách `values[]` (value/label/order)
+- Catalog `Vai trò` được tự khởi tạo theo workspace
+- Chức năng mời thành viên lấy vai trò từ catalog `Vai trò` (không hard-code)
+
+#### Default Role Catalog Values
+- `ADMIN` — Quản trị viên
+- `SALES` — Nhân viên bán hàng
+- `MANAGER` — Quản lý
+- `OWNER` — Chủ sở hữu
+- `VIEWER` — Người xem
+
+#### APIs
+- `POST /workspaces/:workspaceId/catalogs`
+- `GET /workspaces/:workspaceId/catalogs`
+- `GET /workspaces/:workspaceId/catalogs/:id`
+- `PATCH /workspaces/:workspaceId/catalogs/:id`
+- `DELETE /workspaces/:workspaceId/catalogs/:id`
+- `GET /workspaces/:workspaceId/roles` (data source từ catalog `ROLE`)
+
+#### Permissions
+- `CATALOG_CREATE`
+- `CATALOG_UPDATE`
+- `CATALOG_DELETE`
+
+### 3) Department Management (Implemented)
+
+#### Business Fields
+- `name` — Tên phòng ban
+- `code` — Mã phòng ban
+- `memberCount` — Số lượng nhân sự trong phòng
+- `members[]` — Danh sách nhân sự thuộc phòng, có role gán theo từng người
+
+#### Department UI/UX (Web)
+- Trang `/department` hiển thị danh sách phòng ban dạng **grid card**
+- Mỗi card hiển thị: Tên phòng, Mã phòng, Số lượng nhân sự
+- Action chính trên card: `Quản lý nhân sự & gán quyền`, `Sửa`, `Xóa`
+- Modal quản lý nhân sự cho phép:
+  - Thêm nhân sự vào phòng (`user + role`)
+  - Xóa nhân sự khỏi phòng
+  - Cập nhật role (gán quyền) cho từng nhân sự trong phòng
+
+#### Department APIs
+- `POST /workspaces/:workspaceId/departments`
+- `GET /workspaces/:workspaceId/departments`
+- `PATCH /workspaces/:workspaceId/departments/:id`
+- `DELETE /workspaces/:workspaceId/departments/:id`
+- `GET /workspaces/:workspaceId/departments/member-options`
+- `GET /workspaces/:workspaceId/departments/role-options`
+- `POST /workspaces/:workspaceId/departments/:departmentId/members`
+- `PATCH /workspaces/:workspaceId/departments/:departmentId/members/:userId/role`
+- `DELETE /workspaces/:workspaceId/departments/:departmentId/members/:userId`
+
+#### Permissions
+- `DEPARTMENT_CREATE`
+- `DEPARTMENT_UPDATE`
+- `DEPARTMENT_DELETE`
+
+### 4) Frontend Interaction Standards (Applied)
+- Không dùng browser system confirm (`window.confirm`) cho nghiệp vụ chính
+- Dùng dialog đặc thù (`ConfirmDialog`, `CatalogValuesDialog`, `DepartmentMembersDialog`)
+- Mọi action async có loading state + toast feedback rõ ràng
+
+### 5) Authorization Notes
+- Guard chain: `JwtAuthGuard` → `WorkspaceGuard` → `PermissionGuard`
+- `OWNER` có full-access fallback trong guard để tránh lock do seed dữ liệu cũ
+
+---
+
 ## How to Read MVP Docs
 
 - Location: [docs/mvp/](docs/mvp/)

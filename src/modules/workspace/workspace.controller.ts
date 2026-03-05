@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards, Query } from '@nestjs/common';
 import { InvitationService } from './invitation.service';
+import { WorkspaceService } from './workspace.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
@@ -10,7 +11,10 @@ import { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 @Controller()
 export class WorkspaceController {
-  constructor(private readonly invitationService: InvitationService) {}
+  constructor(
+    private readonly invitationService: InvitationService,
+    private readonly workspaceService: WorkspaceService,
+  ) {}
 
   // POST /workspaces/:workspaceId/invitations — OWNER/ADMIN only
   @Post('workspaces/:workspaceId/invitations')
@@ -22,6 +26,36 @@ export class WorkspaceController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.invitationService.sendInvitation(workspaceId, dto, user);
+  }
+
+  // GET /workspaces/:workspaceId/members — List workspace members
+  @Get('workspaces/:workspaceId/members')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  listWorkspaceMembers(
+    @Param('workspaceId') workspaceId: string,
+    @Query('search') search?: string,
+  ) {
+    return this.workspaceService.listWorkspaceMembers(workspaceId, search);
+  }
+
+  // GET /workspaces/:workspaceId/invitations — List sent invitations from workspace
+  @Get('workspaces/:workspaceId/invitations')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  listWorkspaceInvitations(@Param('workspaceId') workspaceId: string) {
+    return this.invitationService.listWorkspaceInvitations(workspaceId);
+  }
+
+  // GET /workspaces/:workspaceId/invitations/declined — List declined invitations with pagination
+  @Get('workspaces/:workspaceId/invitations/declined')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  listDeclinedInvitations(
+    @Param('workspaceId') workspaceId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.invitationService.listDeclinedInvitations(workspaceId, pageNum, limitNum);
   }
 
   // GET /me/invitations — Any authenticated user
@@ -41,8 +75,12 @@ export class WorkspaceController {
   // POST /invitations/:token/decline — Any authenticated user
   @Post('invitations/:token/decline')
   @UseGuards(JwtAuthGuard)
-  declineInvitation(@Param('token') token: string, @CurrentUser() user: JwtPayload) {
-    return this.invitationService.declineInvitation(token, user);
+  declineInvitation(
+    @Param('token') token: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: import('./dto/decline-invitation.dto').DeclineInvitationDto,
+  ) {
+    return this.invitationService.declineInvitation(token, user, dto.reason);
   }
 
   // DELETE /workspaces/:workspaceId/invitations/:id — OWNER/ADMIN only
