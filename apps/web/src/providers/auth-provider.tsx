@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const payload = decodeJwt(token);
       if (payload) {
         // Re-set cookie in case it expired while localStorage token is still valid
-        document.cookie = `access_token=${token}; path=/; max-age=900; SameSite=Strict`;
+        document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Strict`;
         setState({
           user: {
             id: payload.sub,

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Building2, Plus, Edit2, Trash2, Users } from 'lucide-react';
+import { Building2, Plus, Edit2, Trash2, Users, Loader2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { useDepartment } from '@/hooks/use-department';
 import { DepartmentForm } from '@/components/department/department-form';
 import { DepartmentMembersDialog } from '@/components/department/department-members-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { BaseDialog } from '@/components/common/base-dialog';
 import type { Department } from '@/hooks/use-department';
 
 export default function DepartmentPage() {
@@ -118,36 +119,54 @@ export default function DepartmentPage() {
       </div>
 
       {/* Form Dialog */}
-      {showForm && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {editingId ? t('department.editTitle') : t('department.addTitle')}
-              </h2>
-            </div>
-            <div className="p-6">
-              <DepartmentForm
-                onSubmit={handleSubmit}
-                isLoading={isSubmitting}
-                onCancel={() => {
-                  setShowForm(false);
-                  setEditingId(null);
-                }}
-                initialData={
-                  editingDepartment
-                    ? {
-                        name: editingDepartment.name,
-                        code: editingDepartment.code,
-                        description: editingDepartment.description,
-                      }
-                    : undefined
+      <BaseDialog
+        isOpen={showForm}
+        onClose={() => {
+          setShowForm(false);
+          setEditingId(null);
+        }}
+        title={editingId ? t('department.editTitle') : t('department.addTitle')}
+        maxWidth="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
+              disabled={isSubmitting}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              form="department-form"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editingId ? 'Cập nhật' : 'Thêm mới'}
+            </button>
+          </>
+        }
+      >
+        <DepartmentForm
+          formId="department-form"
+          onSubmit={handleSubmit}
+          isLoading={isSubmitting}
+          initialData={
+            editingDepartment
+              ? {
+                  name: editingDepartment.name,
+                  code: editingDepartment.code,
+                  description: editingDepartment.description,
                 }
-              />
-            </div>
-          </div>
-        </div>
-      )}
+              : undefined
+          }
+        />
+      </BaseDialog>
 
       {/* Error Alert */}
       {error && (

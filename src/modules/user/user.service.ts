@@ -250,10 +250,11 @@ export class UserService {
     return { data: { message: 'Email verified successfully' } };
   }
 
-  async listDocuments(userId: string, documentType?: DocumentTypeValue) {
+  async listDocuments(userId: string, workspaceId: string, documentType?: DocumentTypeValue) {
     const documents = await this.prisma.userDocument.findMany({
       where: {
         userId,
+        workspaceId,
         ...(documentType ? { documentType } : {}),
       },
       orderBy: { createdAt: 'desc' },
@@ -310,7 +311,7 @@ export class UserService {
       );
     }
 
-    const uploaded = await this.minioService.uploadUserDocument(userId, file);
+    const uploaded = await this.minioService.uploadUserDocument(userId, file, workspaceId);
 
     const document = await this.prisma.userDocument.create({
       data: {
@@ -341,9 +342,9 @@ export class UserService {
     };
   }
 
-  async getDocumentDownload(userId: string, documentId: string) {
+  async getDocumentDownload(userId: string, workspaceId: string, documentId: string) {
     const document = await this.prisma.userDocument.findFirst({
-      where: { id: documentId, userId },
+      where: { id: documentId, userId, workspaceId },
       select: {
         id: true,
         fileName: true,
@@ -368,9 +369,9 @@ export class UserService {
     };
   }
 
-  async deleteDocument(userId: string, documentId: string) {
+  async deleteDocument(userId: string, workspaceId: string, documentId: string) {
     const document = await this.prisma.userDocument.findFirst({
-      where: { id: documentId, userId },
+      where: { id: documentId, userId, workspaceId },
       select: { id: true, objectKey: true },
     });
 
@@ -387,9 +388,9 @@ export class UserService {
     return { data: { message: 'Document deleted' } };
   }
 
-  async updateDocumentType(userId: string, documentId: string, documentType: DocumentTypeValue) {
+  async updateDocumentType(userId: string, workspaceId: string, documentId: string, documentType: DocumentTypeValue) {
     const document = await this.prisma.userDocument.findFirst({
-      where: { id: documentId, userId },
+      where: { id: documentId, userId, workspaceId },
       select: { id: true },
     });
 

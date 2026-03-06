@@ -43,7 +43,7 @@ export const vi = {
     "notifications": "Thông báo",
     "profile": "Hồ sơ cá nhân",
     "management": "Quản lý",
-    "members": "Thành viên",
+    "members": "Nhân sự",
     "departments": "Phòng ban",
     "catalogs": "Danh mục",
     "permissions": "Quyền",
@@ -103,14 +103,14 @@ export const vi = {
     "historyTitle": "Lịch sử lời mời"
   },
   "members": {
-    "title": "Thành viên",
-    "subtitle": "Quản lý thành viên workspace",
-    "invite": "Mời thành viên",
+    "title": "Nhân sự",
+    "subtitle": "Quản lý nhân sự workspace",
+    "invite": "Mời nhân sự",
     "pending": "Lời mời đang chờ",
     "noPending": "Không có lời mời nào đang chờ",
     "loading": "Đang tải...",
     "inviteModal": {
-      "title": "Mời thành viên mới",
+      "title": "Mời nhân sự mới",
       "phonePlaceholder": "+84",
       "roleLabel": "Vai trò",
       "selectRole": "Chọn vai trò",

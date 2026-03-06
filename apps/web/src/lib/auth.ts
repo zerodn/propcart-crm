@@ -19,8 +19,9 @@ export function getDeviceHash(): string {
 export function setTokens(accessToken: string, refreshToken: string): void {
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  // Set cookie for middleware (expires in 15 minutes aligned with JWT)
-  document.cookie = `access_token=${accessToken}; path=/; max-age=900; SameSite=Strict`;
+  // Keep middleware cookie longer so route navigation is not interrupted.
+  // API calls still enforce JWT expiry and refresh flow via interceptors.
+  document.cookie = `access_token=${accessToken}; path=/; max-age=604800; SameSite=Strict`;
 }
 
 export function clearTokens(): void {
@@ -55,7 +56,7 @@ export function getAccessToken(): string | null {
     const qsToken = url.searchParams.get('lh_token') || url.searchParams.get('access_token');
     if (qsToken) {
       localStorage.setItem(ACCESS_TOKEN_KEY, qsToken);
-      document.cookie = `access_token=${qsToken}; path=/; max-age=900; SameSite=Strict`;
+      document.cookie = `access_token=${qsToken}; path=/; max-age=604800; SameSite=Strict`;
       url.searchParams.delete('lh_token');
       url.searchParams.delete('access_token');
       window.history.replaceState(null, '', url.toString());

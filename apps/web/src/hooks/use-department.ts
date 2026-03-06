@@ -147,7 +147,7 @@ export function useDepartment(): UseDepartmentReturn {
       const message =
         err instanceof Error
           ? err.message.includes('DEPARTMENT_NOT_EMPTY')
-            ? 'Không thể xóa phòng ban có thành viên'
+            ? 'Không thể xóa phòng ban có nhân sự'
             : err.message
           : 'Không thể xóa phòng ban';
       toast.error(message);
@@ -162,10 +162,10 @@ export function useDepartment(): UseDepartmentReturn {
         userId,
         roleId,
       });
-      toast.success('Thêm thành viên vào phòng ban thành công');
+      toast.success('Thêm nhân sự vào phòng ban thành công');
       await fetchDepartments();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể thêm thành viên';
+      const message = err instanceof Error ? err.message : 'Không thể thêm nhân sự';
       toast.error(message);
       throw err;
     }
@@ -177,10 +177,10 @@ export function useDepartment(): UseDepartmentReturn {
       await apiClient.delete(
         `/workspaces/${workspace.id}/departments/${departmentId}/members/${userId}`,
       );
-      toast.success('Xóa thành viên thành công');
+      toast.success('Xóa nhân sự thành công');
       await fetchDepartments();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể xóa thành viên';
+      const message = err instanceof Error ? err.message : 'Không thể xóa nhân sự';
       toast.error(message);
       throw err;
     }

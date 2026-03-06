@@ -61,29 +61,95 @@ Hệ thống tổ chức theo **microservice**. Mỗi service được deploy đ
 
 ## File Upload — MinIO
 
-Tất cả file upload đều đi qua **upload-service** → lưu vào **MinIO**.
+Tất cả file upload đều đi qua MinIO với **Workspace-Scoped storage** + **Functional grouping**.
 
-### MinIO Bucket Structure
+### MinIO Bucket Structure (Workspace-Scoped)
+
 ```
 propcart-crm/
-  avatars/          ← user avatar
-  properties/       ← ảnh bất động sản
-  documents/        ← hợp đồng, tài liệu
-  temp/             ← file tạm (TTL 24h, auto-delete)
+├── {workspace_id}/
+│   ├── documents/
+│   │   ├── profile/{userId}/{date}/{uuid}.{ext}      ← User profile documents
+│   │   └── members/{date}/{uuid}.{ext}               ← Member workspace documents
+│   ├── avatars/{userId}/{date}/{uuid}.{ext}          ← User avatars (workspace-scoped)
+│   ├── properties/{date}/{uuid}.{ext}                ← Property images
+│   └── temp/{uuid}.{ext}                             ← Temporary files (TTL 24h)
+└── documents/users/{userId}/{date}/{uuid}.{ext}      ← Legacy format (backward compat)
 ```
 
-### Upload Flow
+### Functional Groups
+
+| Folder | Purpose | Scope | URL Pattern |
+|--------|---------|-------|------------|
+| **documents/profile** | User profile docs | User + Workspace | `{workspace_id}/documents/profile/{userId}/{date}/{uuid}.{ext}` |
+| **documents/members** | Member workspace docs | Workspace | `{workspace_id}/documents/members/{date}/{uuid}.{ext}` |
+| **avatars** | User avatars | User + Workspace | `{workspace_id}/avatars/{userId}/{date}/{uuid}.{ext}` |
+| **properties** | Property images | Workspace | `{workspace_id}/properties/{date}/{uuid}.{ext}` |
+| **temp** | Temporary files (TTL) | Workspace | `{workspace_id}/temp/{uuid}.{ext}` |
+
+### Upload Methods
+
+**User Profile Document:**
+```typescript
+uploadUserDocument(userId: string, file: UploadFile, workspaceId?: string)
+// Production: {workspace_id}/documents/profile/{userId}/{date}/{uuid}.{ext}
+// Legacy: documents/users/{userId}/{date}/{uuid}.{ext}
 ```
-1. Client → POST /upload/presign (upload-service)
-2. upload-service → tạo presigned URL từ MinIO (15 phút)
-3. Client → PUT trực tiếp lên MinIO bằng presigned URL
-4. Client → POST /upload/confirm (upload-service)
-5. upload-service → verify file tồn tại trong MinIO → return file URL
+
+**Member Workspace Document:**
+```typescript
+uploadMemberDocument(workspaceId: string, file: UploadFile)
+// Path: {workspace_id}/documents/members/{date}/{uuid}.{ext}
+```
+
+**Avatar:**
+```typescript
+uploadAvatar(workspaceId: string, userId: string, file: UploadFile)
+// Path: {workspace_id}/avatars/{userId}/{date}/{uuid}.{ext}
+```
+
+**Property Image:**
+```typescript
+uploadPropertyImage(workspaceId: string, file: UploadFile)
+// Path: {workspace_id}/properties/{date}/{uuid}.{ext}
+```
+
+**Temporary File:**
+```typescript
+uploadTemporaryFile(workspaceId: string, file: UploadFile)
+// Path: {workspace_id}/temp/{uuid}.{ext}
+```
+
+### Benefits
+
+- ✅ **Workspace Isolation**: Mỗi workspace hoàn toàn tách biệt trên MinIO
+- ✅ **Functional Organization**: Files sắp xếp theo chức năng (profile, avatars, properties, etc)
+- ✅ **Easy Cleanup**: Xoá cả workspace → xoá `{workspace_id}/` folder
+- ✅ **Backward Compatible**: Legacy path vẫn hoạt động cho lên cũ
+- ✅ **Multi-Tenant Safe**: Không bao giờ query cross-workspace
+
+### API Integration
+
+**User Service** - Profile Documents:
+```
+POST /me/profile/documents
+  → minioService.uploadUserDocument(userId, file, workspaceId)
+  → storage: {workspace_id}/documents/profile/{userId}/{date}/{uuid}.{ext}
+```
+
+**Workspace Service** - Member Documents:
+```
+POST /workspaces/{workspaceId}/members/{memberId}/documents?
+  → minioService.uploadMemberDocument(workspaceId, file)
+  → storage: {workspace_id}/documents/members/{date}/{uuid}.{ext}
 ```
 
 ### File URL Pattern
+
 ```
-https://minio.propcart.vn/{bucket}/{workspace_id}/{date}/{uuid}.{ext}
+https://minio.propcart.vn/propcart-crm/{workspace_id}/documents/profile/{userId}/{date}/{uuid}.{ext}
+https://minio.propcart.vn/propcart-crm/{workspace_id}/avatars/{userId}/{date}/{uuid}.{ext}
+https://minio.propcart.vn/propcart-crm/{workspace_id}/properties/{date}/{uuid}.{ext}
 ```
 
 ### Env MinIO
@@ -94,6 +160,8 @@ MINIO_ACCESS_KEY=
 MINIO_SECRET_KEY=
 MINIO_BUCKET=propcart-crm
 MINIO_USE_SSL=true
+MINIO_REGION=us-east-1
+MINIO_PUBLIC_URL=https://minio.propcart.vn
 ```
 
 ---

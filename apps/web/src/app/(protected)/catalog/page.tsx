@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ClipboardList, Plus, Edit2, Trash2 } from 'lucide-react';
+import { ClipboardList, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { useCatalog } from '@/hooks/use-catalog';
 import { CatalogForm } from '@/components/catalog/catalog-form';
 import { CatalogValuesDialog } from '@/components/catalog/catalog-values-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { BaseDialog } from '@/components/common/base-dialog';
 import { CATALOG_TYPES } from '@/types';
 import type { CatalogItem } from '@/hooks/use-catalog';
 
@@ -56,7 +57,7 @@ export default function CatalogPage() {
 
   const handleOpenEdit = (id: string) => {
     setEditingId(id);
-    setShowValuesDialog(true);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -106,39 +107,56 @@ export default function CatalogPage() {
       </div>
 
       {/* Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {editingId ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
-              </h2>
-            </div>
-            <div className="p-6">
-              <CatalogForm
-                onSubmit={handleSubmit}
-                isLoading={isSubmitting}
-                onCancel={() => {
-                  setShowForm(false);
-                  setEditingId(null);
-                }}
-                initialData={
-                  editingItem
-                    ? {
-                        type: editingItem.type,
-                        code: editingItem.code,
-                        name: editingItem.name,
-                        parentId: (editingItem as any).parentId ?? null,
-                        values: (editingItem as any).values ?? [],
-                      }
-                    : undefined
+      <BaseDialog
+        isOpen={showForm}
+        onClose={() => {
+          setShowForm(false);
+          setEditingId(null);
+        }}
+        title={editingId ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
+              disabled={isSubmitting}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              form="catalog-form"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editingId ? 'Cập nhật' : 'Thêm mới'}
+            </button>
+          </>
+        }
+      >
+        <CatalogForm
+          formId="catalog-form"
+          onSubmit={handleSubmit}
+          isLoading={isSubmitting}
+          initialData={
+            editingItem
+              ? {
+                  type: editingItem.type,
+                  code: editingItem.code,
+                  name: editingItem.name,
+                  parentId: (editingItem as any).parentId ?? null,
+                  values: (editingItem as any).values ?? [],
                 }
-                parentOptions={parentOptions}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+              : undefined
+          }
+          parentOptions={parentOptions}
+        />
+      </BaseDialog>
 
       {/* Values Dialog */}
       <CatalogValuesDialog

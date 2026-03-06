@@ -10,10 +10,20 @@ export interface WorkspaceMember {
   roleId: string;
   status: number;
   joinedAt: string;
+  displayName?: string | null;  // Workspace-scoped display name
+  workspaceEmail?: string | null;  // Workspace-scoped email
+  workspacePhone?: string | null;  // Workspace-scoped phone
+  avatarUrl?: string | null;  // Workspace-scoped avatar
+  gender?: string | null;  // Giới tính
+  dateOfBirth?: string | null;  // Ngày sinh
+  workspaceCity?: string | null;  // Thành phố/Tỉnh
+  workspaceAddress?: string | null;  // Địa chỉ đầy đủ
+  attachmentUrl?: string | null;  // Tệp đính kèm
   user: {
     id: string;
     phone: string | null;
     email: string | null;
+    fullName: string | null;
   };
   role: {
     id: string;
@@ -39,7 +49,7 @@ export function useWorkspaceMembers(workspaceId?: string, search?: string) {
       const { data } = await apiClient.get(url);
       setMembers(data.data ?? []);
     } catch {
-      setError('Không thể tải danh sách thành viên');
+      setError('Không thể tải danh sách nhân sự');
     } finally {
       setIsLoading(false);
     }
@@ -50,4 +60,26 @@ export function useWorkspaceMembers(workspaceId?: string, search?: string) {
   }, [workspaceId, search]);
 
   return { members, isLoading, error, refetch };
+}
+
+export function useWorkspaceRoles(workspaceId?: string) {
+  const [roles, setRoles] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      if (!workspaceId) return;
+      try {
+        const { data } = await apiClient.get(`/workspaces/${workspaceId}/roles`);
+        setRoles(data ?? []);
+      } catch (err) {
+        console.error('Failed to fetch roles:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchRoles();
+  }, [workspaceId]);
+
+  return { roles, isLoading };
 }

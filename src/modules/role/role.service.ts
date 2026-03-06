@@ -14,7 +14,7 @@ export class RoleService {
   }
 
   async listWorkspaceRoles(workspaceId: string) {
-    // Fetch roles from workspace's "Vai trò" catalog
+    // Fetch roles from workspace's "Vai trò" catalog to get Vietnamese names
     const roleCatalog = await this.prisma.catalog.findFirst({
       where: { workspaceId, type: 'ROLE', code: 'ROLE' },
       include: { values: { orderBy: { order: 'asc' } } },
@@ -25,15 +25,41 @@ export class RoleService {
     }
 
     // Map catalog values to role format
-    // Use catalog labels (Vietnamese) instead of role table names (English)
-    const roles = roleCatalog.values.map((v) => ({
-      id: v.id,
-      code: v.value,  // value = role code (ADMIN, MANAGER, etc.)
-      name: v.label,  // label = Vietnamese name (Quản trị viên, Quản lý, etc.)
-    }));
+    // Match code with actual Role table to get the Role ID
+    const roles = roleCatalog.values
+      .map((v) => ({
+        catalogValue: v,
+        code: v.value, // e.g., 'OWNER', 'MANAGER', 'SALES'
+      }))
+      .map((item) => ({
+        id: undefined, // Will be filled below
+        code: item.code,
+        name: item.catalogValue.label, // Vietnamese name from catalog
+      }));
+
+    // Fetch actual Role IDs by code to ensure foreign key constraint is satisfied
+    const roleIds = new Map<string, string>();
+    for (const role of roles) {
+      const actualRole = await this.prisma.role.findFirst({
+        where: { code: role.code },
+        select: { id: true },
+      });
+      if (actualRole) {
+        roleIds.set(role.code, actualRole.id);
+      }
+    }
+
+    // Update with actual Role IDs
+    const result = roles
+      .filter((r) => roleIds.has(r.code))
+      .map((r) => ({
+        id: roleIds.get(r.code)!,
+        code: r.code,
+        name: r.name,
+      }));
 
     return {
-      data: roles,
+      data: result,
     };
   }
 

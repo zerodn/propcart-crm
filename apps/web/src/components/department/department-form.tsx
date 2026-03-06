@@ -12,6 +12,7 @@ interface DepartmentFormProps {
     code: string;
     description?: string;
   };
+  formId?: string;
 }
 
 export function DepartmentForm({
@@ -19,6 +20,7 @@ export function DepartmentForm({
   isLoading = false,
   onCancel,
   initialData,
+  formId = 'department-form',
 }: DepartmentFormProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [code, setCode] = useState(initialData?.code || '');
@@ -39,17 +41,13 @@ export function DepartmentForm({
 
     try {
       await onSubmit(name, code, description || undefined);
-      setName('');
-      setCode('');
-      setDescription('');
-      setErrors({});
     } catch {
       // Error is already handled by hook
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-900">Tên phòng ban *</label>
         <input
@@ -92,27 +90,6 @@ export function DepartmentForm({
           placeholder="Mô tả chức năng của phòng ban"
           rows={3}
         />
-      </div>
-
-      <div className="flex gap-2 justify-end">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-          >
-            Hủy
-          </button>
-        )}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {initialData ? 'Cập nhật' : 'Thêm mới'}
-        </button>
       </div>
     </form>
   );

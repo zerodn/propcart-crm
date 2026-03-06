@@ -51,10 +51,15 @@ export class MinioService implements OnModuleInit {
     }
   }
 
-  async uploadUserDocument(userId: string, file: UploadFile) {
+  async uploadUserDocument(userId: string, file: UploadFile, workspaceId?: string) {
     const ext = this.getFileExtension(file.originalname);
     const date = new Date().toISOString().slice(0, 10);
-    const objectKey = `documents/users/${userId}/${date}/${randomUUID()}${ext}`;
+    
+    // Workspace-scoped storage: {workspace_id}/documents/profile/{userId}/{date}/{uuid}.{ext}
+    // If no workspace, use legacy path: documents/users/{userId}/{date}/{uuid}.{ext}
+    const objectKey = workspaceId
+      ? `${workspaceId}/documents/profile/${userId}/${date}/${randomUUID()}${ext}`
+      : `documents/users/${userId}/${date}/${randomUUID()}${ext}`;
 
     try {
       await this.client.putObject(
@@ -72,6 +77,144 @@ export class MinioService implements OnModuleInit {
       throw new InternalServerErrorException({
         code: 'DOCUMENT_UPLOAD_FAILED',
         message: 'Cannot upload document right now',
+      });
+    }
+
+    return {
+      objectKey,
+      fileUrl: this.buildObjectUrl(objectKey),
+    };
+  }
+
+  async uploadMemberDocument(
+    workspaceId: string,
+    file: UploadFile,
+  ) {
+    const ext = this.getFileExtension(file.originalname);
+    const date = new Date().toISOString().slice(0, 10);
+    
+    // Member workspace-scoped document: {workspace_id}/documents/members/{date}/{uuid}.{ext}
+    const objectKey = `${workspaceId}/documents/members/${date}/${randomUUID()}${ext}`;
+
+    try {
+      await this.client.putObject(
+        this.bucket,
+        objectKey,
+        file.buffer,
+        file.size,
+        {
+          'Content-Type': file.mimetype,
+          'X-Original-Name': encodeURIComponent(file.originalname),
+        },
+      );
+    } catch (error) {
+      this.logger.error('Upload member document to MinIO failed', error as Error);
+      throw new InternalServerErrorException({
+        code: 'DOCUMENT_UPLOAD_FAILED',
+        message: 'Cannot upload document right now',
+      });
+    }
+
+    return {
+      objectKey,
+      fileUrl: this.buildObjectUrl(objectKey),
+    };
+  }
+
+  async uploadAvatar(
+    workspaceId: string,
+    userId: string,
+    file: UploadFile,
+  ) {
+    const ext = this.getFileExtension(file.originalname);
+    const date = new Date().toISOString().slice(0, 10);
+    
+    // Avatar workspace-scoped: {workspace_id}/avatars/{userId}/{date}/{uuid}.{ext}
+    const objectKey = `${workspaceId}/avatars/${userId}/${date}/${randomUUID()}${ext}`;
+
+    try {
+      await this.client.putObject(
+        this.bucket,
+        objectKey,
+        file.buffer,
+        file.size,
+        {
+          'Content-Type': file.mimetype,
+        },
+      );
+    } catch (error) {
+      this.logger.error('Upload avatar to MinIO failed', error as Error);
+      throw new InternalServerErrorException({
+        code: 'AVATAR_UPLOAD_FAILED',
+        message: 'Cannot upload avatar right now',
+      });
+    }
+
+    return {
+      objectKey,
+      fileUrl: this.buildObjectUrl(objectKey),
+    };
+  }
+
+  async uploadPropertyImage(
+    workspaceId: string,
+    file: UploadFile,
+  ) {
+    const ext = this.getFileExtension(file.originalname);
+    const date = new Date().toISOString().slice(0, 10);
+    
+    // Property image workspace-scoped: {workspace_id}/properties/{date}/{uuid}.{ext}
+    const objectKey = `${workspaceId}/properties/${date}/${randomUUID()}${ext}`;
+
+    try {
+      await this.client.putObject(
+        this.bucket,
+        objectKey,
+        file.buffer,
+        file.size,
+        {
+          'Content-Type': file.mimetype,
+        },
+      );
+    } catch (error) {
+      this.logger.error('Upload property image to MinIO failed', error as Error);
+      throw new InternalServerErrorException({
+        code: 'IMAGE_UPLOAD_FAILED',
+        message: 'Cannot upload image right now',
+      });
+    }
+
+    return {
+      objectKey,
+      fileUrl: this.buildObjectUrl(objectKey),
+    };
+  }
+
+  async uploadTemporaryFile(
+    workspaceId: string,
+    file: UploadFile,
+  ) {
+    const ext = this.getFileExtension(file.originalname);
+    
+    // Temporary file workspace-scoped: {workspace_id}/temp/{uuid}.{ext}
+    const objectKey = `${workspaceId}/temp/${randomUUID()}${ext}`;
+
+    try {
+      await this.client.putObject(
+        this.bucket,
+        objectKey,
+        file.buffer,
+        file.size,
+        {
+          'Content-Type': file.mimetype,
+          'X-Original-Name': encodeURIComponent(file.originalname),
+        },
+      );
+    } catch (error) {
+      this.logger.error('Upload temporary file to MinIO failed', error as Error);
+      throw new InternalServerErrorException({
+        code: 'TEMP_UPLOAD_FAILED',
+        message: 'Cannot upload temporary file right now',
       });
     }
 

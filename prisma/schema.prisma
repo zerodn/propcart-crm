@@ -70,6 +70,7 @@ model Workspace {
   owner       User                  @relation(fields: [ownerUserId], references: [id])
   members     WorkspaceMember[]
   invitations WorkspaceInvitation[]
+  documents   UserDocument[]
 
   @@index([ownerUserId])
   @@index([type])
@@ -87,6 +88,17 @@ model WorkspaceMember {
   roleId      String
   status      Int      @default(1) // 1=active, 0=inactive
   joinedAt    DateTime @default(now())
+  
+  // Workspace-scoped profile (override User fields for this workspace)
+  displayName      String?   // Override user.fullName for this workspace
+  workspaceEmail   String?   // Override user.email for this workspace
+  workspacePhone   String?   // Override user.phone for this workspace
+  avatarUrl        String?   // Avatar riêng cho workspace này
+  gender           String?   // Giới tính (MALE, FEMALE, OTHER)
+  dateOfBirth      DateTime? // Ngày sinh
+  workspaceCity    String?   // Thành phố/Tỉnh
+  workspaceAddress String?   // Địa chỉ đầy đủ
+  attachmentUrl    String?   // Tệp đính kèm (URL)
 
   // Relations
   workspace Workspace @relation(fields: [workspaceId], references: [id])
@@ -355,10 +367,10 @@ model UserDocument {
   fileUrl      String
   createdAt    DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, documentType])
   @@index([workspaceId])
   @@map("user_documents")
 }

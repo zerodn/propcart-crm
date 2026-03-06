@@ -56,21 +56,22 @@ export function CatalogValuesDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">
             Quản lý dữ liệu: {catalogName}
           </h2>
           <button
             onClick={onClose}
             disabled={saving}
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0"
+            aria-label="Đóng"
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3 min-h-0">
           {values.map((v, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <input
@@ -89,7 +90,7 @@ export function CatalogValuesDialog({
               />
               <button
                 onClick={() => removeValue(idx)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                 title="Xóa"
               >
                 <Trash2 className="h-4 w-4" />
@@ -108,7 +109,7 @@ export function CatalogValuesDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-5 border-t border-gray-200">
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={onClose}
             disabled={saving}

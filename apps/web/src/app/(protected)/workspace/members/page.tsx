@@ -1,42 +1,115 @@
 'use client';
 
-import { useState } from 'react';
-import { Users, UserPlus, Trash2, Clock, XCircle, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Users, UserPlus, Trash2, Clock, XCircle, ChevronLeft, ChevronRight, Search, Edit2, UserX, MoreVertical, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { InviteModal } from '@/components/workspace/invite-modal';
+import { MemberEditDialog } from '@/components/workspace/member-edit-dialog';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { useWorkspaceInvitations, useDeclinedInvitations } from '@/hooks/use-invitations';
-import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
+import { useWorkspaceMembers, useWorkspaceRoles } from '@/hooks/use-workspace-members';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
 import { useI18n } from '@/providers/i18n-provider';
+import type { WorkspaceMember } from '@/hooks/use-workspace-members';
 
 export default function MembersPage() {
   const { workspace, role, user } = useAuth();
   const { t } = useI18n();
   const { invitations, isLoading: invLoading, refetch } = useWorkspaceInvitations(workspace?.id);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState<WorkspaceMember | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const [declinedPage, setDeclinedPage] = useState(1);
   const [memberSearch, setMemberSearch] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [invitationToCancel, setInvitationToCancel] = useState<{ id: string; phone: string } | null>(null);
+  const [isCanceling, setIsCanceling] = useState(false);
   const {
     invitations: declinedInvitations,
     isLoading: declinedLoading,
     meta: declinedMeta,
   } = useDeclinedInvitations(workspace?.id, declinedPage, 10);
-  const { members, isLoading: membersLoading } = useWorkspaceMembers(workspace?.id, memberSearch);
+  const { members, isLoading: membersLoading, refetch: refetchMembers } = useWorkspaceMembers(workspace?.id, memberSearch);
+  const { roles } = useWorkspaceRoles(workspace?.id);
 
   const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
 
-  const handleCancel = async (invId: string) => {
+  const handleCancel = (invId: string, phone: string) => {
+    setInvitationToCancel({ id: invId, phone });
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!invitationToCancel) return;
+    setIsCanceling(true);
     try {
-      await apiClient.delete(`/workspaces/${workspace?.id}/invitations/${invId}`);
+      await apiClient.delete(`/workspaces/${workspace?.id}/invitations/${invitationToCancel.id}`);
       toast.success('Đã hủy lời mời');
+      setShowCancelConfirm(false);
+      setInvitationToCancel(null);
       refetch();
     } catch {
       toast.error('Không thể hủy lời mời');
+    } finally {
+      setIsCanceling(false);
     }
   };
+
+  const handleEditMember = (member: WorkspaceMember) => {
+    setEditingMember(member);
+    setShowEditDialog(true);
+  };
+
+  const handleEditSuccess = () => {
+    toast.success('Cập nhật thành công');
+    refetchMembers();
+  };
+
+  const handleToggleMenu = (memberId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (openMenuId === memberId) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    } else {
+      const button = event.currentTarget;
+      const rect = button.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + window.scrollY,
+        right: window.innerWidth - rect.right - window.scrollX,
+      });
+      setOpenMenuId(memberId);
+    }
+  };
+
+  const handleToggleStatus = async (member: WorkspaceMember) => {
+    try {
+      const newStatus = member.status === 1 ? 0 : 1;
+      await apiClient.patch(`/workspaces/${workspace?.id}/members/${member.id}`, { status: newStatus });
+      toast.success(newStatus === 1 ? 'Đã kích hoạt nhân sự' : 'Đã vô hiệu hóa nhân sự');
+      refetchMembers();
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    } catch {
+      toast.error('Không thể cập nhật trạng thái');
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-menu]')) {
+        setOpenMenuId(null);
+        setMenuPosition(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -90,42 +163,125 @@ export default function MembersPage() {
           </p>
         )}
 
-        <div className="grid gap-3">
-          {members.map((member) => {
-            const joinedDate = new Date(member.joinedAt).toLocaleDateString('vi-VN');
-            const displayName = member.user.phone || member.user.email || 'N/A';
-            const initials = displayName.slice(-4, -2);
-            return (
-              <div
-                key={member.id}
-                className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-semibold">
-                  {initials}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 break-words">
-                    {displayName}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                    <span
-                      className={cn(
-                        'text-xs px-2.5 py-1 rounded-full font-medium',
-                        ROLE_COLORS[member.role.code] ?? 'bg-gray-100',
-                      )}
+        {!membersLoading && members.length > 0 && (
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="w-full min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700 w-12">STT</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Thông tin liên hệ</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Tên</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Vai trò</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Trạng thái</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Tham gia</th>
+                  {isAdminOrOwner && (
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700 whitespace-nowrap w-20">Thao tác</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((member, index) => {
+                  const joinedDate = new Date(member.joinedAt).toLocaleDateString('vi-VN');
+                  // Prioritize workspace-scoped fields over user fields
+                  const fullName = member.displayName || member.user.fullName || '---';
+                  const email = member.workspaceEmail || member.user.email || '';
+                  const phone = member.workspacePhone || member.user.phone || '';
+                  const contactInfo = phone || email || 'N/A';
+                  const initials = fullName.slice(0, 2).toUpperCase();
+                  const isCurrentUser = member.userId === user?.id;
+                  return (
+                    <tr
+                      key={member.id}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
-                      {ROLE_LABELS[member.role.code] ?? member.role.name}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      • Tham gia {joinedDate}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                      {/* Row Number */}
+                      <td className="py-3 px-4 text-center text-sm font-medium text-gray-600 w-12">
+                        {index + 1}
+                      </td>
+
+                      {/* Contact info */}
+                      <td className="py-3 px-4">
+                        <div className="text-sm">
+                          {phone && <p className="font-medium text-gray-900">{phone}</p>}
+                          {email && <p className="text-gray-600 text-xs">{email}</p>}
+                          {!phone && !email && <p className="text-gray-400">Chưa có</p>}
+                        </div>
+                      </td>
+
+                      {/* Full name */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-semibold overflow-hidden">
+                            {member.avatarUrl ? (
+                              <img src={member.avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{initials}</span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{fullName}</p>
+                            {isCurrentUser && (
+                              <span className="text-xs text-blue-600">(Bạn)</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role */}
+                      <td className="py-3 px-4">
+                        <span
+                          className={cn(
+                            'inline-block text-xs px-2.5 py-1 rounded-full font-medium',
+                            ROLE_COLORS[member.role.code] ?? 'bg-gray-100',
+                          )}
+                        >
+                          {ROLE_LABELS[member.role.code] ?? member.role.name}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4">
+                        {member.status === 1 ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2.5 py-1 rounded-full font-medium">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                            Hoạt động
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                            Vô hiệu
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Join date */}
+                      <td className="py-3 px-4 text-gray-600">
+                        {joinedDate}
+                      </td>
+
+                      {/* Actions */}
+                      {isAdminOrOwner && (
+                        <td className="py-3 px-4 w-20 whitespace-nowrap">
+                          <div className="flex items-center justify-end">
+                            <div data-menu>
+                              <button
+                                onClick={(e) => handleToggleMenu(member.id, e)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Hành động"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Pending invitations sent from this workspace */}
@@ -181,7 +337,7 @@ export default function MembersPage() {
                   </div>
 
                   <button
-                    onClick={() => handleCancel(inv.id)}
+                    onClick={() => handleCancel(inv.id, inv.invitedPhone)}
                     className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Hủy lời mời"
                   >
@@ -285,7 +441,78 @@ export default function MembersPage() {
       )}
 
       {showInviteModal && (
-        <InviteModal onClose={() => setShowInviteModal(false)} onSuccess={refetch} />
+        <InviteModal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} onSuccess={refetch} />
+      )}
+
+      {showEditDialog && editingMember && (
+        <MemberEditDialog
+          isOpen={showEditDialog}
+          onClose={() => {
+            setShowEditDialog(false);
+            setEditingMember(null);
+          }}
+          onSuccess={handleEditSuccess}
+          workspaceId={workspace?.id || ''}
+          member={editingMember}
+          availableRoles={Array.isArray(roles) ? roles : []}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={showCancelConfirm}
+        title="Hủy lời mời"
+        message={`Bạn có chắc chắn muốn hủy lời mời cho ${invitationToCancel?.phone}? Họ sẽ không thể tham gia workspace bằng lời mời này nữa.`}
+        confirmText="Hủy lời mời"
+        cancelText="Đóng"
+        isDangerous
+        isLoading={isCanceling}
+        onConfirm={handleConfirmCancel}
+        onCancel={() => {
+          setShowCancelConfirm(false);
+          setInvitationToCancel(null);
+        }}
+      />
+
+      {/* Dropdown menu for member actions - rendered with fixed position */}
+      {openMenuId && menuPosition && (
+        <div
+          data-menu
+          className="fixed w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+          style={{
+            top: `${menuPosition.top}px`,
+            right: `${menuPosition.right}px`,
+          }}
+        >
+          {members
+            .filter((m) => m.id === openMenuId)
+            .map((member) => {
+              const isCurrentUser = member.userId === user?.id;
+              return (
+              <div key={member.id}>
+                <button
+                  onClick={() => {
+                    handleEditMember(member);
+                    setOpenMenuId(null);
+                    setMenuPosition(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Edit2 className="h-4 w-4" />
+                  Chỉnh sửa thông tin
+                </button>
+                {!isCurrentUser && (
+                  <button
+                    onClick={() => handleToggleStatus(member)}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <UserCog className="h-4 w-4" />
+                    {member.status === 1 ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                  </button>
+                )}
+              </div>
+            );
+            })}
+        </div>
       )}
     </div>
   );

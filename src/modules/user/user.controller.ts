@@ -55,7 +55,7 @@ export class UserController {
   @Get('me/profile/documents')
   @UseGuards(JwtAuthGuard)
   listMyDocuments(@CurrentUser() user: JwtPayload, @Query() query: ListDocumentsDto) {
-    return this.userService.listDocuments(user.sub, query.documentType);
+    return this.userService.listDocuments(user.sub, user.workspaceId, query.documentType);
   }
 
   @Post('me/profile/documents')
@@ -76,7 +76,7 @@ export class UserController {
     @Param('documentId') documentId: string,
     @Res() response: Response,
   ) {
-    const file = await this.userService.getDocumentDownload(user.sub, documentId);
+    const file = await this.userService.getDocumentDownload(user.sub, user.workspaceId, documentId);
     const safeFileName = encodeURIComponent(file.fileName);
 
     response.setHeader('Content-Type', file.fileType || 'application/octet-stream');
@@ -91,7 +91,7 @@ export class UserController {
   @Delete('me/profile/documents/:documentId')
   @UseGuards(JwtAuthGuard)
   deleteMyDocument(@CurrentUser() user: JwtPayload, @Param('documentId') documentId: string) {
-    return this.userService.deleteDocument(user.sub, documentId);
+    return this.userService.deleteDocument(user.sub, user.workspaceId, documentId);
   }
 
   @Patch('me/profile/documents/:documentId/type')
@@ -101,6 +101,6 @@ export class UserController {
     @Param('documentId') documentId: string,
     @Body() dto: UpdateDocumentTypeDto,
   ) {
-    return this.userService.updateDocumentType(user.sub, documentId, dto.documentType);
+    return this.userService.updateDocumentType(user.sub, user.workspaceId, documentId, dto.documentType);
   }
 }

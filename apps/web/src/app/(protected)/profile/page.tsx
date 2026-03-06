@@ -6,6 +6,7 @@ import { DocumentTypeOption, DocumentTypeValue, useProfile } from '@/hooks/use-p
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
 import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import type { UserDocument } from '@/types';
 
 interface LocationItem {
@@ -79,6 +80,9 @@ export default function ProfilePage() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewMimeType, setPreviewMimeType] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<UserDocument | null>(null);
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false);
 
   const loadProvinceWards = async (provinceCode: string) => {
     const response = await fetch(
@@ -144,6 +148,23 @@ export default function ProfilePage() {
 
   const isEmailVerified = Boolean(profile?.emailVerifiedAt);
   const canVerifyEmail = Boolean(form.email.trim()) && !isEmailVerified;
+
+  const handleDeleteDocument = (doc: UserDocument) => {
+    setDocumentToDelete(doc);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
+    setIsDeletingDocument(true);
+    try {
+      await deleteDocument(documentToDelete.id);
+      setShowDeleteConfirm(false);
+      setDocumentToDelete(null);
+    } finally {
+      setIsDeletingDocument(false);
+    }
+  };
 
   const handleProvinceChange = (code: string) => {
     const province = provinces.find((item) => String(item.code) === code);
@@ -489,7 +510,7 @@ export default function ProfilePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => deleteDocument(doc.id)}
+                      onClick={() => handleDeleteDocument(doc)}
                       className="p-2 rounded-lg text-red-600 hover:bg-red-50"
                       aria-label="delete-document"
                     >
@@ -513,6 +534,21 @@ export default function ProfilePage() {
         onDownload={() => {
           if (!previewingDocument) return;
           void downloadDocument(previewingDocument);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Xóa tài liệu"
+        message={`Bạn có chắc chắn muốn xóa tài liệu "${documentToDelete?.fileName}"? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+        isLoading={isDeletingDocument}
+        onConfirm={handleConfirmDeleteDocument}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setDocumentToDelete(null);
         }}
       />
     </div>

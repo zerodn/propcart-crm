@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Shield, Loader2, Check, X } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { usePermissions } from '@/hooks/use-permissions';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,9 @@ export default function PermissionsPage() {
   const { roles, permissions, isLoading, error, assignPermission, removePermission } =
     usePermissions();
   const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [permissionToRemove, setPermissionToRemove] = useState<{ roleId: string; permissionId: string; roleName: string; permissionName: string } | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const groupedPermissions = permissions.reduce(
     (acc, perm) => {
@@ -27,15 +31,41 @@ export default function PermissionsPage() {
     permissionId: string,
     hasPermission: boolean,
   ) => {
-    setAssigningId(`${roleId}-${permissionId}`);
-    try {
-      if (hasPermission) {
-        await removePermission(roleId, permissionId);
-      } else {
-        await assignPermission(roleId, permissionId);
+    if (hasPermission) {
+      // Show confirmation before removing permission
+      const role = roles.find((r) => r.id === roleId);
+      const permission = permissions.find((p) => p.id === permissionId);
+      if (role && permission) {
+        setPermissionToRemove({
+          roleId,
+          permissionId,
+          roleName: ROLE_LABELS[role.code] || role.name,
+          permissionName: permission.name,
+        });
+        setShowRemoveConfirm(true);
       }
+    } else {
+      // Directly assign permission without confirmation
+      setAssigningId(`${roleId}-${permissionId}`);
+      try {
+        await assignPermission(roleId, permissionId);
+      } finally {
+        setAssigningId(null);
+      }
+    }
+  };
+
+  const handleConfirmRemovePermission = async () => {
+    if (!permissionToRemove) return;
+    setIsRemoving(true);
+    setAssigningId(`${permissionToRemove.roleId}-${permissionToRemove.permissionId}`);
+    try {
+      await removePermission(permissionToRemove.roleId, permissionToRemove.permissionId);
+      setShowRemoveConfirm(false);
+      setPermissionToRemove(null);
     } finally {
       setAssigningId(null);
+      setIsRemoving(false);
     }
   };
 
@@ -151,6 +181,21 @@ export default function PermissionsPage() {
           </p>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showRemoveConfirm}
+        title="Xóa quyền hạn"
+        message={`Bạn có chắc chắn muốn xóa quyền "${permissionToRemove?.permissionName}" từ vai trò "${permissionToRemove?.roleName}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+        isLoading={isRemoving}
+        onConfirm={handleConfirmRemovePermission}
+        onCancel={() => {
+          setShowRemoveConfirm(false);
+          setPermissionToRemove(null);
+        }}
+      />
     </div>
   );
 }

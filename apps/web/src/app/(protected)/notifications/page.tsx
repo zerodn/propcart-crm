@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Bell, CheckCircle, Mail, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/providers/i18n-provider';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import apiClient from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,9 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
+  const [isDeletingNotification, setIsDeletingNotification] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -51,12 +55,23 @@ export default function NotificationsPage() {
   };
 
   const deleteNotification = async (id: string) => {
+    setNotificationToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDeleteNotification = async () => {
+    if (!notificationToDelete) return;
+    setIsDeletingNotification(true);
     try {
-      await apiClient.delete(`/me/notifications/${id}`);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      await apiClient.delete(`/me/notifications/${notificationToDelete}`);
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationToDelete));
       toast.success(t('notifications.deleteSuccess'));
+      setShowDeleteConfirm(false);
+      setNotificationToDelete(null);
     } catch (err) {
       toast.error(t('notifications.deleteError'));
+    } finally {
+      setIsDeletingNotification(false);
     }
   };
 
@@ -193,6 +208,21 @@ export default function NotificationsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Xóa thông báo"
+        message="Bạn có chắc chắn muốn xóa thông báo này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+        isLoading={isDeletingNotification}
+        onConfirm={handleConfirmDeleteNotification}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setNotificationToDelete(null);
+        }}
+      />
     </div>
   );
 }

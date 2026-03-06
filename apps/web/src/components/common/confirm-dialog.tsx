@@ -44,12 +44,12 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-200">
+        <div className="flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                 isDangerous ? 'bg-red-100' : 'bg-blue-100'
               }`}
             >
@@ -60,17 +60,19 @@ export function ConfirmDialog({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+            className="p-1 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0 ml-2"
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 text-gray-600">{message}</div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 text-gray-600 min-h-0">
+          {message}
+        </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-6 border-t border-gray-200">
+        <div className="flex gap-3 p-6 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={onCancel}
             disabled={isLoading}
