@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Building2, Mail, Users, LogOut, ClipboardList, Shield, Briefcase, Bell, UserCircle2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
-import { WorkspaceSwitcher } from '@/components/workspace/workspace-switcher';
 import { cn } from '@/lib/utils';
 
 export function Sidebar() {
@@ -33,13 +32,12 @@ export function Sidebar() {
     <aside className="w-64 border-r border-gray-200 bg-white flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
             <Building2 className="h-4 w-4 text-white" />
           </div>
           <span className="font-semibold text-gray-900 text-sm">PropCart CRM</span>
         </div>
-        <WorkspaceSwitcher />
       </div>
 
       {/* Navigation */}

@@ -6,6 +6,7 @@ import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { ProfileMenu } from '@/components/layout/profile-menu';
 
 export function Header() {
   const { user, workspace, role } = useAuth();
@@ -13,9 +14,6 @@ export function Header() {
   // TODO: wire language switcher + notifications
   const { notifications, unreadCount } = useNotifications();
   const { locale, setLocale, t } = useI18n();
-
-  const displayName = user?.fullName ?? user?.phone ?? user?.email ?? 'Người dùng';
-  const initials = displayName.slice(-4, -2) || 'PC';
 
   return (
     <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6">
@@ -72,12 +70,7 @@ export function Header() {
             {ROLE_LABELS[role] ?? role}
           </span>
         )}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-semibold">
-            {initials}
-          </div>
-          <span className="text-sm text-gray-700">{displayName}</span>
-        </div>
+        <ProfileMenu />
       </div>
     </header>
   );

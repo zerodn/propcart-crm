@@ -17,6 +17,9 @@ export interface UpdateProfilePayload {
   districtName?: string;
   wardCode?: string;
   wardName?: string;
+  avatarUrl?: string;
+  gender?: string;
+  dateOfBirth?: string;
 }
 
 export function useProfile() {
@@ -60,10 +63,23 @@ export function useProfile() {
       return data?.data ?? null;
     } catch (error: any) {
       const code = error?.response?.data?.code;
+      const message = error?.response?.data?.message;
+      
+      console.error('Update profile error:', {
+        code,
+        message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        payload,
+      });
+      
       if (code === 'EMAIL_ALREADY_EXISTS') {
         toast.error('Email nay da duoc su dung');
+      } else if (message && Array.isArray(message)) {
+        // Validation errors from class-validator
+        toast.error(`Loi: ${message.join(', ')}`);
       } else {
-        toast.error('Khong the cap nhat thong tin');
+        toast.error(message || 'Khong the cap nhat thong tin');
       }
       throw error;
     } finally {

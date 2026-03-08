@@ -21,6 +21,9 @@ export interface User {
   wardCode?: string | null;
   wardName?: string | null;
   emailVerifiedAt?: string | null;
+  avatarUrl?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
 }
 
 export interface UserDocument {

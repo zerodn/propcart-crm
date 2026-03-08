@@ -90,6 +90,11 @@ export function MemberEditDialog({
   // Ensure availableRoles is always an array
   const rolesArray = Array.isArray(availableRoles) ? availableRoles : [];
 
+  useEffect(() => {
+    console.log('[MemberEditDialog] availableRoles:', availableRoles);
+    console.log('[MemberEditDialog] rolesArray:', rolesArray);
+  }, [availableRoles]);
+
   const formatFileSize = (bytes?: number): string => {
     if (!bytes) return '0 B';
     if (bytes < 1024) return `${bytes} B`;
@@ -369,10 +374,13 @@ export function MemberEditDialog({
         workspaceAddress: locationData.wardName || null,
         attachmentUrl: attachmentUrl || null,
       });
+      toast.success('Cập nhật thông tin nhân sự thành công');
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error('Update member error:', err);
+      const errorMessage = err?.response?.data?.message || 'Không thể cập nhật thông tin nhân sự';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -523,6 +531,9 @@ export function MemberEditDialog({
                       disabled={isSubmitting}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
                     >
+                      {rolesArray.length === 0 && (
+                        <option value="">Đang tải vai trò...</option>
+                      )}
                       {rolesArray.map((role) => (
                         <option key={role.id} value={role.id}>
                           {role.name}

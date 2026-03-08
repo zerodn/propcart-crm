@@ -48,8 +48,9 @@ export function PersonalInfoForm({
     const loadProvinces = async () => {
       try {
         const response = await fetch('https://provinces.open-api.vn/api/v2/?depth=1');
-        const payload = (await response.json()) as { data: LocationItem[] };
-        setProvinces(payload.data || []);
+        const provinceList = (await response.json()) as LocationItem[];
+        setProvinces(provinceList || []);
+        console.log('[PersonalInfoForm] Loaded provinces:', provinceList.length);
       } catch (err) {
         console.error('Failed to load provinces:', err);
       } finally {
@@ -69,7 +70,9 @@ export function PersonalInfoForm({
       try {
         const response = await fetch(`https://provinces.open-api.vn/api/v2/p/${data.provinceCode}?depth=2`);
         const payload = (await response.json()) as ProvinceV2Detail;
-        setWards((payload.wards || []).map((item) => ({ code: item.code, name: item.name })));
+        const wardList = (payload.wards || []).map((item) => ({ code: item.code, name: item.name }));
+        setWards(wardList);
+        console.log('[PersonalInfoForm] Loaded wards for province', data.provinceCode, ':', wardList.length);
       } catch (err) {
         console.error('Failed to load wards:', err);
       } finally {
@@ -81,6 +84,7 @@ export function PersonalInfoForm({
 
   const handleProvinceChange = (code: string) => {
     const province = provinces.find((p) => String(p.code) === code);
+    console.log('[PersonalInfoForm] Province changed:', { code, name: province?.name });
     onChange({
       ...data,
       provinceCode: code,
@@ -92,6 +96,7 @@ export function PersonalInfoForm({
 
   const handleWardChange = (code: string) => {
     const ward = wards.find((w) => String(w.code) === code);
+    console.log('[PersonalInfoForm] Ward changed:', { code, name: ward?.name });
     onChange({
       ...data,
       wardCode: code,
@@ -135,18 +140,6 @@ export function PersonalInfoForm({
             ))}
           </select>
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ</label>
-        <input
-          type="text"
-          value={data.wardName || ''}
-          onChange={(e) => onChange({ ...data, wardName: e.target.value, wardCode: '' })}
-          placeholder="Nếu cần, nhập tay tên phường/xã"
-          disabled={isDisabled}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-        />
       </div>
 
       {showGenderAndDOB && (

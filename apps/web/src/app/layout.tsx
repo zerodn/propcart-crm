@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <I18nProvider>
           <AuthProvider>
             {children}
-            <Toaster richColors position="top-right" />
+            <Toaster richColors position="top-right" closeButton />
           </AuthProvider>
         </I18nProvider>
       </body>

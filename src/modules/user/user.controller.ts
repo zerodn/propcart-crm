@@ -52,6 +52,16 @@ export class UserController {
     return this.userService.sendEmailVerification(user.sub);
   }
 
+  @Post('me/profile/upload-avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadMyAvatar(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile() file: UploadedDocumentFile,
+  ) {
+    return this.userService.uploadProfileAvatar(user.sub, user.workspaceId, file);
+  }
+
   @Get('me/profile/documents')
   @UseGuards(JwtAuthGuard)
   listMyDocuments(@CurrentUser() user: JwtPayload, @Query() query: ListDocumentsDto) {

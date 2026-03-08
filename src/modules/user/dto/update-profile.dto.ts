@@ -45,4 +45,18 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(120)
   wardName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  dateOfBirth?: string;
 }

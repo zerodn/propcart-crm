@@ -71,9 +71,13 @@ export function useWorkspaceRoles(workspaceId?: string) {
       if (!workspaceId) return;
       try {
         const { data } = await apiClient.get(`/workspaces/${workspaceId}/roles`);
-        setRoles(data ?? []);
+        // Extract roles from response (handle both data.data and direct data array)
+        const rolesList = Array.isArray(data) ? data : (data?.data ?? []);
+        console.log('[useWorkspaceRoles] Fetched roles:', rolesList);
+        setRoles(rolesList);
       } catch (err) {
         console.error('Failed to fetch roles:', err);
+        setRoles([]);
       } finally {
         setIsLoading(false);
       }

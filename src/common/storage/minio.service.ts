@@ -46,6 +46,22 @@ export class MinioService implements OnModuleInit {
         await this.client.makeBucket(this.bucket);
         this.logger.log(`Created MinIO bucket: ${this.bucket}`);
       }
+
+      // Set bucket policy to allow public read access
+      const policy = {
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Principal: { AWS: ['*'] },
+            Action: ['s3:GetObject'],
+            Resource: [`arn:aws:s3:::${this.bucket}/*`],
+          },
+        ],
+      };
+
+      await this.client.setBucketPolicy(this.bucket, JSON.stringify(policy));
+      this.logger.log(`Set public read policy for bucket: ${this.bucket}`);
     } catch (error) {
       this.logger.error('Cannot initialize MinIO bucket', error as Error);
     }
@@ -229,6 +245,25 @@ export class MinioService implements OnModuleInit {
       await this.client.removeObject(this.bucket, objectKey);
     } catch (error) {
       this.logger.warn(`Failed to delete MinIO object: ${objectKey}`);
+    }
+  }
+
+  extractObjectKeyFromUrl(fileUrl: string): string | null {
+    if (!fileUrl) return null;
+
+    try {
+      // URL format: http://localhost:9000/propcart-crm/{objectKey}
+      // or: https://minio.propcart.vn/propcart-crm/{objectKey}
+      const bucketPrefix = `/${this.bucket}/`;
+      const index = fileUrl.indexOf(bucketPrefix);
+      
+      if (index === -1) return null;
+      
+      const objectKey = fileUrl.slice(index + bucketPrefix.length);
+      return objectKey || null;
+    } catch (error) {
+      this.logger.warn(`Failed to extract objectKey from URL: ${fileUrl}`);
+      return null;
     }
   }
 

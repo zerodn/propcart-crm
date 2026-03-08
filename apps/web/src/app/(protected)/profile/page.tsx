@@ -1,51 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, MailCheck, Save, Upload, Trash2, FileText, Download } from 'lucide-react';
+import { CheckCircle2, Loader2, MailCheck, Save, Upload, Trash2, FileText, Download, Camera, X } from 'lucide-react';
 import { DocumentTypeOption, DocumentTypeValue, useProfile } from '@/hooks/use-profile';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
 import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { PersonalInfoForm, type LocationFormData } from '@/components/common/personal-info-form';
+import apiClient from '@/lib/api-client';
+import { toast } from 'sonner';
 import type { UserDocument } from '@/types';
-
-interface LocationItem {
-  code: number;
-  name: string;
-}
-
-interface ProvinceV2Item {
-  code: number;
-  name: string;
-}
-
-interface ProvinceV2Detail {
-  code: number;
-  name: string;
-  wards: Array<{
-    code: number;
-    name: string;
-  }>;
-}
 
 interface FormState {
   fullName: string;
   email: string;
   fullAddress: string;
-  provinceCode: string;
-  provinceName: string;
-  wardCode: string;
-  wardName: string;
 }
 
 const EMPTY_FORM: FormState = {
   fullName: '',
   email: '',
   fullAddress: '',
-  provinceCode: '',
-  provinceName: '',
-  wardCode: '',
-  wardName: '',
 };
 
 export default function ProfilePage() {
@@ -68,10 +44,17 @@ export default function ProfilePage() {
   } = useProfile();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [provinces, setProvinces] = useState<LocationItem[]>([]);
-  const [wards, setWards] = useState<LocationItem[]>([]);
-  const [locationLoading, setLocationLoading] = useState(true);
-  const [wardLoading, setWardLoading] = useState(false);
+  const [locationData, setLocationData] = useState<LocationFormData>({
+    provinceCode: '',
+    provinceName: '',
+    wardCode: '',
+    wardName: '',
+    gender: '',
+    dateOfBirth: '',
+  });
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [sendingVerify, setSendingVerify] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadDocumentType, setUploadDocumentType] = useState<Exclude<DocumentTypeOption, 'ALL'>>('OTHER');
@@ -84,70 +67,93 @@ export default function ProfilePage() {
   const [documentToDelete, setDocumentToDelete] = useState<UserDocument | null>(null);
   const [isDeletingDocument, setIsDeletingDocument] = useState(false);
 
-  const loadProvinceWards = async (provinceCode: string) => {
-    const response = await fetch(
-      `https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`,
-    );
-    const payload = (await response.json()) as ProvinceV2Detail;
-    return (payload.wards || []).map((item) => ({ code: item.code, name: item.name }));
-  };
-
   useEffect(() => {
     if (!profile) return;
     setForm({
       fullName: profile.fullName ?? '',
       email: profile.email ?? '',
       fullAddress: profile.addressLine ?? '',
+    });
+    const locationUpdate = {
       provinceCode: profile.provinceCode ?? '',
       provinceName: profile.provinceName ?? '',
       wardCode: profile.wardCode ?? '',
       wardName: profile.wardName ?? '',
-    });
+      gender: profile.gender ?? '',
+      dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '',
+    };
+    console.log('[ProfilePage] Loading profile location data:', locationUpdate);
+    setLocationData(locationUpdate);
+    setAvatarUrl(profile.avatarUrl ?? '');
   }, [profile]);
-
-  useEffect(() => {
-    const loadLocations = async () => {
-      setLocationLoading(true);
-      try {
-        const response = await fetch('https://provinces.open-api.vn/api/v2/');
-        const payload = (await response.json()) as ProvinceV2Item[];
-        setProvinces(
-          (payload || []).map((item) => ({
-            code: item.code,
-            name: item.name,
-          })),
-        );
-      } finally {
-        setLocationLoading(false);
-      }
-    };
-
-    loadLocations();
-  }, []);
-
-  useEffect(() => {
-    if (!form.provinceCode) {
-      setWards([]);
-      return;
-    }
-
-    const run = async () => {
-      setWardLoading(true);
-      try {
-        const wardItems = await loadProvinceWards(form.provinceCode);
-        setWards(wardItems);
-      } catch {
-        setWards([]);
-      } finally {
-        setWardLoading(false);
-      }
-    };
-
-    run();
-  }, [form.provinceCode]);
 
   const isEmailVerified = Boolean(profile?.emailVerifiedAt);
   const canVerifyEmail = Boolean(form.email.trim()) && !isEmailVerified;
+
+  const displayName = profile?.fullName ?? profile?.phone ?? profile?.email ?? 'Người dùng';
+  const initials = displayName.slice(0, 2).toUpperCase() || 'PC';
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Chỉ hỗ trợ file ảnh JPG, PNG');
+      return;
+    }
+
+    // Validate file size (max 5MB for avatar)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ảnh đại diện tối đa 5MB');
+      return;
+    }
+
+    // Create preview
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarUrl(previewUrl);
+    setAvatarFile(file);
+
+    // Upload immediately
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data } = await apiClient.post('/me/profile/upload-avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const uploadedUrl = data?.data?.downloadUrl;
+      if (uploadedUrl) {
+        // Save avatar URL to database immediately
+        await updateProfile({ avatarUrl: uploadedUrl });
+        setAvatarUrl(uploadedUrl);
+        toast.success('Đã cập nhật ảnh đại diện');
+      }
+    } catch (error: any) {
+      const code = error?.response?.data?.code;
+      if (code === 'FILE_TOO_LARGE') {
+        toast.error('Ảnh quá lớn (tối đa 5MB)');
+      } else {
+        toast.error('Không thể tải ảnh lên');
+      }
+      URL.revokeObjectURL(previewUrl);
+      setAvatarUrl(profile?.avatarUrl ?? '');
+      setAvatarFile(null);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    if (avatarUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarUrl);
+    }
+    setAvatarUrl('');
+    setAvatarFile(null);
+  };
 
   const handleDeleteDocument = (doc: UserDocument) => {
     setDocumentToDelete(doc);
@@ -166,37 +172,27 @@ export default function ProfilePage() {
     }
   };
 
-  const handleProvinceChange = (code: string) => {
-    const province = provinces.find((item) => String(item.code) === code);
-    setForm((prev) => ({
-      ...prev,
-      provinceCode: code,
-      provinceName: province?.name ?? '',
-      wardCode: '',
-      wardName: '',
-    }));
-  };
-
-  const handleWardChange = (code: string) => {
-    const ward = wards.find((item) => String(item.code) === code);
-    setForm((prev) => ({
-      ...prev,
-      wardCode: code,
-      wardName: ward?.name ?? '',
-    }));
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Sanitize payload - convert empty strings to undefined to avoid validation errors
+    const sanitizeValue = (value: string | undefined) => {
+      return value && value.trim() ? value.trim() : undefined;
+    };
+
     await updateProfile({
-      fullName: form.fullName,
-      email: form.email,
-      addressLine: form.fullAddress,
-      provinceCode: form.provinceCode,
-      provinceName: form.provinceName,
-      wardCode: form.wardCode,
-      wardName: form.wardName,
+      fullName: sanitizeValue(form.fullName),
+      email: sanitizeValue(form.email),
+      addressLine: sanitizeValue(form.fullAddress),
+      provinceCode: sanitizeValue(locationData.provinceCode),
+      provinceName: sanitizeValue(locationData.provinceName),
+      districtCode: undefined, // Not used in PersonalInfoForm
+      districtName: undefined, // Not used in PersonalInfoForm
+      wardCode: sanitizeValue(locationData.wardCode),
+      wardName: sanitizeValue(locationData.wardName),
+      avatarUrl: sanitizeValue(avatarUrl),
+      gender: sanitizeValue(locationData.gender),
+      dateOfBirth: sanitizeValue(locationData.dateOfBirth),
     });
 
     await refreshProfile();
@@ -283,236 +279,253 @@ export default function ProfilePage() {
   }, [previewUrl]);
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500">Dang tai profile...</div>;
+    return <div className="text-sm text-gray-500">Đang tải profile...</div>;
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-7xl space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Ho so ca nhan</h1>
-        <p className="text-sm text-gray-500 mt-1">Cap nhat thong tin cua ban va xac thuc email</p>
+        <h1 className="text-xl font-bold text-gray-900">Hồ sơ cá nhân</h1>
+        <p className="text-sm text-gray-500 mt-1">Cập nhật thông tin của bạn và xác thực email</p>
       </div>
 
-      <form onSubmit={handleSave} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">So dien thoai</label>
-          <input
-            value={profile?.phone ?? ''}
-            disabled
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ten</label>
-          <input
-            value={form.fullName}
-            onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-            placeholder="Nhap ten cua ban"
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <div className="relative">
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="Nhap email"
-              className="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              {isEmailVerified ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" aria-label="email-verified" />
-              ) : (
-                <button
-                  type="button"
-                  aria-label="send-email-verification"
-                  title="Gui xac thuc email"
-                  disabled={!canVerifyEmail || sendingVerify}
-                  onClick={handleSendVerify}
-                  className="p-1 rounded hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {sendingVerify ? (
-                    <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Cột trái: Form thông tin cá nhân */}
+        <form onSubmit={handleSave} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+          {/* Avatar Upload Section */}
+          <div className="pb-4 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Ảnh đại diện</h3>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-24 h-24 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-2xl font-semibold overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
                   ) : (
-                    <MailCheck className="h-5 w-5 text-blue-600" />
+                    <span>{initials}</span>
                   )}
-                </button>
-              )}
+                </div>
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer">
+                  <Camera className="h-4 w-4" />
+                  Tải ảnh lên
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={handleAvatarChange}
+                    disabled={isUploadingAvatar}
+                  />
+                </label>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={isUploadingAvatar}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" />
+                    Xóa ảnh
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Chỉ hỗ trợ JPG, PNG. Tối đa 5MB.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+            <input
+              value={profile?.phone ?? ''}
+              disabled
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
+            <input
+              value={form.fullName}
+              onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
+              placeholder="Nhập tên của bạn"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <div className="relative">
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="Nhập email"
+                className="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                {isEmailVerified ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-600" aria-label="email-verified" />
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="send-email-verification"
+                    title="Gửi xác thực email"
+                    disabled={!canVerifyEmail || sendingVerify}
+                    onClick={handleSendVerify}
+                    className="p-1 rounded hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {sendingVerify ? (
+                      <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                    ) : (
+                      <MailCheck className="h-5 w-5 text-blue-600" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Dia chi day du</label>
-          <input
-            value={form.fullAddress}
-            onChange={(e) => setForm((prev) => ({ ...prev, fullAddress: e.target.value }))}
-            placeholder="VD: 123 Nguyen Van Linh, Phuong Ngu Hanh Son, Thanh pho Da Nang"
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tinh/Thanh pho</label>
-            <select
-              value={form.provinceCode}
-              onChange={(e) => handleProvinceChange(e.target.value)}
-              disabled={locationLoading}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">Chon tinh/thanh</option>
-              {provinces.map((item) => (
-                <option key={item.code} value={String(item.code)}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phuong/Xa</label>
-            <select
-              value={form.wardCode}
-              onChange={(e) => handleWardChange(e.target.value)}
-              disabled={!form.provinceCode || locationLoading || wardLoading}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">Chon phuong/xa</option>
-              {wards.map((item) => (
-                <option key={item.code} value={String(item.code)}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ chi tiết</label>
+            <input
+              value={form.fullAddress}
+              onChange={(e) => setForm((prev) => ({ ...prev, fullAddress: e.target.value }))}
+              placeholder="VD: 123 Nguyễn Văn Linh"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Dia chi</label>
-          <input
-            value={form.wardName}
-            onChange={(e) => setForm((prev) => ({ ...prev, wardName: e.target.value, wardCode: '' }))}
-            placeholder="Neu can, nhap tay ten phuong/xa"
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          {/* Location & Personal Info Form */}
+          <PersonalInfoForm
+            data={locationData}
+            onChange={setLocationData}
+            showGenderAndDOB={true}
+            genderDobInline={true}
           />
-        </div>
 
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Luu thong tin
-          </button>
-        </div>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Lưu thông tin
+            </button>
+          </div>
+        </form>
 
-        <div className="pt-6 border-t border-gray-200 space-y-3">
+        {/* Cột phải: Tài liệu liên quan */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Tai lieu lien quan</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Ho tro PDF, DOC, DOCX, PNG, JPG (toi da 20MB)</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={uploadDocumentType}
-                onChange={(e) => setUploadDocumentType(e.target.value as Exclude<DocumentTypeOption, 'ALL'>)}
-                className="px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
-              >
-                <option value="CCCD">Loai: CCCD</option>
-                <option value="HDLD">Loai: HDLD</option>
-                <option value="CHUNG_CHI">Loai: Chung chi</option>
-                <option value="OTHER">Loai: Khac</option>
-              </select>
-
-              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer">
-                {uploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Tai len
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                  onChange={handleUploadDocument}
-                  disabled={uploadingDocument}
-                />
-              </label>
+              <h2 className="text-sm font-semibold text-gray-900">Tài liệu liên quan</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Hỗ trợ PDF, DOC, DOCX, PNG, JPG (tối đa 20MB)</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-600">Loc theo loai</label>
+            <select
+              value={uploadDocumentType}
+              onChange={(e) => setUploadDocumentType(e.target.value as Exclude<DocumentTypeOption, 'ALL'>)}
+              className="flex-1 px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
+            >
+              <option value="CCCD">Loại: CCCD</option>
+              <option value="HDLD">Loại: HDLD</option>
+              <option value="CHUNG_CHI">Loại: Chứng chỉ</option>
+              <option value="OTHER">Loại: Khác</option>
+            </select>
+
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer whitespace-nowrap">
+              {uploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Tải lên
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={handleUploadDocument}
+                disabled={uploadingDocument}
+              />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-600">Lọc theo loại</label>
             <select
               value={activeDocumentType}
               onChange={(e) => setDocumentTypeFilter(e.target.value as DocumentTypeOption)}
               className="px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
             >
-              <option value="ALL">Tat ca</option>
+              <option value="ALL">Tất cả</option>
               <option value="CCCD">CCCD</option>
               <option value="HDLD">HDLD</option>
-              <option value="CHUNG_CHI">Chung chi</option>
-              <option value="OTHER">Khac</option>
+              <option value="CHUNG_CHI">Chứng chỉ</option>
+              <option value="OTHER">Khác</option>
             </select>
           </div>
 
           {documents.length === 0 ? (
-            <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4">
-              Chua co tai lieu nao duoc tai len.
+            <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
+              Chưa có tài liệu nào được tải lên.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto pr-1">
               {documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between gap-3 border border-gray-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <div className="min-w-0">
+                <div key={doc.id} className="flex items-start justify-between gap-3 border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <FileText className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
                       <button
                         type="button"
                         onClick={() => openPreviewDialog(doc)}
-                        className="text-sm font-medium text-blue-600 hover:underline truncate block text-left"
+                        className="text-sm font-medium text-blue-600 hover:underline truncate block text-left w-full"
                       >
                         {doc.fileName}
                       </button>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 break-words">
                         {DOCUMENT_TYPE_LABELS[doc.documentType]} • {formatFileSize(doc.fileSize)} •{' '}
                         {new Date(doc.createdAt).toLocaleString('vi-VN')}
                       </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <select
+                          value={doc.documentType}
+                          onChange={(e) => handleDocumentTypeChange(doc.id, e.target.value)}
+                          disabled={updatingTypeDocumentId === doc.id}
+                          className="px-2 py-1 rounded-md border border-gray-300 bg-white text-xs flex-shrink-0"
+                          aria-label="document-type"
+                        >
+                          <option value="CCCD">CCCD</option>
+                          <option value="HDLD">HDLD</option>
+                          <option value="CHUNG_CHI">Chứng chỉ</option>
+                          <option value="OTHER">Khác</option>
+                        </select>
+                        {updatingTypeDocumentId === doc.id && (
+                          <Loader2 className="h-3 w-3 animate-spin text-gray-500" aria-label="document-type-updating" />
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={doc.documentType}
-                      onChange={(e) => handleDocumentTypeChange(doc.id, e.target.value)}
-                      disabled={updatingTypeDocumentId === doc.id}
-                      className="px-2 py-1.5 rounded-md border border-gray-300 bg-white text-xs"
-                      aria-label="document-type"
-                    >
-                      <option value="CCCD">CCCD</option>
-                      <option value="HDLD">HDLD</option>
-                      <option value="CHUNG_CHI">Chung chi</option>
-                      <option value="OTHER">Khac</option>
-                    </select>
-                    {updatingTypeDocumentId === doc.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-500" aria-label="document-type-updating" />
-                    ) : null}
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       type="button"
                       onClick={() => downloadDocument(doc)}
-                      className="p-2 rounded-lg text-blue-600 hover:bg-blue-50"
+                      className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
                       aria-label="download-document"
+                      title="Tải xuống"
                     >
                       <Download className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteDocument(doc)}
-                      className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                      className="p-1.5 rounded-lg text-red-600 hover:bg-red-50"
                       aria-label="delete-document"
+                      title="Xóa"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -522,7 +535,7 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </form>
+      </div>
 
       <DocumentPreviewDialog
         isOpen={Boolean(previewingDocument)}

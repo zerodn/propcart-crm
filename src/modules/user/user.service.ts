@@ -76,6 +76,9 @@ export class UserService {
         wardCode: true,
         wardName: true,
         emailVerifiedAt: true,
+        avatarUrl: true,
+        gender: true,
+        dateOfBirth: true,
       },
     });
 
@@ -122,6 +125,15 @@ export class UserService {
 
     const emailChanged = normalizedEmail !== (currentUser.email || null);
 
+    // Validate and parse dateOfBirth
+    let parsedDateOfBirth: Date | null = null;
+    if (dto.dateOfBirth && dto.dateOfBirth.trim()) {
+      const dateValue = new Date(dto.dateOfBirth);
+      if (!isNaN(dateValue.getTime())) {
+        parsedDateOfBirth = dateValue;
+      }
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -134,6 +146,9 @@ export class UserService {
         districtName: dto.districtName || null,
         wardCode: dto.wardCode || null,
         wardName: dto.wardName || null,
+        avatarUrl: dto.avatarUrl || null,
+        gender: dto.gender || null,
+        dateOfBirth: parsedDateOfBirth,
         ...(emailChanged
           ? {
               emailVerifiedAt: null,
@@ -155,10 +170,73 @@ export class UserService {
         wardCode: true,
         wardName: true,
         emailVerifiedAt: true,
+        avatarUrl: true,
+        gender: true,
+        dateOfBirth: true,
       },
     });
 
     return { data: updatedUser };
+  }
+
+  async uploadProfileAvatar(
+    userId: string,
+    workspaceId: string,
+    file: UploadedDocumentFile,
+  ) {
+    if (!file) {
+      throw new HttpException(
+        { code: 'FILE_REQUIRED', message: 'Avatar file is required' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Validate file type (jpg, png only)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new HttpException(
+        { code: 'INVALID_FILE_TYPE', message: 'Only JPG and PNG images are allowed' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new HttpException(
+        { code: 'FILE_TOO_LARGE', message: 'Avatar size cannot exceed 5MB' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Get current user to retrieve old avatar URL
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+
+    // Upload new avatar to MinIO
+    const uploadResult = await this.minioService.uploadAvatar(workspaceId, userId, {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      buffer: file.buffer,
+    });
+
+    // Delete old avatar from MinIO (if exists)
+    if (currentUser?.avatarUrl) {
+      const oldObjectKey = this.minioService.extractObjectKeyFromUrl(currentUser.avatarUrl);
+      if (oldObjectKey) {
+        await this.minioService.deleteObject(oldObjectKey);
+      }
+    }
+
+    return {
+      data: {
+        downloadUrl: uploadResult.fileUrl,
+        objectKey: uploadResult.objectKey,
+      },
+    };
   }
 
   async sendEmailVerification(userId: string) {

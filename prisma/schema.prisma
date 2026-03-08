@@ -34,6 +34,9 @@ model User {
   googleId     String?  @unique
   passwordHash String?
   status       Int      @default(1) // 1=active, 0=inactive, 2=banned
+  avatarUrl    String?   // Avatar URL từ MinIO
+  gender       String?   // Giới tính (MALE, FEMALE, OTHER)
+  dateOfBirth  DateTime? // Ngày sinh
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
