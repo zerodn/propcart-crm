@@ -3,11 +3,18 @@ import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 import { useAuth } from './use-auth';
 
+export interface CatalogValue {
+  value: string;
+  label: string;
+  order?: number;
+}
+
 export interface CatalogItem {
   id: string;
   type: string;
   code: string;
   name: string;
+  values?: CatalogValue[];
   createdAt: string;
 }
 

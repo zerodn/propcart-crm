@@ -52,6 +52,15 @@ export class CatalogService {
       await this.initializeRoleCatalog(workspaceId);
     }
 
+    // Auto-initialize warehouse type catalog if it doesn't exist
+    const warehouseTypeCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'WAREHOUSE_TYPE', code: 'WAREHOUSE_TYPE' },
+    });
+
+    if (!warehouseTypeCatalogExists) {
+      await this.initializeWarehouseTypeCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -183,6 +192,49 @@ export class CatalogService {
     });
 
     return roleCatalog;
+  }
+
+  private async initializeWarehouseTypeCatalog(workspaceId: string) {
+    const warehouseTypeCatalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'WAREHOUSE_TYPE',
+        code: 'WAREHOUSE_TYPE',
+        name: 'Loại Kho',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'OWNER',
+          label: 'Kho chủ đầu tư',
+          order: 0,
+        },
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'AGENT',
+          label: 'Kho đại lý',
+          order: 1,
+        },
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'LANDLORD',
+          label: 'Kho chủ nhà',
+          order: 2,
+        },
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'AUCTION',
+          label: 'Kho đấu giá / ngân hàng',
+          order: 3,
+        },
+      ],
+    });
+
+    return warehouseTypeCatalog;
   }
 }
 
