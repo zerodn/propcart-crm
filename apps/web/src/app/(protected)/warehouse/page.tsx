@@ -216,7 +216,7 @@ export default function WarehousePage() {
           setEditingId(null);
         }}
         title={editingId ? 'Chỉnh sửa kho hàng' : 'Tạo kho hàng'}
-        maxWidth="lg"
+        maxWidth="2xl"
         footer={
           <>
             <button
