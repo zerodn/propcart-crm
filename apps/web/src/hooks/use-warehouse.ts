@@ -18,13 +18,29 @@ export interface PropertyWarehouse {
   wardName?: string;
   fullAddress?: string;
   createdByUserId: string;
-  createdBy: {
+  createdBy?: {
     id: string;
     fullName?: string;
     email?: string;
-  };
+  } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+function normalizeWarehouse(raw: any): PropertyWarehouse {
+  const createdBy = raw?.createdBy ?? raw?.created_by ?? null;
+
+  return {
+    ...raw,
+    createdByUserId: raw?.createdByUserId ?? raw?.created_by_user_id ?? '',
+    createdBy: createdBy
+      ? {
+          id: createdBy.id,
+          fullName: createdBy.fullName ?? createdBy.full_name,
+          email: createdBy.email,
+        }
+      : null,
+  } as PropertyWarehouse;
 }
 
 export function useWarehouse(workspaceId: string) {
@@ -41,7 +57,8 @@ export function useWarehouse(workspaceId: string) {
           `/workspaces/${workspaceId}/warehouses`,
           { params: opts },
         );
-        const items = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
+        const rawItems = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
+        const items = rawItems.map(normalizeWarehouse);
         setWarehouses(items);
         return items;
       } catch (err) {

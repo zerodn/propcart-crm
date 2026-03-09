@@ -154,8 +154,10 @@ export default function WarehousePage() {
     {
       key: 'createdBy',
       label: 'Người tạo',
-      render: (value) => (
-        <span className="text-sm text-gray-700">{value?.fullName || 'N/A'}</span>
+      render: (value, row) => (
+        <span className="text-sm text-gray-700">
+          {value?.fullName || value?.email || row.createdByUserId || 'N/A'}
+        </span>
       ),
     },
   ];
