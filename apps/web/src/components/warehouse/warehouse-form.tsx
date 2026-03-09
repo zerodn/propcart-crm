@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useI18n } from '@/providers/i18n-provider';
 import { PropertyWarehouse } from '@/hooks/use-warehouse';
+import { PersonalInfoForm, type LocationFormData } from '@/components/common/personal-info-form';
 
 interface WarehouseFormProps {
   onSubmit: (data: any) => Promise<void>;
@@ -28,11 +29,14 @@ export function WarehouseForm({
     status: 1,
     latitude: '',
     longitude: '',
+    fullAddress: '',
+  });
+
+  const [locationData, setLocationData] = useState<LocationFormData>({
     provinceCode: '',
     provinceName: '',
     wardCode: '',
     wardName: '',
-    fullAddress: '',
   });
 
   useEffect(() => {
@@ -45,11 +49,13 @@ export function WarehouseForm({
         status: editingWarehouse.status,
         latitude: editingWarehouse.latitude?.toString() || '',
         longitude: editingWarehouse.longitude?.toString() || '',
+        fullAddress: editingWarehouse.fullAddress || '',
+      });
+      setLocationData({
         provinceCode: editingWarehouse.provinceCode || '',
         provinceName: editingWarehouse.provinceName || '',
         wardCode: editingWarehouse.wardCode || '',
         wardName: editingWarehouse.wardName || '',
-        fullAddress: editingWarehouse.fullAddress || '',
       });
     } else {
       setForm({
@@ -60,11 +66,13 @@ export function WarehouseForm({
         status: 1,
         latitude: '',
         longitude: '',
+        fullAddress: '',
+      });
+      setLocationData({
         provinceCode: '',
         provinceName: '',
         wardCode: '',
         wardName: '',
-        fullAddress: '',
       });
     }
   }, [editingWarehouse]);
@@ -83,10 +91,13 @@ export function WarehouseForm({
     if (form.description?.trim()) data.description = form.description.trim();
     if (form.latitude) data.latitude = parseFloat(form.latitude);
     if (form.longitude) data.longitude = parseFloat(form.longitude);
-    if (form.provinceCode?.trim()) data.provinceCode = form.provinceCode.trim();
-    if (form.provinceName?.trim()) data.provinceName = form.provinceName.trim();
-    if (form.wardCode?.trim()) data.wardCode = form.wardCode.trim();
-    if (form.wardName?.trim()) data.wardName = form.wardName.trim();
+    
+    // Location data from PersonalInfoForm
+    if (locationData.provinceCode) data.provinceCode = locationData.provinceCode;
+    if (locationData.provinceName) data.provinceName = locationData.provinceName;
+    if (locationData.wardCode) data.wardCode = locationData.wardCode;
+    if (locationData.wardName) data.wardName = locationData.wardName;
+    
     if (form.fullAddress?.trim()) data.fullAddress = form.fullAddress.trim();
     
     console.log('Warehouse form data to send:', data);
@@ -179,27 +190,14 @@ export function WarehouseForm({
         </div>
       </div>
 
+      {/* Location Selection */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Tỉnh thành phố</label>
-        <input
-          type="text"
-          value={form.provinceName}
-          onChange={(e) => setForm({ ...form, provinceName: e.target.value })}
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-          placeholder="VD: Hồ Chí Minh"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Phường/Xã</label>
-        <input
-          type="text"
-          value={form.wardName}
-          onChange={(e) => setForm({ ...form, wardName: e.target.value })}
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-          placeholder="VD: Phường 1"
+        <h4 className="text-xs font-semibold text-gray-900 mb-2">Địa chỉ kho hàng</h4>
+        <PersonalInfoForm
+          data={locationData}
+          onChange={setLocationData}
+          isDisabled={isSubmitting}
+          hideHeader={true}
         />
       </div>
 
