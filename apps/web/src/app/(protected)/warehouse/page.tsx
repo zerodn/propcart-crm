@@ -51,6 +51,8 @@ export default function WarehousePage() {
         await create(data);
       }
       setShowForm(false);
+      // Reload data to ensure fresh state from server
+      await list();
     } finally {
       setIsSubmitting(false);
     }

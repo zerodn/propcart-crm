@@ -65,7 +65,6 @@ export function useWarehouse(workspaceId: string) {
           data,
         );
         const warehouse = response.data;
-        setWarehouses((prev) => [warehouse, ...prev]);
         toast.success('Kho hàng đã được tạo');
         return warehouse;
       } catch (err) {
@@ -86,9 +85,6 @@ export function useWarehouse(workspaceId: string) {
           data,
         );
         const updated = response.data;
-        setWarehouses((prev) =>
-          prev.map((w) => (w.id === id ? updated : w)),
-        );
         toast.success('Kho hàng đã được cập nhật');
         return updated;
       } catch (err) {
