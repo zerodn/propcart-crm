@@ -44,6 +44,7 @@ export const vi = {
     "profile": "Hồ sơ",
     "members": "Nhân sự",
     "warehouses": "Kho hàng",
+    "products": "Sản phẩm",
     "departments": "Phòng ban",
     "catalogs": "Danh mục",
     "permissions": "Phân quyền",

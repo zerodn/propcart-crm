@@ -43,6 +43,10 @@ async function main() {
     { code: 'WAREHOUSE_UPDATE', name: 'Update Warehouse', module: 'warehouse' },
     { code: 'WAREHOUSE_DELETE', name: 'Delete Warehouse', module: 'warehouse' },
     { code: 'WAREHOUSE_VIEW', name: 'View Warehouse', module: 'warehouse' },
+    { code: 'PRODUCT_CREATE', name: 'Create Product', module: 'product' },
+    { code: 'PRODUCT_UPDATE', name: 'Update Product', module: 'product' },
+    { code: 'PRODUCT_DELETE', name: 'Delete Product', module: 'product' },
+    { code: 'PRODUCT_VIEW', name: 'View Product', module: 'product' },
   ];
 
   for (const permission of permissions) {
@@ -99,6 +103,18 @@ async function main() {
   const warehouseViewPermission = await prisma.permission.findUnique({
     where: { code: 'WAREHOUSE_VIEW' },
   });
+  const productCreatePermission = await prisma.permission.findUnique({
+    where: { code: 'PRODUCT_CREATE' },
+  });
+  const productUpdatePermission = await prisma.permission.findUnique({
+    where: { code: 'PRODUCT_UPDATE' },
+  });
+  const productDeletePermission = await prisma.permission.findUnique({
+    where: { code: 'PRODUCT_DELETE' },
+  });
+  const productViewPermission = await prisma.permission.findUnique({
+    where: { code: 'PRODUCT_VIEW' },
+  });
 
   const rolePermissions = [
     { roleId: ownerRole!.id, permissionId: invitePermission!.id },
@@ -114,6 +130,10 @@ async function main() {
     { roleId: ownerRole!.id, permissionId: warehouseUpdatePermission!.id },
     { roleId: ownerRole!.id, permissionId: warehouseDeletePermission!.id },
     { roleId: ownerRole!.id, permissionId: warehouseViewPermission!.id },
+    { roleId: ownerRole!.id, permissionId: productCreatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: productUpdatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: productDeletePermission!.id },
+    { roleId: ownerRole!.id, permissionId: productViewPermission!.id },
     { roleId: adminRole!.id, permissionId: invitePermission!.id },
     { roleId: adminRole!.id, permissionId: removePermission!.id },
     { roleId: adminRole!.id, permissionId: catalogCreatePermission!.id },
@@ -126,6 +146,10 @@ async function main() {
     { roleId: adminRole!.id, permissionId: warehouseUpdatePermission!.id },
     { roleId: adminRole!.id, permissionId: warehouseDeletePermission!.id },
     { roleId: adminRole!.id, permissionId: warehouseViewPermission!.id },
+    { roleId: adminRole!.id, permissionId: productCreatePermission!.id },
+    { roleId: adminRole!.id, permissionId: productUpdatePermission!.id },
+    { roleId: adminRole!.id, permissionId: productDeletePermission!.id },
+    { roleId: adminRole!.id, permissionId: productViewPermission!.id },
   ];
 
   for (const rp of rolePermissions) {

@@ -52,6 +52,7 @@ model User {
   departmentMembers   DepartmentMember[]
   documents           UserDocument[]
   createdWarehouses   PropertyWarehouse[] @relation("WarehouseCreator")
+  createdProducts     PropertyProduct[]   @relation("ProductCreator")
 
   @@index([email])
   @@map("users")
@@ -76,6 +77,7 @@ model Workspace {
   invitations WorkspaceInvitation[]
   documents   UserDocument[]
   warehouses  PropertyWarehouse[]
+  products    PropertyProduct[]
 
   @@index([ownerUserId])
   @@index([type])
@@ -406,10 +408,71 @@ model PropertyWarehouse {
   // Relations
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation("WarehouseCreator", fields: [createdByUserId], references: [id])
+  products  PropertyProduct[]
 
   @@unique([code, workspaceId])
   @@index([workspaceId])
   @@index([workspaceId, status])
   @@map("property_warehouses")
+}
+
+// ============================================================
+// PROPERTY PRODUCTS (Danh sách sản phẩm)
+// ============================================================
+
+model PropertyProduct {
+  id                 String   @id @default(uuid())
+  workspaceId        String
+  warehouseId        String
+
+  // 1) Thông tin sản phẩm
+  propertyType       String
+  zone               String?
+  block              String?
+  unitCode           String
+  direction          String?
+  area               Decimal? @db.Decimal(12, 2)
+
+  // 2) Thông tin giá
+  priceWithoutVat    Decimal? @db.Decimal(15, 2)
+  priceWithVat       Decimal? @db.Decimal(15, 2)
+
+  // 3) Chính sách bán hàng
+  promotionProgram   String?
+
+  // 4) Tài liệu sản phẩm
+  priceSheetUrl      String?
+  salesPolicyUrl     String?
+  layoutPlanUrl      String?
+
+  // 5) Liên hệ
+  cartLink           String?
+  callPhone          String?
+  zaloPhone          String?
+
+  // 6) Trạng thái giao dịch
+  transactionStatus  String   @default("AVAILABLE") // AVAILABLE | BOOKED
+
+  // 7) Ghi chú
+  note               String?
+
+  // 8) Hành động
+  isInterested       Boolean  @default(false)
+  isShared           Boolean  @default(false)
+
+  createdByUserId    String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  warehouse PropertyWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  createdBy User              @relation("ProductCreator", fields: [createdByUserId], references: [id])
+
+  @@unique([workspaceId, unitCode])
+  @@index([workspaceId])
+  @@index([workspaceId, warehouseId])
+  @@index([workspaceId, transactionStatus])
+  @@map("property_products")
 }
 

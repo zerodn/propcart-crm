@@ -44,6 +44,7 @@ export const en = {
     "profile": "Profile",
     "members": "Members",
     "warehouses": "Warehouses",
+    "products": "Products",
     "departments": "Departments",
     "catalogs": "Catalogs",
     "permissions": "Permissions",

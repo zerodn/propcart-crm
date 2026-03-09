@@ -18,6 +18,7 @@ import { DepartmentModule } from './modules/department/department.module';
 import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { WarehouseModule } from './modules/warehouse/warehouse.module';
+import { ProductModule } from './modules/product/product.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { WarehouseModule } from './modules/warehouse/warehouse.module';
     RoleModule,
     PermissionModule,
     WarehouseModule,
+    ProductModule,
   ],
   providers: [
     // Global HMAC signature guard
