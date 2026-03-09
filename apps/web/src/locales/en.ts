@@ -42,12 +42,14 @@ export const en = {
     "invitations": "Invitations",
     "notifications": "Notifications",
     "profile": "Profile",
-    "management": "Management",
     "members": "Members",
+    "warehouses": "Warehouses",
     "departments": "Departments",
     "catalogs": "Catalogs",
     "permissions": "Permissions",
+    "management": "Management",
     "logout": "Logout"
+  },
   },
   "auth": {
     "login": {

@@ -37,16 +37,17 @@ export const vi = {
     "switchWorkspace": "Chuyển workspace"
   },
   "sidebar": {
-    "dashboard": "Dashboard",
-    "workspaces": "Workspaces",
+    "dashboard": "Trang chủ",
+    "workspaces": "Workspace",
     "invitations": "Lời mời",
     "notifications": "Thông báo",
-    "profile": "Hồ sơ cá nhân",
-    "management": "Quản lý",
+    "profile": "Hồ sơ",
     "members": "Nhân sự",
+    "warehouses": "Kho hàng",
     "departments": "Phòng ban",
     "catalogs": "Danh mục",
-    "permissions": "Quyền",
+    "permissions": "Phân quyền",
+    "management": "Quản lý",
     "logout": "Đăng xuất"
   },
   "auth": {
