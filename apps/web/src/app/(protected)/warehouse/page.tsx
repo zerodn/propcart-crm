@@ -10,7 +10,7 @@ import { useCatalog } from '@/hooks/use-catalog';
 import { WarehouseForm } from '@/components/warehouse/warehouse-form';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { GridSkeleton } from '@/components/common/skeleton';
+import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid';
 import { cn } from '@/lib/utils';
 
 export default function WarehousePage() {
@@ -78,6 +78,86 @@ export default function WarehousePage() {
     setShowForm(true);
   };
 
+  // DataGrid columns definition
+  const columns: DataGridColumn<PropertyWarehouse>[] = [
+    {
+      key: 'name',
+      label: 'Tên kho',
+      render: (value, row) => (
+        <div>
+          <div className="font-semibold text-gray-900">{value}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Mã: {row.code}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      label: 'Loại kho',
+      render: (value) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {warehouseTypes.find((t) => t.value === value)?.label || value}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Trạng thái',
+      render: (value) => (
+        <span
+          className={cn(
+            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+            value === 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
+          )}
+        >
+          {value === 1 ? 'Hoạt động' : 'Tạm dừng'}
+        </span>
+      ),
+    },
+    {
+      key: 'provinceName',
+      label: 'Địa điểm',
+      render: (value, row) => (
+        <div className="text-sm">
+          {value && <div>{value}</div>}
+          {row.wardName && <div className="text-xs text-gray-500">{row.wardName}</div>}
+          {row.fullAddress && (
+            <div className="text-xs text-gray-500 mt-0.5">{row.fullAddress}</div>
+          )}
+          {!value && !row.wardName && !row.fullAddress && <span className="text-gray-400">—</span>}
+        </div>
+      ),
+    },
+    {
+      key: 'latitude',
+      label: 'Tọa độ',
+      render: (value, row) => {
+        if (value && row.longitude) {
+          return (
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              <MapPin className="h-3 w-3 text-green-600" />
+              <span>
+                {Number(value).toFixed(4)}, {Number(row.longitude).toFixed(4)}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <MapPinOff className="h-3 w-3" />
+            <span>Chưa có</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'createdBy',
+      label: 'Người tạo',
+      render: (value) => (
+        <span className="text-sm text-gray-700">{value?.fullName || 'N/A'}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -103,110 +183,17 @@ export default function WarehousePage() {
         </button>
       </div>
 
-      {/* Loading State */}
-      {isLoading && <GridSkeleton cols={3} rows={2} />}
-
-      {/* Empty State */}
-      {!isLoading && warehouses.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <Building2 className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-          <p className="font-medium text-gray-900">Chưa có kho hàng nào</p>
-          <p className="text-sm text-gray-500 mt-1">Bắt đầu bằng cách tạo kho hàng đầu tiên</p>
-        </div>
-      )}
-
-      {/* Warehouse Grid */}
-      {!isLoading && warehouses.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {warehouses.map((warehouse) => (
-            <div key={warehouse.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{warehouse.name}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Mã: {warehouse.code}</p>
-                </div>
-                <span
-                  className={cn(
-                    'text-xs px-2 py-1 rounded-full font-medium',
-                    warehouse.status === 1
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600',
-                  )}
-                >
-                  {warehouse.status === 1 ? 'Hoạt động' : 'Tạm dừng'}
-                </span>
-              </div>
-
-              {/* Type */}
-              <div className="mb-3">
-                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                  {warehouseTypes.find((t) => t.value === warehouse.type)?.label ||
-                    warehouse.type}
-                </span>
-              </div>
-
-              {/* Details */}
-              <div className="space-y-2 text-xs text-gray-600 mb-4">
-                {warehouse.provinceName && (
-                  <p>
-                    <span className="font-medium">Tỉnh:</span> {warehouse.provinceName}
-                  </p>
-                )}
-                {warehouse.wardName && (
-                  <p>
-                    <span className="font-medium">Phường:</span> {warehouse.wardName}
-                  </p>
-                )}
-                {warehouse.fullAddress && (
-                  <p>
-                    <span className="font-medium">Địa chỉ:</span> {warehouse.fullAddress}
-                  </p>
-                )}
-                {warehouse.latitude && warehouse.longitude && (
-                  <p className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    <span>{warehouse.latitude.toFixed(6)}, {warehouse.longitude.toFixed(6)}</span>
-                  </p>
-                )}
-                {(!warehouse.latitude || !warehouse.longitude) && (
-                  <p className="flex items-center gap-1 text-gray-400">
-                    <MapPinOff className="h-3 w-3" />
-                    <span>Chưa có tọa độ</span>
-                  </p>
-                )}
-              </div>
-
-              {warehouse.description && (
-                <p className="text-xs text-gray-600 mb-4 italic">{warehouse.description}</p>
-              )}
-
-              {/* Creator */}
-              <div className="text-xs text-gray-500 mb-4 pb-4 border-t border-gray-100 pt-4">
-                Tạo bởi: <span className="font-medium">{warehouse.createdBy?.fullName || 'N/A'}</span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleOpenEdit(warehouse.id)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Edit2 className="h-3 w-3" />
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDelete(warehouse.id)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Xoá
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Data Grid */}
+      <BaseDataGrid
+        data={warehouses}
+        columns={columns}
+        isLoading={isLoading}
+        pageSize={10}
+        emptyMessage="Chưa có kho hàng nào. Bắt đầu bằng cách tạo kho hàng đầu tiên."
+        emptyIcon={<Building2 className="h-10 w-10 text-gray-300" />}
+        onEdit={(warehouse) => handleOpenEdit(warehouse.id)}
+        onDelete={(warehouse) => handleDelete(warehouse.id)}
+      />
 
       {/* Form Dialog */}
       <BaseDialog
