@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2, Plus, Edit2, Trash2, MapPin, MapPinOff, Eye } from 'lucide-react';
+import { Building2, Plus, Edit2, Trash2, MapPin, MapPinOff, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
 import { useWarehouse, PropertyWarehouse } from '@/hooks/use-warehouse';
 import { useCatalog } from '@/hooks/use-catalog';
 import { WarehouseForm } from '@/components/warehouse/warehouse-form';
+import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { GridSkeleton } from '@/components/common/skeleton';
 import { cn } from '@/lib/utils';
@@ -207,18 +208,48 @@ export default function WarehousePage() {
         </div>
       )}
 
-      {/* Forms */}
-      <WarehouseForm
+      {/* Form Dialog */}
+      <BaseDialog
         isOpen={showForm}
         onClose={() => {
           setShowForm(false);
           setEditingId(null);
         }}
-        onSubmit={handleSubmit}
-        warehouseTypes={warehouseTypes}
-        editingWarehouse={editingWarehouse}
-        isSubmitting={isSubmitting}
-      />
+        title={editingId ? 'Chỉnh sửa kho hàng' : 'Tạo kho hàng'}
+        maxWidth="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
+              disabled={isSubmitting}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              form="warehouse-form"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editingId ? 'Cập nhật' : 'Tạo mới'}
+            </button>
+          </>
+        }
+      >
+        <WarehouseForm
+          formId="warehouse-form"
+          onSubmit={handleSubmit}
+          warehouseTypes={warehouseTypes}
+          editingWarehouse={editingWarehouse}
+          isSubmitting={isSubmitting}
+        />
+      </BaseDialog>
 
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
