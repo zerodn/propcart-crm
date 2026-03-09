@@ -64,6 +64,7 @@ export class WarehouseService {
             select: {
               id: true,
               fullName: true,
+              phone: true,
               email: true,
             },
           },
@@ -118,6 +119,7 @@ export class WarehouseService {
             select: {
               id: true,
               fullName: true,
+              phone: true,
               email: true,
             },
           },
@@ -137,6 +139,7 @@ export class WarehouseService {
           select: {
             id: true,
             fullName: true,
+            phone: true,
             email: true,
           },
         },
@@ -171,6 +174,7 @@ export class WarehouseService {
             select: {
               id: true,
               fullName: true,
+              phone: true,
               email: true,
             },
           },

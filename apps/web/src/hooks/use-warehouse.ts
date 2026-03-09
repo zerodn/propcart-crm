@@ -21,6 +21,7 @@ export interface PropertyWarehouse {
   createdBy?: {
     id: string;
     fullName?: string;
+    phone?: string;
     email?: string;
   } | null;
   createdAt: string;
@@ -37,6 +38,7 @@ function normalizeWarehouse(raw: any): PropertyWarehouse {
       ? {
           id: createdBy.id,
           fullName: createdBy.fullName ?? createdBy.full_name,
+          phone: createdBy.phone ?? createdBy.phone_number,
           email: createdBy.email,
         }
       : null,

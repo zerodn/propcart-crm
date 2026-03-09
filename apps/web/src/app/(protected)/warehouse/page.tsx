@@ -156,7 +156,7 @@ export default function WarehousePage() {
       label: 'Người tạo',
       render: (value, row) => (
         <span className="text-sm text-gray-700">
-          {value?.fullName || value?.email || row.createdByUserId || 'N/A'}
+          {value?.fullName || value?.phone || 'N/A'}
         </span>
       ),
     },
