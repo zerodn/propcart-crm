@@ -28,7 +28,7 @@ export default function WarehousePage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const warehouseTypeCatalog = catalogs.find((c) => c.type === 'WAREHOUSE_TYPE');
-  const warehouseTypes = warehouseTypeCatalog
+  const warehouseTypes = warehouseTypeCatalog?.values
     ? warehouseTypeCatalog.values.map((v: any) => ({ value: v.value, label: v.label }))
     : [];
 
@@ -224,7 +224,7 @@ export default function WarehousePage() {
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Xoá kho hàng"
-        description="Bạn có chắc chắn muốn xoá kho hàng này?"
+        message="Bạn có chắc chắn muốn xoá kho hàng này?"
         confirmText="Xoá"
         cancelText="Hủy"
         isDangerous

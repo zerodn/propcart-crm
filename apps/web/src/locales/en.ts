@@ -50,7 +50,6 @@ export const en = {
     "management": "Management",
     "logout": "Logout"
   },
-  },
   "auth": {
     "login": {
       "title": "Login",
