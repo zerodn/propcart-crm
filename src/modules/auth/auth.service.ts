@@ -449,6 +449,47 @@ export class AuthService {
       ],
     });
 
+    // Create "Loại Kho" (Warehouse Type) catalog
+    const warehouseTypeCatalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'WAREHOUSE_TYPE',
+        code: 'WAREHOUSE_TYPE',
+        name: 'Loại Kho',
+        parentId: null,
+      },
+    });
+
+    // Create warehouse type values
+    await this.prisma.catalogValue.createMany({
+      data: [
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'OWNER',
+          label: 'Kho chủ đầu tư',
+          order: 0,
+        },
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'AGENT',
+          label: 'Kho đại lý',
+          order: 1,
+        },
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'LANDLORD',
+          label: 'Kho chủ nhà',
+          order: 2,
+        },
+        {
+          catalogId: warehouseTypeCatalog.id,
+          value: 'AUCTION',
+          label: 'Kho đấu giá / ngân hàng',
+          order: 3,
+        },
+      ],
+    });
+
     // Create "Danh mục khác" catalogs for future use
     // These can be extended as needed for other combobox data sources
   }

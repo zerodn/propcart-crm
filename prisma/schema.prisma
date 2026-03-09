@@ -51,6 +51,7 @@ model User {
   notifications       Notification[]
   departmentMembers   DepartmentMember[]
   documents           UserDocument[]
+  createdWarehouses   PropertyWarehouse[] @relation("WarehouseCreator")
 
   @@index([email])
   @@map("users")
@@ -74,6 +75,7 @@ model Workspace {
   members     WorkspaceMember[]
   invitations WorkspaceInvitation[]
   documents   UserDocument[]
+  warehouses  PropertyWarehouse[]
 
   @@index([ownerUserId])
   @@index([type])
@@ -376,5 +378,38 @@ model UserDocument {
   @@index([userId])
   @@index([workspaceId])
   @@map("user_documents")
+}
+
+// ============================================================
+// PROPERTY WAREHOUSES (Kho hàng Bất động sản)
+// ============================================================
+
+model PropertyWarehouse {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  name            String
+  code            String
+  type            String      // Loại kho (lấy từ catalog "WAREHOUSE_TYPE")
+  description     String?
+  status          Int         @default(1)  // 1=active, 0=inactive
+  latitude        Decimal?    @db.Decimal(10, 8)  // Vĩ độ
+  longitude       Decimal?    @db.Decimal(11, 8)  // Kinh độ
+  provinceCode    String?
+  provinceName    String?
+  wardCode        String?
+  wardName        String?
+  fullAddress     String?
+  createdByUserId String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("WarehouseCreator", fields: [createdByUserId], references: [id])
+
+  @@unique([code, workspaceId])
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@map("property_warehouses")
 }
 
