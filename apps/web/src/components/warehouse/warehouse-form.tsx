@@ -133,22 +133,36 @@ export function WarehouseForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Loại kho *</label>
-        <select
-          value={form.type}
-          onChange={(e) => setForm({ ...form, type: e.target.value })}
-          required
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          <option value="">-- Chọn loại kho --</option>
-          {warehouseTypes.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Loại kho *</label>
+          <select
+            value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value })}
+            required
+            disabled={isSubmitting}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <option value="">-- Chọn loại kho --</option>
+            {warehouseTypes.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
+          <select
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: Number(e.target.value) })}
+            disabled={isSubmitting}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <option value={1}>Hoạt động</option>
+            <option value={0}>Tạm dừng</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -198,19 +212,6 @@ export function WarehouseForm({
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           placeholder="VD: 123 Nguyễn Hữu Cảnh..."
         />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
-        <select
-          value={form.status}
-          onChange={(e) => setForm({ ...form, status: Number(e.target.value) })}
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          <option value={1}>Hoạt động</option>
-          <option value={0}>Tạm dừng</option>
-        </select>
       </div>
 
       <div>
