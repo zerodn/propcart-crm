@@ -26,6 +26,20 @@
     "all": "Tất cả",
     "current": "Hiện tại"
   },
+  "sidebar": {
+    "dashboard": "Trang chủ",
+    "workspaces": "Workspace",
+    "invitations": "Lời mời",
+    "notifications": "Thông báo",
+    "profile": "Hồ sơ",
+    "members": "Nhân sự",
+    "warehouses": "Kho hàng",
+    "departments": "Phòng ban",
+    "catalogs": "Danh mục",
+    "permissions": "Phân quyền",
+    "management": "Quản lý",
+    "logout": "Đăng xuất"
+  },
   "header": {
     "workspacePersonal": "Cá nhân",
     "workspaceCompany": "Doanh nghiệp",

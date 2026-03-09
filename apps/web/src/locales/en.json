@@ -26,6 +26,20 @@
     "all": "All",
     "current": "Current"
   },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "workspaces": "Workspaces",
+    "invitations": "Invitations",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "members": "Members",
+    "warehouses": "Warehouses",
+    "departments": "Departments",
+    "catalogs": "Catalogs",
+    "permissions": "Permissions",
+    "management": "Management",
+    "logout": "Logout"
+  },
   "header": {
     "workspacePersonal": "Personal",
     "workspaceCompany": "Company",
