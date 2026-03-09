@@ -14,6 +14,7 @@ import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { WarehouseService } from './warehouse.service';
 import { CreateWarehouseDto, UpdateWarehouseDto, ListWarehouseDto } from './dto';
 
@@ -26,11 +27,11 @@ export class WarehouseController {
   @RequirePermission('WAREHOUSE_CREATE')
   create(
     @Param('workspaceId') workspaceId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: CreateWarehouseDto,
   ) {
-    console.log('Creating warehouse:', { workspaceId, userId: user.userId, dto });
-    return this.warehouseService.create(workspaceId, user.userId, dto);
+    console.log('Creating warehouse:', { workspaceId, userId: user.sub, dto });
+    return this.warehouseService.create(workspaceId, user.sub, dto);
   }
 
   @Get()
