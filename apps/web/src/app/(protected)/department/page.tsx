@@ -8,6 +8,7 @@ import { DepartmentForm } from '@/components/department/department-form';
 import { DepartmentMembersDialog } from '@/components/department/department-members-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDialog } from '@/components/common/base-dialog';
+import { GridSkeleton } from '@/components/common/skeleton';
 import type { Department } from '@/hooks/use-department';
 
 export default function DepartmentPage() {
@@ -176,19 +177,7 @@ export default function DepartmentPage() {
       )}
 
       {/* Loading State */}
-      {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-              <div className="space-y-3">
-                <div className="h-5 bg-gray-200 rounded w-32" />
-                <div className="h-4 bg-gray-100 rounded w-24" />
-                <div className="h-4 bg-gray-100 rounded w-28" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {isLoading && <GridSkeleton cols={3} rows={2} />}
 
       {/* Empty State */}
       {!isLoading && departments.length === 0 && (

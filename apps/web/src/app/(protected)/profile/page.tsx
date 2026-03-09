@@ -8,6 +8,7 @@ import { useI18n } from '@/providers/i18n-provider';
 import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { PersonalInfoForm, type LocationFormData } from '@/components/common/personal-info-form';
+import { ProfileSkeleton } from '@/components/common/skeleton';
 import apiClient from '@/lib/api-client';
 import { toast } from 'sonner';
 import type { UserDocument } from '@/types';
@@ -279,7 +280,7 @@ export default function ProfilePage() {
   }, [previewUrl]);
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500">Đang tải profile...</div>;
+    return <ProfileSkeleton />;
   }
 
   return (

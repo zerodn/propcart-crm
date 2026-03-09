@@ -4,6 +4,7 @@ import { Mail } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { useInvitations } from '@/hooks/use-invitations';
 import { InvitationCard } from '@/components/invitation/invitation-card';
+import { Skeleton } from '@/components/common/skeleton';
 
 export default function InvitationsPage() {
   const { t } = useI18n();
@@ -27,13 +28,13 @@ export default function InvitationsPage() {
 
       {isLoading && (
         <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-xl" />
+                <Skeleton className="w-10 h-10 rounded-xl" />
                 <div className="space-y-2 flex-1">
-                  <div className="h-3 bg-gray-200 rounded w-40" />
-                  <div className="h-3 bg-gray-200 rounded w-24" />
+                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
               </div>
             </div>

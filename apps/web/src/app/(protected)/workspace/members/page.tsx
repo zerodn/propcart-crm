@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
 import { useI18n } from '@/providers/i18n-provider';
 import type { WorkspaceMember } from '@/hooks/use-workspace-members';
+import { TableSkeleton, Skeleton } from '@/components/common/skeleton';
 
 export default function MembersPage() {
   const { workspace, role, user } = useAuth();
@@ -155,7 +156,7 @@ export default function MembersPage() {
           </div>
         </div>
 
-        {membersLoading && <div className="text-sm text-gray-400">Đang tải...</div>}
+        {membersLoading && <TableSkeleton rows={5} />}
 
         {!membersLoading && members.length === 0 && (
           <p className="text-sm text-gray-400">
@@ -297,7 +298,22 @@ export default function MembersPage() {
             )}
           </h3>
 
-          {invLoading && <div className="text-sm text-gray-400">{t('members.loading')}</div>}
+          {invLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-start gap-4">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {!invLoading && invitations.length === 0 && (
             <p className="text-sm text-gray-400">{t('members.no_pending')}</p>

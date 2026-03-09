@@ -4,6 +4,7 @@ import { Building2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import { WorkspaceCard } from '@/components/workspace/workspace-card';
+import { GridSkeleton } from '@/components/common/skeleton';
 
 export default function WorkspacesPage() {
   const { t } = useI18n();
@@ -16,22 +17,7 @@ export default function WorkspacesPage() {
         <p className="text-sm text-gray-500 mt-0.5">{t('workspaces.subtitle')}</p>
       </div>
 
-      {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-xl" />
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-32" />
-                  <div className="h-3 bg-gray-200 rounded w-16" />
-                </div>
-              </div>
-              <div className="h-3 bg-gray-200 rounded w-20" />
-            </div>
-          ))}
-        </div>
-      )}
+      {isLoading && <GridSkeleton cols={3} rows={1} />}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
