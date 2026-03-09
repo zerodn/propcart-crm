@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWarehouseDto, UpdateWarehouseDto, ListWarehouseDto } from './dto';
 
@@ -7,33 +7,40 @@ export class WarehouseService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(workspaceId: string, userId: string, dto: CreateWarehouseDto) {
-    return this.prisma.propertyWarehouse.create({
-      data: {
-        workspaceId,
-        createdByUserId: userId,
-        name: dto.name,
-        code: dto.code,
-        type: dto.type,
-        description: dto.description,
-        status: 1,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        provinceCode: dto.provinceCode,
-        provinceName: dto.provinceName,
-        wardCode: dto.wardCode,
-        wardName: dto.wardName,
-        fullAddress: dto.fullAddress,
-      },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
+    try {
+      return await this.prisma.propertyWarehouse.create({
+        data: {
+          workspaceId,
+          createdByUserId: userId,
+          name: dto.name,
+          code: dto.code,
+          type: dto.type,
+          description: dto.description,
+          status: 1,
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          provinceCode: dto.provinceCode,
+          provinceName: dto.provinceName,
+          wardCode: dto.wardCode,
+          wardName: dto.wardName,
+          fullAddress: dto.fullAddress,
+        },
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new BadRequestException('Mã kho hàng đã tồn tại trong workspace này');
+      }
+      throw error;
+    }
   }
 
   async list(workspaceId: string, opts?: ListWarehouseDto) {
@@ -86,32 +93,39 @@ export class WarehouseService {
   }
 
   async update(id: string, workspaceId: string, dto: UpdateWarehouseDto) {
-    return this.prisma.propertyWarehouse.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.code !== undefined && { code: dto.code }),
-        ...(dto.type !== undefined && { type: dto.type }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
-        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
-        ...(dto.provinceCode !== undefined && { provinceCode: dto.provinceCode }),
-        ...(dto.provinceName !== undefined && { provinceName: dto.provinceName }),
-        ...(dto.wardCode !== undefined && { wardCode: dto.wardCode }),
-        ...(dto.wardName !== undefined && { wardName: dto.wardName }),
-        ...(dto.fullAddress !== undefined && { fullAddress: dto.fullAddress }),
-      },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
+    try {
+      return await this.prisma.propertyWarehouse.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined && { name: dto.name }),
+          ...(dto.code !== undefined && { code: dto.code }),
+          ...(dto.type !== undefined && { type: dto.type }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.status !== undefined && { status: dto.status }),
+          ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+          ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+          ...(dto.provinceCode !== undefined && { provinceCode: dto.provinceCode }),
+          ...(dto.provinceName !== undefined && { provinceName: dto.provinceName }),
+          ...(dto.wardCode !== undefined && { wardCode: dto.wardCode }),
+          ...(dto.wardName !== undefined && { wardName: dto.wardName }),
+          ...(dto.fullAddress !== undefined && { fullAddress: dto.fullAddress }),
+        },
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new BadRequestException('Mã kho hàng đã tồn tại trong workspace này');
+      }
+      throw error;
+    }
   }
 
   async delete(id: string, workspaceId: string) {
