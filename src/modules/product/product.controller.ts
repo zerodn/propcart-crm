@@ -7,8 +7,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
@@ -16,7 +19,7 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { ProductService } from './product.service';
-import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto';
+import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto/index';
 
 @Controller('workspaces/:workspaceId/products')
 export class ProductController {
@@ -31,6 +34,16 @@ export class ProductController {
     @Body() dto: CreateProductDto,
   ) {
     return this.productService.create(workspaceId, user.sub, dto);
+  }
+
+  @Post('upload-files')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  @UseInterceptors(FilesInterceptor('files', 20))
+  uploadFiles(
+    @Param('workspaceId') workspaceId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.productService.uploadFiles(workspaceId, files);
   }
 
   @Get()

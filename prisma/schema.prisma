@@ -439,26 +439,21 @@ model PropertyProduct {
 
   // 3) Chính sách bán hàng
   promotionProgram   String?
+  policyImageUrls    Json? // string[]
 
   // 4) Tài liệu sản phẩm
-  priceSheetUrl      String?
-  salesPolicyUrl     String?
-  layoutPlanUrl      String?
+  productDocuments   Json? // [{ documentType, fileName, fileUrl }]
 
   // 5) Liên hệ
-  cartLink           String?
   callPhone          String?
   zaloPhone          String?
+  contactMemberIds   Json? // string[] (workspaceMember.userId)
 
   // 6) Trạng thái giao dịch
   transactionStatus  String   @default("AVAILABLE") // AVAILABLE | BOOKED
 
   // 7) Ghi chú
   note               String?
-
-  // 8) Hành động
-  isInterested       Boolean  @default(false)
-  isShared           Boolean  @default(false)
 
   createdByUserId    String
   createdAt          DateTime @default(now())

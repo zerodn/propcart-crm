@@ -1,11 +1,12 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
-  IsBoolean,
+  IsArray,
   IsIn,
   IsNumber,
   IsOptional,
   IsString,
   IsUrl,
+  ValidateNested,
 } from 'class-validator';
 
 const toNumberOrUndefined = ({ value }: { value: any }) => {
@@ -13,6 +14,18 @@ const toNumberOrUndefined = ({ value }: { value: any }) => {
   const n = Number(value);
   return Number.isNaN(n) ? undefined : n;
 };
+
+class ProductDocumentDto {
+  @IsString()
+  documentType: string;
+
+  @IsString()
+  fileName: string;
+
+  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'fileUrl khong hop le' })
+  fileUrl: string;
+}
 
 export class CreateProductDto {
   @IsString()
@@ -56,24 +69,16 @@ export class CreateProductDto {
   promotionProgram?: string;
 
   @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'priceSheetUrl không hợp lệ' })
-  priceSheetUrl?: string;
+  @IsArray()
+  @IsString({ each: true })
+  @IsUrl({ require_tld: false }, { each: true, message: 'policyImageUrls khong hop le' })
+  policyImageUrls?: string[];
 
   @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'salesPolicyUrl không hợp lệ' })
-  salesPolicyUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'layoutPlanUrl không hợp lệ' })
-  layoutPlanUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'cartLink không hợp lệ' })
-  cartLink?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductDocumentDto)
+  productDocuments?: ProductDocumentDto[];
 
   @IsOptional()
   @IsString()
@@ -84,20 +89,17 @@ export class CreateProductDto {
   zaloPhone?: string;
 
   @IsOptional()
-  @IsIn(['AVAILABLE', 'BOOKED'])
+  @IsArray()
+  @IsString({ each: true })
+  contactMemberIds?: string[];
+
+  @IsOptional()
+  @IsString()
   transactionStatus?: string;
 
   @IsOptional()
   @IsString()
   note?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isInterested?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isShared?: boolean;
 }
 
 export class UpdateProductDto {
@@ -124,7 +126,7 @@ export class UpdateProductDto {
   @IsOptional()
   @Transform(toNumberOrUndefined)
   @IsNumber()
-  area?: number;
+  area?: number | null;
 
   @IsOptional()
   @IsString()
@@ -133,36 +135,28 @@ export class UpdateProductDto {
   @IsOptional()
   @Transform(toNumberOrUndefined)
   @IsNumber()
-  priceWithoutVat?: number;
+  priceWithoutVat?: number | null;
 
   @IsOptional()
   @Transform(toNumberOrUndefined)
   @IsNumber()
-  priceWithVat?: number;
+  priceWithVat?: number | null;
 
   @IsOptional()
   @IsString()
   promotionProgram?: string;
 
   @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'priceSheetUrl không hợp lệ' })
-  priceSheetUrl?: string;
+  @IsArray()
+  @IsString({ each: true })
+  @IsUrl({ require_tld: false }, { each: true, message: 'policyImageUrls khong hop le' })
+  policyImageUrls?: string[];
 
   @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'salesPolicyUrl không hợp lệ' })
-  salesPolicyUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'layoutPlanUrl không hợp lệ' })
-  layoutPlanUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl({ require_tld: false }, { message: 'cartLink không hợp lệ' })
-  cartLink?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductDocumentDto)
+  productDocuments?: ProductDocumentDto[];
 
   @IsOptional()
   @IsString()
@@ -173,20 +167,17 @@ export class UpdateProductDto {
   zaloPhone?: string;
 
   @IsOptional()
-  @IsIn(['AVAILABLE', 'BOOKED'])
+  @IsArray()
+  @IsString({ each: true })
+  contactMemberIds?: string[];
+
+  @IsOptional()
+  @IsString()
   transactionStatus?: string;
 
   @IsOptional()
   @IsString()
   note?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isInterested?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isShared?: boolean;
 }
 
 export class ListProductDto {
@@ -199,6 +190,6 @@ export class ListProductDto {
   warehouseId?: string;
 
   @IsOptional()
-  @IsIn(['AVAILABLE', 'BOOKED'])
+  @IsString()
   transactionStatus?: string;
 }

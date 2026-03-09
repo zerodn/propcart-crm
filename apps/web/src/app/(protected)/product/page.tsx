@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { useProduct, PropertyProduct } from '@/hooks/use-product';
+import { useProduct, PropertyProduct } from '../../../hooks/use-product';
 import { useWarehouse } from '@/hooks/use-warehouse';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
+import { useCatalog } from '@/hooks/use-catalog';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid';
-import { ProductForm } from '@/components/product/product-form';
+import { ProductForm } from '../../../components/product/product-form';
 import { cn } from '@/lib/utils';
 
 function formatMoney(value?: number) {
@@ -27,9 +29,12 @@ export default function ProductPage() {
     create,
     update,
     delete: deleteProduct,
+    uploadFiles,
   } = useProduct(workspaceId);
 
   const { warehouses, list: listWarehouses } = useWarehouse(workspaceId);
+  const { members } = useWorkspaceMembers(workspaceId);
+  const { items: catalogs } = useCatalog();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,6 +55,43 @@ export default function ProductPage() {
     () => warehouses.map((w) => ({ value: w.id, label: `${w.name} (${w.code})` })),
     [warehouses],
   );
+
+  const memberOptions = useMemo(
+    () =>
+      members.map((m) => ({
+        value: m.userId,
+        label: m.displayName || m.user.fullName || m.workspacePhone || m.user.phone || 'N/A',
+      })),
+    [members],
+  );
+
+  const findCatalogValues = (keys: string[]) => {
+    const normalized = keys.map((k) => k.toLowerCase());
+    const target = catalogs.find((c) => {
+      const code = (c.code || '').toLowerCase();
+      const type = (c.type || '').toLowerCase();
+      const name = (c.name || '').toLowerCase();
+      return normalized.some((key) => code.includes(key) || type.includes(key) || name.includes(key));
+    });
+
+    const values = target?.values || [];
+    return values.map((v) => ({ value: v.value, label: v.label }));
+  };
+
+  const directionOptions = useMemo(
+    () => findCatalogValues(['direction', 'huong']),
+    [catalogs],
+  );
+
+  const transactionStatusOptions = useMemo(() => {
+    const values = findCatalogValues(['transaction_status', 'status_bds', 'trang thai bds']);
+    return values.length
+      ? values
+      : [
+          { value: 'AVAILABLE', label: 'Chua book' },
+          { value: 'BOOKED', label: 'Book can' },
+        ];
+  }, [catalogs]);
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -125,7 +167,7 @@ export default function ProductPage() {
             value === 'BOOKED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700',
           )}
         >
-          {value === 'BOOKED' ? 'Book căn' : 'Chưa book'}
+          {transactionStatusOptions.find((s) => s.value === value)?.label || value}
         </span>
       ),
     },
@@ -210,8 +252,12 @@ export default function ProductPage() {
         <ProductForm
           formId="product-form"
           onSubmit={handleSubmit}
+          onUploadFiles={uploadFiles}
           editingProduct={editingProduct}
           warehouseOptions={warehouseOptions}
+          directionOptions={directionOptions}
+          transactionStatusOptions={transactionStatusOptions}
+          memberOptions={memberOptions}
           isSubmitting={isSubmitting}
         />
       </BaseDialog>

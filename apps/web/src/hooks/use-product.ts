@@ -2,6 +2,12 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 
+export interface ProductDocument {
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+}
+
 export interface PropertyProduct {
   id: string;
   workspaceId: string;
@@ -15,16 +21,13 @@ export interface PropertyProduct {
   priceWithoutVat?: number;
   priceWithVat?: number;
   promotionProgram?: string;
-  priceSheetUrl?: string;
-  salesPolicyUrl?: string;
-  layoutPlanUrl?: string;
-  cartLink?: string;
+  policyImageUrls?: string[];
+  productDocuments?: ProductDocument[];
   callPhone?: string;
   zaloPhone?: string;
-  transactionStatus: 'AVAILABLE' | 'BOOKED';
+  contactMemberIds?: string[];
+  transactionStatus: string;
   note?: string;
-  isInterested: boolean;
-  isShared: boolean;
   createdByUserId: string;
   createdBy?: {
     id: string;
@@ -57,6 +60,9 @@ function normalizeProduct(raw: any): PropertyProduct {
       raw?.priceWithVat !== undefined && raw?.priceWithVat !== null
         ? Number(raw.priceWithVat)
         : undefined,
+    policyImageUrls: Array.isArray(raw?.policyImageUrls) ? raw.policyImageUrls : [],
+    contactMemberIds: Array.isArray(raw?.contactMemberIds) ? raw.contactMemberIds : [],
+    productDocuments: Array.isArray(raw?.productDocuments) ? raw.productDocuments : [],
     createdBy: createdBy
       ? {
           id: createdBy.id,
@@ -112,7 +118,7 @@ export function useProduct(workspaceId: string) {
           `/workspaces/${workspaceId}/products`,
           data,
         );
-        toast.success('Sản phẩm đã được tạo');
+        toast.success('San pham da duoc tao');
         return normalizeProduct(response.data);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to create product';
@@ -130,7 +136,7 @@ export function useProduct(workspaceId: string) {
           `/workspaces/${workspaceId}/products/${id}`,
           data,
         );
-        toast.success('Sản phẩm đã được cập nhật');
+        toast.success('San pham da duoc cap nhat');
         return normalizeProduct(response.data);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update product';
@@ -141,12 +147,34 @@ export function useProduct(workspaceId: string) {
     [workspaceId],
   );
 
+  const uploadFiles = useCallback(
+    async (files: File[]) => {
+      if (!files.length) return [] as Array<{ fileName: string; fileUrl: string; objectKey: string }>;
+
+      const formData = new FormData();
+      files.forEach((file) => formData.append('files', file));
+
+      const response = await apiClient.post(`/workspaces/${workspaceId}/products/upload-files`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const payload = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+
+      return payload as Array<{ fileName: string; fileUrl: string; objectKey: string }>;
+    },
+    [workspaceId],
+  );
+
   const delete_ = useCallback(
     async (id: string) => {
       try {
         await apiClient.delete(`/workspaces/${workspaceId}/products/${id}`);
         setProducts((prev) => prev.filter((p) => p.id !== id));
-        toast.success('Sản phẩm đã được xóa');
+        toast.success('San pham da duoc xoa');
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to delete product';
         toast.error(message);
@@ -156,5 +184,5 @@ export function useProduct(workspaceId: string) {
     [workspaceId],
   );
 
-  return { products, isLoading, error, list, create, update, delete: delete_ };
+  return { products, isLoading, error, list, create, update, delete: delete_, uploadFiles };
 }

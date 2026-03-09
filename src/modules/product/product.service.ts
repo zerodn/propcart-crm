@@ -5,11 +5,15 @@ import {
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto';
+import { MinioService } from '../../common/storage/minio.service';
+import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto/index';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly minioService: MinioService,
+  ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateProductDto) {
     try {
@@ -23,16 +27,13 @@ export class ProductService {
         block: dto.block || null,
         direction: dto.direction || null,
         promotionProgram: dto.promotionProgram || null,
-        priceSheetUrl: dto.priceSheetUrl || null,
-        salesPolicyUrl: dto.salesPolicyUrl || null,
-        layoutPlanUrl: dto.layoutPlanUrl || null,
-        cartLink: dto.cartLink || null,
+        policyImageUrls: dto.policyImageUrls || null,
+        productDocuments: dto.productDocuments || null,
         callPhone: dto.callPhone || null,
         zaloPhone: dto.zaloPhone || null,
+        contactMemberIds: dto.contactMemberIds || null,
         transactionStatus: dto.transactionStatus || 'AVAILABLE',
         note: dto.note || null,
-        isInterested: dto.isInterested ?? false,
-        isShared: dto.isShared ?? false,
       };
 
       data.area = dto.area !== undefined ? new Decimal(String(dto.area)) : null;
@@ -152,16 +153,13 @@ export class ProductService {
       if (dto.direction !== undefined) data.direction = dto.direction || null;
       if (dto.warehouseId !== undefined) data.warehouseId = dto.warehouseId;
       if (dto.promotionProgram !== undefined) data.promotionProgram = dto.promotionProgram || null;
-      if (dto.priceSheetUrl !== undefined) data.priceSheetUrl = dto.priceSheetUrl || null;
-      if (dto.salesPolicyUrl !== undefined) data.salesPolicyUrl = dto.salesPolicyUrl || null;
-      if (dto.layoutPlanUrl !== undefined) data.layoutPlanUrl = dto.layoutPlanUrl || null;
-      if (dto.cartLink !== undefined) data.cartLink = dto.cartLink || null;
+      if (dto.policyImageUrls !== undefined) data.policyImageUrls = dto.policyImageUrls || null;
+      if (dto.productDocuments !== undefined) data.productDocuments = dto.productDocuments || null;
       if (dto.callPhone !== undefined) data.callPhone = dto.callPhone || null;
       if (dto.zaloPhone !== undefined) data.zaloPhone = dto.zaloPhone || null;
+      if (dto.contactMemberIds !== undefined) data.contactMemberIds = dto.contactMemberIds || null;
       if (dto.transactionStatus !== undefined) data.transactionStatus = dto.transactionStatus;
       if (dto.note !== undefined) data.note = dto.note || null;
-      if (dto.isInterested !== undefined) data.isInterested = dto.isInterested;
-      if (dto.isShared !== undefined) data.isShared = dto.isShared;
 
       if (dto.area !== undefined) data.area = dto.area !== null ? new Decimal(String(dto.area)) : null;
       if (dto.priceWithoutVat !== undefined) {
@@ -212,5 +210,21 @@ export class ProductService {
     }
 
     return this.prisma.propertyProduct.delete({ where: { id } });
+  }
+
+  async uploadFiles(workspaceId: string, files: Express.Multer.File[]) {
+    if (!files?.length) {
+      throw new BadRequestException('Khong co file de upload');
+    }
+
+    const uploaded = await Promise.all(
+      files.map((file) => this.minioService.uploadPropertyImage(workspaceId, file)),
+    );
+
+    return uploaded.map((item, index) => ({
+      fileName: files[index]?.originalname,
+      fileUrl: item.fileUrl,
+      objectKey: item.objectKey,
+    }));
   }
 }
