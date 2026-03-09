@@ -29,6 +29,7 @@ export class WarehouseController {
     @CurrentUser() user: any,
     @Body() dto: CreateWarehouseDto,
   ) {
+    console.log('Creating warehouse:', { workspaceId, userId: user.userId, dto });
     return this.warehouseService.create(workspaceId, user.userId, dto);
   }
 

@@ -75,10 +75,26 @@ export function WarehouseForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
-      ...form,
+      name: form.name,
+      code: form.code,
+      type: form.type,
+      description: form.description || undefined,
+      status: form.status,
       latitude: form.latitude ? parseFloat(form.latitude) : undefined,
       longitude: form.longitude ? parseFloat(form.longitude) : undefined,
+      provinceCode: form.provinceCode || undefined,
+      provinceName: form.provinceName || undefined,
+      wardCode: form.wardCode || undefined,
+      wardName: form.wardName || undefined,
+      fullAddress: form.fullAddress || undefined,
     };
+    
+    // Remove undefined values for cleaner request
+    Object.keys(data).forEach(key => {
+      if (data[key] === undefined) delete data[key];
+    });
+    
+    console.log('Warehouse form data:', data);
     await onSubmit(data);
   };
 

@@ -59,6 +59,7 @@ export function useWarehouse(workspaceId: string) {
   const create = useCallback(
     async (data: any) => {
       try {
+        console.log('Creating warehouse with data:', data);
         const response = await apiClient.post<PropertyWarehouse>(
           `/workspaces/${workspaceId}/warehouses`,
           data,
@@ -68,6 +69,7 @@ export function useWarehouse(workspaceId: string) {
         toast.success('Kho hàng đã được tạo');
         return warehouse;
       } catch (err) {
+        console.error('Create warehouse error:', err);
         const message = err instanceof Error ? err.message : 'Failed to create warehouse';
         toast.error(message);
         throw err;
