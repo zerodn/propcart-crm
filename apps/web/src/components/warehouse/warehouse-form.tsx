@@ -202,7 +202,7 @@ export function WarehouseForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Địa chỉ đầy đủ</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Địa chỉ</label>
         <input
           type="text"
           value={form.fullAddress}
