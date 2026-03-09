@@ -1,13 +1,14 @@
 import { IsString, IsOptional, IsNumber, IsInt, Min, Max } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateWarehouseDto {
-  @IsString()
+  @IsString({ message: 'Tên kho hàng phải là text' })
   name: string;
 
-  @IsString()
+  @IsString({ message: 'Mã kho hàng phải là text' })
   code: string;
 
-  @IsString()
+  @IsString({ message: 'Loại kho hàng phải là text' })
   type: string; // Warehouse type from catalog
 
   @IsOptional()
@@ -15,11 +16,13 @@ export class CreateWarehouseDto {
   description?: string;
 
   @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => value === '' || value === null ? undefined : Number(value))
+  @IsNumber({}, { message: 'Vĩ độ phải là số' })
   latitude?: number;
 
   @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => value === '' || value === null ? undefined : Number(value))
+  @IsNumber({}, { message: 'Kinh độ phải là số' })
   longitude?: number;
 
   @IsOptional()

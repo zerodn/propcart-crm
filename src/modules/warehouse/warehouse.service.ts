@@ -11,26 +11,51 @@ export class WarehouseService {
 
   async create(workspaceId: string, userId: string, dto: CreateWarehouseDto) {
     try {
-      this.logger.debug(`Creating warehouse with DTO:`, dto);
+      this.logger.debug(`[Warehouse Create] DTO received:`, JSON.stringify(dto));
+      this.logger.log(`[Warehouse Create] Creating warehouse: name=${dto.name}, code=${dto.code}, type=${dto.type}`);
       
+      // Build data object carefully, only including provided fields
       const data: any = {
         workspaceId,
         createdByUserId: userId,
-        name: dto.name,
-        code: dto.code,
-        type: dto.type,
-        description: dto.description || null,
-        status: 1,
-        latitude: dto.latitude ? new Decimal(dto.latitude.toString()) : null,
-        longitude: dto.longitude ? new Decimal(dto.longitude.toString()) : null,
-        provinceCode: dto.provinceCode || null,
-        provinceName: dto.provinceName || null,
-        wardCode: dto.wardCode || null,
-        wardName: dto.wardName || null,
-        fullAddress: dto.fullAddress || null,
+        name: String(dto.name).trim(),
+        code: String(dto.code).trim(),
+        type: String(dto.type).trim(),
+        status: 1, // Always set to active
       };
+      
+      // Add optional fields only if provided and convert numbers properly
+      if (dto.description) data.description = String(dto.description).trim() || null;
+      else data.description = null;
+      
+      if (typeof dto.latitude === 'number' && !isNaN(dto.latitude)) {
+        data.latitude = new Decimal(String(dto.latitude));
+      } else {
+        data.latitude = null;
+      }
+      
+      if (typeof dto.longitude === 'number' && !isNaN(dto.longitude)) {
+        data.longitude = new Decimal(String(dto.longitude));
+      } else {
+        data.longitude = null;
+      }
+      
+      if (dto.provinceCode) data.provinceCode = String(dto.provinceCode).trim() || null;
+      else data.provinceCode = null;
+      
+      if (dto.provinceName) data.provinceName = String(dto.provinceName).trim() || null;
+      else data.provinceName = null;
+      
+      if (dto.wardCode) data.wardCode = String(dto.wardCode).trim() || null;
+      else data.wardCode = null;
+      
+      if (dto.wardName) data.wardName = String(dto.wardName).trim() || null;
+      else data.wardName = null;
+      
+      if (dto.fullAddress) data.fullAddress = String(dto.fullAddress).trim() || null;
+      else data.fullAddress = null;
 
-      this.logger.debug(`Creating warehouse with data:`, data);
+      this.logger.debug(`[Warehouse Create] Final data:`, JSON.stringify(data));
 
       const result = await this.prisma.propertyWarehouse.create({
         data,
@@ -45,16 +70,25 @@ export class WarehouseService {
         },
       });
 
-      this.logger.debug(`Warehouse created:`, result);
+      this.logger.log(`[Warehouse Create] SUCCESS - Warehouse created: ${result.id}`);
       return result;
     } catch (error: any) {
-      this.logger.error(`Error creating warehouse:`, error);
+      this.logger.error(`[Warehouse Create] ERROR:`, {
+        message: error.message,
+        code: error.code,
+        meta: error.meta,
+        stack: error.stack,
+      });
       
       if (error.code === 'P2002') {
-        throw new BadRequestException('Mã kho hàng đã tồn tại trong workspace này');
+        const target = error.meta?.target?.[0] || 'unknown';
+        throw new BadRequestException(`Mã kho hàng đã tồn tại trong workspace này (${target})`);
       }
       if (error.code === 'P2003') {
         throw new BadRequestException('Workspace hoặc User không tồn tại');
+      }
+      if (error.code === 'P2014') {
+        throw new BadRequestException('Foreign key constraint failed');
       }
       
       throw new InternalServerErrorException(`Failed to create warehouse: ${error.message}`);

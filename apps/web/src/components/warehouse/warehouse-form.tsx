@@ -74,27 +74,25 @@ export function WarehouseForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      name: form.name,
-      code: form.code,
-      type: form.type,
-      description: form.description || undefined,
-      status: form.status,
-      latitude: form.latitude ? parseFloat(form.latitude) : undefined,
-      longitude: form.longitude ? parseFloat(form.longitude) : undefined,
-      provinceCode: form.provinceCode || undefined,
-      provinceName: form.provinceName || undefined,
-      wardCode: form.wardCode || undefined,
-      wardName: form.wardName || undefined,
-      fullAddress: form.fullAddress || undefined,
+    
+    // Only send fields that backend expects
+    const data: any = {
+      name: form.name.trim(),
+      code: form.code.trim(),
+      type: form.type.trim(),
     };
     
-    // Remove undefined values for cleaner request
-    Object.keys(data).forEach(key => {
-      if (data[key] === undefined) delete data[key];
-    });
+    // Add optional fields only if they have values
+    if (form.description?.trim()) data.description = form.description.trim();
+    if (form.latitude) data.latitude = parseFloat(form.latitude);
+    if (form.longitude) data.longitude = parseFloat(form.longitude);
+    if (form.provinceCode?.trim()) data.provinceCode = form.provinceCode.trim();
+    if (form.provinceName?.trim()) data.provinceName = form.provinceName.trim();
+    if (form.wardCode?.trim()) data.wardCode = form.wardCode.trim();
+    if (form.wardName?.trim()) data.wardName = form.wardName.trim();
+    if (form.fullAddress?.trim()) data.fullAddress = form.fullAddress.trim();
     
-    console.log('Warehouse form data:', data);
+    console.log('Warehouse form data to send:', data);
     await onSubmit(data);
   };
 
