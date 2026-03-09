@@ -192,7 +192,6 @@ export function WarehouseForm({
 
       {/* Location Selection */}
       <div>
-        <h4 className="text-xs font-semibold text-gray-900 mb-2">Địa chỉ kho hàng</h4>
         <PersonalInfoForm
           data={locationData}
           onChange={setLocationData}
