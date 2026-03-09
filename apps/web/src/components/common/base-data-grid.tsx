@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 export interface DataGridColumn<T = any> {
   key: string;
@@ -74,22 +75,6 @@ export function BaseDataGrid<T extends Record<string, any>>({
 
   const allActions = [...defaultActions, ...actions];
 
-  // Action button variant styles
-  const getActionStyles = (variant?: string) => {
-    switch (variant) {
-      case 'primary':
-        return 'text-blue-600 bg-blue-50 hover:bg-blue-100';
-      case 'danger':
-        return 'text-red-600 bg-red-50 hover:bg-red-100';
-      case 'success':
-        return 'text-green-600 bg-green-50 hover:bg-green-100';
-      case 'warning':
-        return 'text-orange-600 bg-orange-50 hover:bg-orange-100';
-      default:
-        return 'text-gray-600 bg-gray-50 hover:bg-gray-100';
-    }
-  };
-
   // Handle page change
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -151,7 +136,7 @@ export function BaseDataGrid<T extends Record<string, any>>({
 
                 {/* Actions Column */}
                 {allActions.length > 0 && (
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider w-16">
                     Thao tác
                   </th>
                 )}
@@ -187,27 +172,49 @@ export function BaseDataGrid<T extends Record<string, any>>({
                     {/* Actions Cell */}
                     {allActions.length > 0 && (
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {allActions.map((action, actionIndex) => {
-                            // Check if action should be shown
-                            if (action.show && !action.show(row)) {
-                              return null;
-                            }
-
-                            return (
+                        <div className="flex items-center justify-end">
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger asChild>
                               <button
-                                key={actionIndex}
-                                onClick={() => action.onClick(row, globalIndex)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                                  action.className || getActionStyles(action.variant)
-                                }`}
-                                title={action.label}
+                                className="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Thao tác"
                               >
-                                {action.icon}
-                                <span>{action.label}</span>
+                                <MoreVertical className="h-4 w-4" />
                               </button>
-                            );
-                          })}
+                            </DropdownMenu.Trigger>
+
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content
+                                className="min-w-[180px] bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50"
+                                align="end"
+                                sideOffset={5}
+                              >
+                                {allActions.map((action, actionIndex) => {
+                                  // Check if action should be shown
+                                  if (action.show && !action.show(row)) {
+                                    return null;
+                                  }
+
+                                  return (
+                                    <DropdownMenu.Item
+                                      key={actionIndex}
+                                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer outline-none transition-colors"
+                                      onClick={() => action.onClick(row, globalIndex)}
+                                    >
+                                      {action.icon && (
+                                        <span className={action.variant === 'danger' ? 'text-red-600' : action.variant === 'primary' ? 'text-blue-600' : 'text-gray-600'}>
+                                          {action.icon}
+                                        </span>
+                                      )}
+                                      <span className={action.variant === 'danger' ? 'text-red-600' : ''}>
+                                        {action.label}
+                                      </span>
+                                    </DropdownMenu.Item>
+                                  );
+                                })}
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
                         </div>
                       </td>
                     )}
