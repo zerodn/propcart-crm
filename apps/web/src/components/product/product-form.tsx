@@ -185,8 +185,8 @@ export function ProductForm({
 
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="space-y-4 lg:col-span-2">
           <div className="border border-gray-200 rounded-lg p-3 space-y-3">
             <h3 className="text-sm font-semibold text-gray-900">1. Thong tin san pham</h3>
             
