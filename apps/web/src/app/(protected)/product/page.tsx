@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { useProduct, PropertyProduct } from '../../../hooks/use-product';
+import { useProduct, PropertyProduct } from '@/hooks/use-product';
 import { useWarehouse } from '@/hooks/use-warehouse';
 import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useCatalog } from '@/hooks/use-catalog';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid';
-import { ProductForm } from '../../../components/product/product-form';
+import { ProductForm } from '@/components/product/product-form';
 import { cn } from '@/lib/utils';
 
 function formatMoney(value?: number) {
