@@ -88,7 +88,10 @@ export const ROLE_COLORS: Record<string, string> = {
 };
 
 export const CATALOG_TYPES: Record<string, string> = {
-  PROPERTY_TYPE: 'Loại bất động sản',
+  PROPERTY_TYPE: 'Loại hình bất động sản',
+  PROPERTY_DIRECTION: 'Hướng BĐS',
+  PROPERTY_TRANSACTION_STATUS: 'Trạng thái giao dịch BĐS',
+  PRODUCT_TAG: 'Nhãn sản phẩm',
   PROPERTY_STATUS: 'Trạng thái bất động sản',
   LISTING_TYPE: 'Loại danh sách',
   PAYMENT_METHOD: 'Phương thức thanh toán',

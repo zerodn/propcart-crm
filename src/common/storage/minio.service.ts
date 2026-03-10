@@ -70,7 +70,7 @@ export class MinioService implements OnModuleInit {
   async uploadUserDocument(userId: string, file: UploadFile, workspaceId?: string) {
     const ext = this.getFileExtension(file.originalname);
     const date = new Date().toISOString().slice(0, 10);
-    
+
     // Workspace-scoped storage: {workspace_id}/documents/profile/{userId}/{date}/{uuid}.{ext}
     // If no workspace, use legacy path: documents/users/{userId}/{date}/{uuid}.{ext}
     const objectKey = workspaceId
@@ -78,16 +78,10 @@ export class MinioService implements OnModuleInit {
       : `documents/users/${userId}/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(
-        this.bucket,
-        objectKey,
-        file.buffer,
-        file.size,
-        {
-          'Content-Type': file.mimetype,
-          'X-Original-Name': encodeURIComponent(file.originalname),
-        },
-      );
+      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+        'Content-Type': file.mimetype,
+        'X-Original-Name': encodeURIComponent(file.originalname),
+      });
     } catch (error) {
       this.logger.error('Upload to MinIO failed', error as Error);
       throw new InternalServerErrorException({
@@ -102,27 +96,18 @@ export class MinioService implements OnModuleInit {
     };
   }
 
-  async uploadMemberDocument(
-    workspaceId: string,
-    file: UploadFile,
-  ) {
+  async uploadMemberDocument(workspaceId: string, file: UploadFile) {
     const ext = this.getFileExtension(file.originalname);
     const date = new Date().toISOString().slice(0, 10);
-    
+
     // Member workspace-scoped document: {workspace_id}/documents/members/{date}/{uuid}.{ext}
     const objectKey = `${workspaceId}/documents/members/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(
-        this.bucket,
-        objectKey,
-        file.buffer,
-        file.size,
-        {
-          'Content-Type': file.mimetype,
-          'X-Original-Name': encodeURIComponent(file.originalname),
-        },
-      );
+      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+        'Content-Type': file.mimetype,
+        'X-Original-Name': encodeURIComponent(file.originalname),
+      });
     } catch (error) {
       this.logger.error('Upload member document to MinIO failed', error as Error);
       throw new InternalServerErrorException({
@@ -137,27 +122,17 @@ export class MinioService implements OnModuleInit {
     };
   }
 
-  async uploadAvatar(
-    workspaceId: string,
-    userId: string,
-    file: UploadFile,
-  ) {
+  async uploadAvatar(workspaceId: string, userId: string, file: UploadFile) {
     const ext = this.getFileExtension(file.originalname);
     const date = new Date().toISOString().slice(0, 10);
-    
+
     // Avatar workspace-scoped: {workspace_id}/avatars/{userId}/{date}/{uuid}.{ext}
     const objectKey = `${workspaceId}/avatars/${userId}/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(
-        this.bucket,
-        objectKey,
-        file.buffer,
-        file.size,
-        {
-          'Content-Type': file.mimetype,
-        },
-      );
+      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+        'Content-Type': file.mimetype,
+      });
     } catch (error) {
       this.logger.error('Upload avatar to MinIO failed', error as Error);
       throw new InternalServerErrorException({
@@ -172,26 +147,17 @@ export class MinioService implements OnModuleInit {
     };
   }
 
-  async uploadPropertyImage(
-    workspaceId: string,
-    file: UploadFile,
-  ) {
+  async uploadPropertyImage(workspaceId: string, file: UploadFile) {
     const ext = this.getFileExtension(file.originalname);
     const date = new Date().toISOString().slice(0, 10);
-    
+
     // Property image workspace-scoped: {workspace_id}/properties/{date}/{uuid}.{ext}
     const objectKey = `${workspaceId}/properties/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(
-        this.bucket,
-        objectKey,
-        file.buffer,
-        file.size,
-        {
-          'Content-Type': file.mimetype,
-        },
-      );
+      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+        'Content-Type': file.mimetype,
+      });
     } catch (error) {
       this.logger.error('Upload property image to MinIO failed', error as Error);
       throw new InternalServerErrorException({
@@ -206,26 +172,17 @@ export class MinioService implements OnModuleInit {
     };
   }
 
-  async uploadTemporaryFile(
-    workspaceId: string,
-    file: UploadFile,
-  ) {
+  async uploadTemporaryFile(workspaceId: string, file: UploadFile) {
     const ext = this.getFileExtension(file.originalname);
-    
+
     // Temporary file workspace-scoped: {workspace_id}/temp/{uuid}.{ext}
     const objectKey = `${workspaceId}/temp/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(
-        this.bucket,
-        objectKey,
-        file.buffer,
-        file.size,
-        {
-          'Content-Type': file.mimetype,
-          'X-Original-Name': encodeURIComponent(file.originalname),
-        },
-      );
+      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+        'Content-Type': file.mimetype,
+        'X-Original-Name': encodeURIComponent(file.originalname),
+      });
     } catch (error) {
       this.logger.error('Upload temporary file to MinIO failed', error as Error);
       throw new InternalServerErrorException({
@@ -248,6 +205,83 @@ export class MinioService implements OnModuleInit {
     }
   }
 
+  async listObjectsByPrefix(
+    prefix: string,
+  ): Promise<Array<{ key: string; lastModified: Date; size: number }>> {
+    const objects: Array<{ key: string; lastModified: Date; size: number }> = [];
+
+    return new Promise((resolve, reject) => {
+      const stream = this.client.listObjectsV2(this.bucket, prefix, true);
+
+      stream.on('data', (obj) => {
+        if (obj.name) {
+          objects.push({
+            key: obj.name,
+            lastModified: obj.lastModified,
+            size: obj.size,
+          });
+        }
+      });
+
+      stream.on('error', (err) => {
+        this.logger.error(`Failed to list objects with prefix ${prefix}`, err);
+        reject(err);
+      });
+
+      stream.on('end', () => {
+        resolve(objects);
+      });
+    });
+  }
+
+  async cleanupTempFiles(
+    olderThanHours: number = 24,
+    bufferMinutes: number = 30,
+  ): Promise<{ deleted: number; errors: number }> {
+    this.logger.log(
+      `Starting cleanup of temp files older than ${olderThanHours} hours (+ ${bufferMinutes} min buffer)...`,
+    );
+
+    let deleted = 0;
+    let errors = 0;
+    const now = new Date();
+
+    // Add buffer time to prevent deleting files being uploaded when cron runs
+    // Example: 24h + 30min = only delete files older than 24h30m
+    const totalMinutes = olderThanHours * 60 + bufferMinutes;
+    const cutoffTime = new Date(now.getTime() - totalMinutes * 60 * 1000);
+
+    try {
+      // List all files in temp folders across all workspaces
+      const tempFiles = await this.listObjectsByPrefix('temp/');
+
+      // Also check workspace-scoped temp folders: {workspace_id}/temp/
+      const allFiles = await this.listObjectsByPrefix('');
+      const workspaceTempFiles = allFiles.filter((f) => f.key.includes('/temp/'));
+
+      const filesToCheck = [...tempFiles, ...workspaceTempFiles];
+
+      for (const file of filesToCheck) {
+        if (file.lastModified < cutoffTime) {
+          try {
+            await this.deleteObject(file.key);
+            deleted++;
+            this.logger.debug(`Deleted temp file: ${file.key}`);
+          } catch (err) {
+            errors++;
+            this.logger.warn(`Failed to delete temp file: ${file.key}`, err);
+          }
+        }
+      }
+
+      this.logger.log(`Cleanup completed: ${deleted} files deleted, ${errors} errors`);
+    } catch (err) {
+      this.logger.error('Cleanup failed', err);
+    }
+
+    return { deleted, errors };
+  }
+
   extractObjectKeyFromUrl(fileUrl: string): string | null {
     if (!fileUrl) return null;
 
@@ -256,9 +290,9 @@ export class MinioService implements OnModuleInit {
       // or: https://minio.propcart.vn/propcart-crm/{objectKey}
       const bucketPrefix = `/${this.bucket}/`;
       const index = fileUrl.indexOf(bucketPrefix);
-      
+
       if (index === -1) return null;
-      
+
       const objectKey = fileUrl.slice(index + bucketPrefix.length);
       return objectKey || null;
     } catch (error) {

@@ -19,6 +19,5 @@ export class CreateCatalogDto {
 
   @IsArray()
   @IsOptional()
-  values?: Array<{ value: string; label: string; order?: number }>;
+  values?: Array<{ value: string; label: string; color?: string; order?: number }>;
 }
-

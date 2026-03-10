@@ -10,7 +10,7 @@ interface CatalogFormProps {
     code: string,
     name: string,
     parentId?: string | null,
-    values?: Array<{ value: string; label: string }>,
+    values?: Array<{ value: string; label: string; color?: string }>,
   ) => Promise<void>;
   isLoading?: boolean;
   onCancel?: () => void;
@@ -19,7 +19,7 @@ interface CatalogFormProps {
     code: string;
     name: string;
     parentId?: string | null;
-    values?: Array<{ value: string; label: string }>;
+    values?: Array<{ value: string; label: string; color?: string }>;
   };
   parentOptions?: Array<{ id: string; name: string }>;
   formId?: string;
@@ -33,12 +33,18 @@ export function CatalogForm({
   parentOptions = [],
   formId = 'catalog-form',
 }: CatalogFormProps) {
+  const normalizeHexColor = (value: string) => {
+    const raw = value.trim();
+    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+    return /^#[0-9A-Fa-f]{6}$/.test(withHash) ? withHash : null;
+  };
+
   const isEditing = Boolean(initialData);
   const [type, setType] = useState(initialData?.type || '');
   const [code, setCode] = useState(initialData?.code || '');
   const [name, setName] = useState(initialData?.name || '');
   const [parentId, setParentId] = useState<string | null | undefined>(initialData?.parentId ?? null);
-  const [values, setValues] = useState<Array<{ value: string; label: string }>>(initialData?.values || []);
+  const [values, setValues] = useState<Array<{ value: string; label: string; color?: string }>>(initialData?.values || []);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -61,8 +67,8 @@ export function CatalogForm({
     }
   };
 
-  const addValue = () => setValues((v) => [...v, { value: '', label: '' }]);
-  const updateValue = (idx: number, field: 'value' | 'label', val: string) =>
+  const addValue = () => setValues((v) => [...v, { value: '', label: '', color: '#3b82f6' }]);
+  const updateValue = (idx: number, field: 'value' | 'label' | 'color', val: string) =>
     setValues((v) => v.map((it, i) => (i === idx ? { ...it, [field]: val } : it)));
   const removeValue = (idx: number) => setValues((v) => v.filter((_, i) => i !== idx));
 
@@ -71,7 +77,6 @@ export function CatalogForm({
       <div>
         <label className="block text-sm font-medium text-gray-900">
           Loại danh mục *
-          {isEditing && <span className="text-xs text-gray-500 ml-1">(không thể thay đổi)</span>}
         </label>
         <select
           value={type}
@@ -79,7 +84,7 @@ export function CatalogForm({
             setType(e.target.value);
             setErrors({ ...errors, type: '' });
           }}
-          disabled={isLoading || isEditing}
+          disabled={isLoading}
           className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           <option value="">Chọn loại danh mục</option>
@@ -127,12 +132,11 @@ export function CatalogForm({
       <div>
         <label className="block text-sm font-medium text-gray-900">
           Danh mục cha (tùy chọn)
-          {isEditing && <span className="text-xs text-gray-500 ml-1">(không thể thay đổi)</span>}
         </label>
         <select
           value={parentId ?? ''}
           onChange={(e) => setParentId(e.target.value || null)}
-          disabled={isLoading || isEditing}
+          disabled={isLoading}
           className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           <option value="">Không có</option>
@@ -147,22 +151,47 @@ export function CatalogForm({
       <div>
         <label className="block text-sm font-medium text-gray-900">Danh sách giá trị con</label>
         <div className="space-y-2 mt-2">
+          <div className="grid grid-cols-[1fr_1fr_130px_40px] gap-2 px-1 text-[11px] font-medium text-gray-500">
+            <span>Mã code</span>
+            <span>Nhãn</span>
+            <span>Màu</span>
+            <span></span>
+          </div>
           {values.map((v, idx) => (
-            <div key={idx} className="flex items-center gap-2">
+            <div key={idx} className="grid grid-cols-[1fr_1fr_130px_40px] gap-2 items-center">
               <input
                 type="text"
                 value={v.value}
                 onChange={(e) => updateValue(idx, 'value', e.target.value)}
-                placeholder="value (VD: ADMIN)"
+                placeholder="Mã code (VD: HOT)"
                 className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm"
               />
               <input
                 type="text"
                 value={v.label}
                 onChange={(e) => updateValue(idx, 'label', e.target.value)}
-                placeholder="label (VD: Quản trị viên)"
+                placeholder="Nhãn (VD: Hàng hot)"
                 className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm"
               />
+              <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-2 py-1">
+                <input
+                  type="color"
+                  value={v.color || '#3b82f6'}
+                  onChange={(e) => updateValue(idx, 'color', e.target.value)}
+                  className="h-7 w-7 p-0 border-0 rounded cursor-pointer"
+                  title="Màu nhãn"
+                />
+                <input
+                  type="text"
+                  value={(v.color || '#3b82f6').toUpperCase()}
+                  onChange={(e) => {
+                    const normalized = normalizeHexColor(e.target.value);
+                    if (normalized) updateValue(idx, 'color', normalized);
+                  }}
+                  className="w-20 text-xs text-gray-700 outline-none"
+                  placeholder="#3B82F6"
+                />
+              </div>
               <button type="button" onClick={() => removeValue(idx)} className="p-2 text-red-600">
                 <Trash2 className="h-4 w-4" />
               </button>

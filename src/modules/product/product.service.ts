@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -10,23 +11,83 @@ import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto/index'
 
 @Injectable()
 export class ProductService {
+  private readonly logger = new Logger(ProductService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly minioService: MinioService,
   ) {}
 
+  private collectPolicyImageUrls(items: unknown): string[] {
+    if (!Array.isArray(items)) return [];
+
+    return items
+      .flatMap((item) => {
+        if (typeof item === 'string') {
+          return [item];
+        }
+
+        if (item && typeof item === 'object') {
+          return [item.originalUrl, item.thumbnailUrl, item.fileUrl].filter((url): url is string =>
+            Boolean(url && typeof url === 'string'),
+          );
+        }
+
+        return [];
+      })
+      .filter(Boolean);
+  }
+
+  private collectProductDocumentUrls(items: unknown): string[] {
+    if (!Array.isArray(items)) return [];
+
+    return items
+      .map((item) => item?.fileUrl)
+      .filter((url): url is string => Boolean(url && typeof url === 'string'));
+  }
+
+  private async deleteRemovedFiles(previousUrls: string[], nextUrls: string[]) {
+    const nextUrlSet = new Set(nextUrls);
+    const removedUrls = [...new Set(previousUrls)].filter((url) => !nextUrlSet.has(url));
+
+    this.logger.debug(
+      `Cleanup diff - previous: ${previousUrls.length}, next: ${nextUrls.length}, removed: ${removedUrls.length}`,
+    );
+
+    await Promise.all(
+      removedUrls.map(async (url) => {
+        const objectKey = this.minioService.extractObjectKeyFromUrl(url);
+        if (!objectKey) {
+          this.logger.debug(`Skip cleanup for URL (cannot extract object key): ${url}`);
+          return;
+        }
+
+        await this.minioService.deleteObject(objectKey);
+        this.logger.debug(`Deleted MinIO object: ${objectKey}`);
+      }),
+    );
+
+    if (removedUrls.length > 0) {
+      this.logger.log(`Cleanup completed for removed files: ${removedUrls.length}`);
+    }
+  }
+
   async create(workspaceId: string, userId: string, dto: CreateProductDto) {
     try {
+      this.logger.debug('Creating product with data:', JSON.stringify(dto));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = {
         workspaceId,
         warehouseId: dto.warehouseId || null,
         createdByUserId: userId,
         name: dto.name,
         unitCode: dto.unitCode,
+        tags: dto.tags || null,
         propertyType: dto.propertyType,
         zone: dto.zone || null,
         block: dto.block || null,
         direction: dto.direction || null,
+        isContactForPrice: dto.isContactForPrice || false,
         promotionProgram: dto.promotionProgram || null,
         policyImageUrls: dto.policyImageUrls || null,
         productDocuments: dto.productDocuments || null,
@@ -63,15 +124,29 @@ export class ProductService {
           },
         },
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
+    } catch (error) {
+      const err = error as {
+        code?: string;
+        message?: string;
+        constructor?: { name?: string };
+        stack?: string;
+      };
+      console.error('❌ CREATE PRODUCT ERROR:', error);
+      this.logger.error('Create product error:', {
+        code: err?.code,
+        message: err?.message,
+        prismaError: err?.constructor?.name,
+        stack: err?.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+      if (err?.code === 'P2002') {
         throw new BadRequestException('Mã căn đã tồn tại trong workspace');
       }
-      throw new InternalServerErrorException(error?.message || 'Failed to create product');
+      throw new InternalServerErrorException(err?.message || 'Failed to create product');
     }
   }
 
   async list(workspaceId: string, opts?: ListProductDto) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { workspaceId };
     if (opts?.search) {
       where.OR = [
@@ -139,22 +214,36 @@ export class ProductService {
   async update(id: string, workspaceId: string, dto: UpdateProductDto) {
     const existed = await this.prisma.propertyProduct.findFirst({
       where: { id, workspaceId },
-      select: { id: true },
+      select: {
+        id: true,
+        policyImageUrls: true,
+        productDocuments: true,
+      },
     });
     if (!existed) {
       throw new BadRequestException('Sản phẩm không tồn tại');
     }
 
+    const previousPolicyImageUrls = this.collectPolicyImageUrls(existed.policyImageUrls);
+    const previousProductDocumentUrls = this.collectProductDocumentUrls(existed.productDocuments);
+
+    this.logger.debug(
+      `Update product ${id} - previous policy images: ${previousPolicyImageUrls.length}, previous docs: ${previousProductDocumentUrls.length}`,
+    );
+
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = {};
 
       if (dto.name !== undefined) data.name = dto.name;
       if (dto.unitCode !== undefined) data.unitCode = dto.unitCode;
+      if (dto.tags !== undefined) data.tags = dto.tags || null;
       if (dto.warehouseId !== undefined) data.warehouseId = dto.warehouseId || null;
       if (dto.propertyType !== undefined) data.propertyType = dto.propertyType;
       if (dto.zone !== undefined) data.zone = dto.zone || null;
       if (dto.block !== undefined) data.block = dto.block || null;
       if (dto.direction !== undefined) data.direction = dto.direction || null;
+      if (dto.isContactForPrice !== undefined) data.isContactForPrice = dto.isContactForPrice;
       if (dto.promotionProgram !== undefined) data.promotionProgram = dto.promotionProgram || null;
       if (dto.policyImageUrls !== undefined) data.policyImageUrls = dto.policyImageUrls || null;
       if (dto.productDocuments !== undefined) data.productDocuments = dto.productDocuments || null;
@@ -164,7 +253,8 @@ export class ProductService {
       if (dto.transactionStatus !== undefined) data.transactionStatus = dto.transactionStatus;
       if (dto.note !== undefined) data.note = dto.note || null;
 
-      if (dto.area !== undefined) data.area = dto.area !== null ? new Decimal(String(dto.area)) : null;
+      if (dto.area !== undefined)
+        data.area = dto.area !== null ? new Decimal(String(dto.area)) : null;
       if (dto.priceWithoutVat !== undefined) {
         data.priceWithoutVat =
           dto.priceWithoutVat !== null ? new Decimal(String(dto.priceWithoutVat)) : null;
@@ -174,7 +264,7 @@ export class ProductService {
           dto.priceWithVat !== null ? new Decimal(String(dto.priceWithVat)) : null;
       }
 
-      return await this.prisma.propertyProduct.update({
+      const updated = await this.prisma.propertyProduct.update({
         where: { id },
         data,
         include: {
@@ -195,24 +285,61 @@ export class ProductService {
           },
         },
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
+
+      const nextPolicyImageUrls = this.collectPolicyImageUrls(
+        dto.policyImageUrls !== undefined ? dto.policyImageUrls : existed.policyImageUrls,
+      );
+      const nextProductDocumentUrls = this.collectProductDocumentUrls(
+        dto.productDocuments !== undefined ? dto.productDocuments : existed.productDocuments,
+      );
+
+      this.logger.debug(
+        `Update product ${id} - next policy images: ${nextPolicyImageUrls.length}, next docs: ${nextProductDocumentUrls.length}`,
+      );
+
+      await Promise.all([
+        this.deleteRemovedFiles(previousPolicyImageUrls, nextPolicyImageUrls),
+        this.deleteRemovedFiles(previousProductDocumentUrls, nextProductDocumentUrls),
+      ]);
+
+      return updated;
+    } catch (error) {
+      const err = error as { code?: string; message?: string };
+      if (err?.code === 'P2002') {
         throw new BadRequestException('Mã căn đã tồn tại trong workspace');
       }
-      throw new InternalServerErrorException(error?.message || 'Failed to update product');
+      throw new InternalServerErrorException(err?.message || 'Failed to update product');
     }
   }
 
   async delete(id: string, workspaceId: string) {
     const existed = await this.prisma.propertyProduct.findFirst({
       where: { id, workspaceId },
-      select: { id: true },
+      select: {
+        id: true,
+        policyImageUrls: true,
+        productDocuments: true,
+      },
     });
     if (!existed) {
       throw new BadRequestException('Sản phẩm không tồn tại');
     }
 
-    return this.prisma.propertyProduct.delete({ where: { id } });
+    const policyImageUrls = this.collectPolicyImageUrls(existed.policyImageUrls);
+    const productDocumentUrls = this.collectProductDocumentUrls(existed.productDocuments);
+
+    this.logger.debug(
+      `Delete product ${id} - policy images: ${policyImageUrls.length}, docs: ${productDocumentUrls.length}`,
+    );
+
+    const deletedProduct = await this.prisma.propertyProduct.delete({ where: { id } });
+
+    await Promise.all([
+      this.deleteRemovedFiles(policyImageUrls, []),
+      this.deleteRemovedFiles(productDocumentUrls, []),
+    ]);
+
+    return deletedProduct;
   }
 
   async uploadFiles(workspaceId: string, files: Express.Multer.File[]) {
@@ -220,8 +347,9 @@ export class ProductService {
       throw new BadRequestException('Khong co file de upload');
     }
 
+    // Upload to temporary folder (will be cleaned up if product is not saved)
     const uploaded = await Promise.all(
-      files.map((file) => this.minioService.uploadPropertyImage(workspaceId, file)),
+      files.map((file) => this.minioService.uploadTemporaryFile(workspaceId, file)),
     );
 
     return uploaded.map((item, index) => ({

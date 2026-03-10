@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, MailCheck, Save, Upload, Trash2, FileText, Downl
 import { DocumentTypeOption, DocumentTypeValue, useProfile } from '@/hooks/use-profile';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
+import { BaseImagePreviewDialog } from '@/components/common/base-image-preview-dialog';
 import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { PersonalInfoForm, type LocationFormData } from '@/components/common/personal-info-form';
@@ -283,6 +284,8 @@ export default function ProfilePage() {
     return <ProfileSkeleton />;
   }
 
+  const isPreviewImage = !previewLoading && previewMimeType.startsWith('image/') && Boolean(previewUrl);
+
   return (
     <div className="max-w-7xl space-y-6">
       <div>
@@ -538,8 +541,29 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <BaseImagePreviewDialog
+        isOpen={Boolean(previewingDocument) && isPreviewImage}
+        items={
+          previewingDocument && previewUrl
+            ? [
+                {
+                  src: previewUrl,
+                  title: previewingDocument.fileName || 'Tai lieu',
+                  downloadFileName: previewingDocument.fileName || 'tai-lieu',
+                },
+              ]
+            : []
+        }
+        currentIndex={previewingDocument && isPreviewImage ? 0 : null}
+        onClose={closePreviewDialog}
+        onDownload={() => {
+          if (!previewingDocument) return;
+          void downloadDocument(previewingDocument);
+        }}
+      />
+
       <DocumentPreviewDialog
-        isOpen={Boolean(previewingDocument)}
+        isOpen={Boolean(previewingDocument) && !isPreviewImage}
         isLoading={previewLoading}
         fileName={previewingDocument?.fileName || 'Tai lieu'}
         mimeType={previewMimeType}

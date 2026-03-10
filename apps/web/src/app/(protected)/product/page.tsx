@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Loader2, Plus } from 'lucide-react';
+import { Box, Loader2, Plus, Eye } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { useProduct, PropertyProduct } from '@/hooks/use-product';
 import { useWarehouse } from '@/hooks/use-warehouse';
@@ -9,7 +9,7 @@ import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useCatalog } from '@/hooks/use-catalog';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid';
+import { BaseDataGrid, DataGridColumn, DataGridAction } from '@/components/common/base-data-grid';
 import { ProductForm } from '@/components/product/product-form';
 import { cn } from '@/lib/utils';
 
@@ -42,8 +42,11 @@ export default function ProductPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
   const editingProduct = products.find((p) => p.id === editingId);
+  const detailsProduct = products.find((p) => p.id === detailsId);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -75,16 +78,28 @@ export default function ProductPage() {
     });
 
     const values = target?.values || [];
-    return values.map((v) => ({ value: v.value, label: v.label }));
+    return values.map((v: any) => ({ value: v.value, label: v.label, color: v.color }));
   };
 
   const directionOptions = useMemo(
-    () => findCatalogValues(['direction', 'huong']),
+    () => findCatalogValues(['property_direction', 'direction', 'huong_bds', 'huong bds', 'huong']),
+    [catalogs],
+  );
+
+  const propertyTypeOptions = useMemo(
+    () => findCatalogValues(['property_type', 'loai_hinh_bds', 'loai hinh bds', 'loai hinh bat dong san']),
     [catalogs],
   );
 
   const transactionStatusOptions = useMemo(() => {
-    const values = findCatalogValues(['transaction_status', 'status_bds', 'trang thai bds']);
+    const values = findCatalogValues([
+      'property_transaction_status',
+      'transaction_status',
+      'trang_thai_giao_dich_bds',
+      'trang thai giao dich bds',
+      'status_bds',
+      'trang thai bds',
+    ]);
     return values.length
       ? values
       : [
@@ -92,6 +107,16 @@ export default function ProductPage() {
           { value: 'BOOKED', label: 'Book can' },
         ];
   }, [catalogs]);
+
+  const tagOptions = useMemo(
+    () => findCatalogValues(['product_tag', 'tag', 'nhan', 'nhan_san_pham']),
+    [catalogs],
+  );
+
+  const documentTypeOptions = useMemo(
+    () => findCatalogValues(['product_document', 'tai_lieu_san_pham', 'tai lieu san pham']),
+    [catalogs],
+  );
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -125,6 +150,18 @@ export default function ProductPage() {
       setIsDeleting(false);
     }
   };
+
+  const customActions: DataGridAction<PropertyProduct>[] = [
+    {
+      icon: <Eye className="h-3.5 w-3.5" />,
+      label: 'Xem chi tiết',
+      onClick: (row) => {
+        setDetailsId(row.id);
+        setShowDetails(true);
+      },
+      variant: 'primary',
+    },
+  ];
 
   const columns: DataGridColumn<PropertyProduct>[] = [
     {
@@ -210,6 +247,7 @@ export default function ProductPage() {
       <BaseDataGrid
         data={products}
         columns={columns}
+        actions={customActions}
         isLoading={isLoading}
         pageSize={10}
         emptyMessage="Chưa có sản phẩm nào."
@@ -260,11 +298,53 @@ export default function ProductPage() {
           onUploadFiles={uploadFiles}
           editingProduct={editingProduct}
           warehouseOptions={warehouseOptions}
+          propertyTypeOptions={propertyTypeOptions}
           directionOptions={directionOptions}
           transactionStatusOptions={transactionStatusOptions}
+          tagOptions={tagOptions}
+          documentTypeOptions={documentTypeOptions}
           memberOptions={memberOptions}
           isSubmitting={isSubmitting}
         />
+      </BaseDialog>
+
+      <BaseDialog
+        isOpen={showDetails}
+        onClose={() => {
+          setShowDetails(false);
+          setDetailsId(null);
+        }}
+        title="Chi tiết sản phẩm"
+        maxWidth="6xl"
+        footer={
+          <button
+            type="button"
+            onClick={() => {
+              setShowDetails(false);
+              setDetailsId(null);
+            }}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Đóng
+          </button>
+        }
+      >
+        {detailsProduct && (
+          <ProductForm
+            formId="product-details-form"
+            onSubmit={async () => {}}
+            onUploadFiles={async () => []}
+            editingProduct={detailsProduct}
+            warehouseOptions={warehouseOptions}
+            propertyTypeOptions={propertyTypeOptions}
+            directionOptions={directionOptions}
+            transactionStatusOptions={transactionStatusOptions}
+            tagOptions={tagOptions}
+            documentTypeOptions={documentTypeOptions}
+            memberOptions={memberOptions}
+            isReadOnly={true}
+          />
+        )}
       </BaseDialog>
 
       <ConfirmDialog

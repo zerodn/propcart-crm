@@ -8,12 +8,19 @@ export interface ProductDocument {
   fileUrl: string;
 }
 
+export interface ProductImageItem {
+  fileName: string;
+  originalUrl: string;
+  thumbnailUrl: string;
+}
+
 export interface PropertyProduct {
   id: string;
   workspaceId: string;
   warehouseId: string;
   name: string;
   unitCode: string;
+  tags?: string[];
   propertyType: string;
   zone?: string;
   block?: string;
@@ -21,8 +28,9 @@ export interface PropertyProduct {
   area?: number;
   priceWithoutVat?: number;
   priceWithVat?: number;
+  isContactForPrice?: boolean;
   promotionProgram?: string;
-  policyImageUrls?: string[];
+  policyImageUrls?: ProductImageItem[];
   productDocuments?: ProductDocument[];
   callPhone?: string;
   zaloPhone?: string;
@@ -61,7 +69,34 @@ function normalizeProduct(raw: any): PropertyProduct {
       raw?.priceWithVat !== undefined && raw?.priceWithVat !== null
         ? Number(raw.priceWithVat)
         : undefined,
-    policyImageUrls: Array.isArray(raw?.policyImageUrls) ? raw.policyImageUrls : [],
+    isContactForPrice: raw?.isContactForPrice ?? false,
+    tags: Array.isArray(raw?.tags) ? raw.tags : [],
+    policyImageUrls: Array.isArray(raw?.policyImageUrls)
+      ? raw.policyImageUrls
+          .map((item: any) => {
+            if (typeof item === 'string') {
+              return {
+                fileName: '',
+                originalUrl: item,
+                thumbnailUrl: item,
+              };
+            }
+
+            if (item && typeof item === 'object') {
+              const originalUrl = item.originalUrl || item.fileUrl || '';
+              const thumbnailUrl = item.thumbnailUrl || item.thumbUrl || originalUrl;
+              if (!originalUrl && !thumbnailUrl) return null;
+              return {
+                fileName: item.fileName || '',
+                originalUrl,
+                thumbnailUrl,
+              };
+            }
+
+            return null;
+          })
+          .filter(Boolean)
+      : [],
     contactMemberIds: Array.isArray(raw?.contactMemberIds) ? raw.contactMemberIds : [],
     productDocuments: Array.isArray(raw?.productDocuments) ? raw.productDocuments : [],
     createdBy: createdBy

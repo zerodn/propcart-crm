@@ -34,12 +34,12 @@ export default function CatalogPage() {
     code: string,
     name: string,
     parentId?: string | null,
-    values?: Array<{ value: string; label: string }>,
+    values?: Array<{ value: string; label: string; color?: string }>,
   ) => {
     setIsSubmitting(true);
     try {
       if (editingId) {
-        await update(editingId, { code, name, values });
+        await update(editingId, { type, code, name, parentId, values });
         setEditingId(null);
       } else {
         await create(type, code, name, parentId, values);
@@ -50,7 +50,7 @@ export default function CatalogPage() {
     }
   };
 
-  const handleSaveValues = async (values: Array<{ value: string; label: string }>) => {
+  const handleSaveValues = async (values: Array<{ value: string; label: string; color?: string }>) => {
     if (!editingId) return;
     await handleSubmit('', '', '', undefined, values);
     setShowValuesDialog(false);
@@ -115,6 +115,7 @@ export default function CatalogPage() {
           setEditingId(null);
         }}
         title={editingId ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
+        maxWidth="4xl"
         footer={
           <>
             <button

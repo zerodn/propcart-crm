@@ -6,6 +6,7 @@ import { useAuth } from './use-auth';
 export interface CatalogValue {
   value: string;
   label: string;
+  color?: string;
   order?: number;
 }
 
@@ -27,11 +28,17 @@ export interface UseCatalogReturn {
     code: string,
     name: string,
     parentId?: string | null,
-    values?: Array<{ value: string; label: string }>,
+    values?: Array<{ value: string; label: string; color?: string }>,
   ) => Promise<void>;
   update: (
     id: string,
-    data: { name?: string; code?: string; values?: Array<{ value: string; label: string }> },
+    data: {
+      type?: string;
+      name?: string;
+      code?: string;
+      parentId?: string | null;
+      values?: Array<{ value: string; label: string; color?: string }>;
+    },
   ) => Promise<void>;
   delete: (id: string) => Promise<void>;
   refetch: () => Promise<void>;
@@ -72,7 +79,7 @@ export function useCatalog(type?: string): UseCatalogReturn {
     code: string,
     name: string,
     parentId?: string | null,
-    values?: Array<{ value: string; label: string }>,
+    values?: Array<{ value: string; label: string; color?: string }>,
   ) => {
     if (!workspace) return;
     try {
@@ -94,7 +101,13 @@ export function useCatalog(type?: string): UseCatalogReturn {
 
   const update = async (
     id: string,
-    data: { name?: string; code?: string; values?: Array<{ value: string; label: string }> },
+    data: {
+      type?: string;
+      name?: string;
+      code?: string;
+      parentId?: string | null;
+      values?: Array<{ value: string; label: string; color?: string }>;
+    },
   ) => {
     if (!workspace) return;
     try {

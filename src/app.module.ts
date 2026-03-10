@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 
 import configuration from './config/configuration';
@@ -19,6 +20,7 @@ import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { WarehouseModule } from './modules/warehouse/warehouse.module';
 import { ProductModule } from './modules/product/product.module';
+import { CleanupModule } from './modules/cleanup/cleanup.module';
 
 @Module({
   imports: [
@@ -30,8 +32,8 @@ import { ProductModule } from './modules/product/product.module';
 
     // Rate limiting: 2 throttle profiles
     ThrottlerModule.forRoot([
-      { name: 'short', ttl: 60000, limit: 5 },     // OTP: 5 req/min
-      { name: 'default', ttl: 60000, limit: 120 },  // API: 120 req/min
+      { name: 'short', ttl: 60000, limit: 5 }, // OTP: 5 req/min
+      { name: 'default', ttl: 60000, limit: 120 }, // API: 120 req/min
     ]),
 
     // In-memory cache (dev mode — replace with Redis in production)
@@ -39,6 +41,9 @@ import { ProductModule } from './modules/product/product.module';
       isGlobal: true,
       ttl: 120000, // default 120s
     }),
+
+    // Task scheduling (cron jobs)
+    ScheduleModule.forRoot(),
 
     // Global Prisma
     PrismaModule,
@@ -58,6 +63,7 @@ import { ProductModule } from './modules/product/product.module';
     PermissionModule,
     WarehouseModule,
     ProductModule,
+    CleanupModule,
   ],
   providers: [
     // Global HMAC signature guard

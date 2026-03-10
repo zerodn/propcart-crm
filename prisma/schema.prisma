@@ -286,6 +286,7 @@ model CatalogValue {
   catalogId String
   value     String
   label     String
+  color     String?
   order     Int      @default(0)
 
   createdAt DateTime @default(now())
@@ -428,6 +429,7 @@ model PropertyProduct {
   // 1) Thông tin sản phẩm
   name               String   // Tên sản phẩm (bắt buộc)
   unitCode           String   // Mã sản phẩm (bắt buộc)
+  tags               Json?    // string[] - Nhãn sản phẩm
   propertyType       String
   zone               String?
   block              String?
@@ -437,6 +439,7 @@ model PropertyProduct {
   // 2) Thông tin giá
   priceWithoutVat    Decimal? @db.Decimal(15, 2)
   priceWithVat       Decimal? @db.Decimal(15, 2)
+  isContactForPrice  Boolean  @default(false) // true = hiển thị "Liên hệ" thay vì giá
 
   // 3) Chính sách bán hàng
   promotionProgram   String?

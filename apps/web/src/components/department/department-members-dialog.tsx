@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Loader2, Plus, Trash2, X, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { BaseDialog } from '@/components/common/base-dialog';
 import type { Department, DepartmentMemberOption, DepartmentRoleOption } from '@/hooks/use-department';
 
 interface DepartmentMembersDialogProps {
@@ -163,27 +164,22 @@ export function DepartmentMembersDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-          <div>
+    <>
+      <BaseDialog
+        isOpen={isOpen}
+        onClose={onClose}
+        maxWidth="3xl"
+        disableClose={submitting || isLoading}
+        headerContent={
+          <div className="flex-1">
             <h2 className="text-lg font-semibold text-gray-900">Nhân sự phòng: {department.name}</h2>
             <p className="text-sm text-gray-500 mt-0.5">Mã phòng: {department.code}</p>
           </div>
-          <button
-            onClick={onClose}
-            disabled={submitting || isLoading}
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0 ml-2"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+        }
+      >
+        <div className="flex flex-col -mx-6 -my-5">
           {/* Add Member Form Section */}
-          <div className="p-6 border-b border-gray-200 flex-shrink-0">
+          <div className="px-6 py-5 border-b border-gray-200">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Thêm nhân sự vào phòng</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Autocomplete member search */}
@@ -270,7 +266,7 @@ export function DepartmentMembersDialog({
           </div>
 
           {/* Members List Section */}
-          <div className="p-6 flex-1 overflow-y-auto min-h-0">
+          <div className="px-6 py-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Danh sách nhân sự ({department.members?.length || 0})</h3>
             {(!department.members || department.members.length === 0) && (
               <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
@@ -322,7 +318,7 @@ export function DepartmentMembersDialog({
             </div>
           </div>
         </div>
-      </div>
+      </BaseDialog>
 
       <ConfirmDialog
         isOpen={showRemoveConfirm}
@@ -338,6 +334,6 @@ export function DepartmentMembersDialog({
           setMemberToRemove(null);
         }}
       />
-    </div>
+    </>
   );
 }

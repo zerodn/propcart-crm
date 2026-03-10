@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { BaseDialog } from '../common/base-dialog';
 
 interface Value {
   value: string;
   label: string;
+  color?: string;
 }
 
 interface CatalogValuesDialogProps {
@@ -25,6 +27,12 @@ export function CatalogValuesDialog({
   onSave,
   onClose,
 }: CatalogValuesDialogProps) {
+  const normalizeHexColor = (value: string) => {
+    const raw = value.trim();
+    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+    return /^#[0-9A-Fa-f]{6}$/.test(withHash) ? withHash : null;
+  };
+
   const [values, setValues] = useState<Value[]>(initialValues);
   const [saving, setSaving] = useState(false);
 
@@ -47,69 +55,20 @@ export function CatalogValuesDialog({
     }
   };
 
-  const addValue = () => setValues((v) => [...v, { value: '', label: '' }]);
-  const updateValue = (idx: number, field: 'value' | 'label', val: string) =>
+  const addValue = () => setValues((v) => [...v, { value: '', label: '', color: '#3b82f6' }]);
+  const updateValue = (idx: number, field: 'value' | 'label' | 'color', val: string) =>
     setValues((v) => v.map((it, i) => (i === idx ? { ...it, [field]: val } : it)));
   const removeValue = (idx: number) => setValues((v) => v.filter((_, i) => i !== idx));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Quản lý dữ liệu: {catalogName}
-          </h2>
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0"
-            aria-label="Đóng"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3 min-h-0">
-          {values.map((v, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={v.value}
-                onChange={(e) => updateValue(idx, 'value', e.target.value)}
-                placeholder="Value (VD: ADMIN)"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                value={v.label}
-                onChange={(e) => updateValue(idx, 'label', e.target.value)}
-                placeholder="Label (VD: Quản trị viên)"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={() => removeValue(idx)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                title="Xóa"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-
-          {/* Add button */}
-          <button
-            onClick={addValue}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Thêm giá trị
-          </button>
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0">
+    <BaseDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Quản lý dữ liệu: ${catalogName}`}
+      maxWidth="md"
+      disableClose={saving}
+      footer={
+        <>
           <button
             onClick={onClose}
             disabled={saving}
@@ -125,8 +84,70 @@ export function CatalogValuesDialog({
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             Lưu
           </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-[1fr_1fr_140px_40px] gap-2 px-1 text-[11px] font-medium text-gray-500">
+          <span>Mã code</span>
+          <span>Nhãn</span>
+          <span>Màu</span>
+          <span></span>
         </div>
+        {values.map((v, idx) => (
+          <div key={idx} className="grid grid-cols-[1fr_1fr_140px_40px] gap-2 items-center">
+            <input
+              type="text"
+              value={v.value}
+              onChange={(e) => updateValue(idx, 'value', e.target.value)}
+              placeholder="Mã code (VD: HOT)"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              value={v.label}
+              onChange={(e) => updateValue(idx, 'label', e.target.value)}
+              placeholder="Nhãn (VD: Hàng hot)"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-2 py-1 h-10">
+              <input
+                type="color"
+                value={v.color || '#3b82f6'}
+                onChange={(e) => updateValue(idx, 'color', e.target.value)}
+                className="h-7 w-7 p-0 border-0 rounded cursor-pointer"
+                title="Màu nhãn"
+              />
+              <input
+                type="text"
+                value={(v.color || '#3b82f6').toUpperCase()}
+                onChange={(e) => {
+                  const normalized = normalizeHexColor(e.target.value);
+                  if (normalized) updateValue(idx, 'color', normalized);
+                }}
+                className="w-20 text-xs text-gray-700 outline-none"
+                placeholder="#3B82F6"
+              />
+            </div>
+            <button
+              onClick={() => removeValue(idx)}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+              title="Xóa"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+
+        {/* Add button */}
+        <button
+          onClick={addValue}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Thêm giá trị
+        </button>
       </div>
-    </div>
+    </BaseDialog>
   );
 }

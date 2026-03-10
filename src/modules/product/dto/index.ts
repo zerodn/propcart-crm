@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-const toNumberOrUndefined = ({ value }: { value: any }) => {
+const toNumberOrUndefined = ({ value }: { value: unknown }) => {
   if (value === '' || value === null || value === undefined) return undefined;
   const n = Number(value);
   return Number.isNaN(n) ? undefined : n;
@@ -27,12 +27,31 @@ class ProductDocumentDto {
   fileUrl: string;
 }
 
+class ProductImageDto {
+  @IsOptional()
+  @IsString()
+  fileName?: string;
+
+  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'originalUrl khong hop le' })
+  originalUrl: string;
+
+  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'thumbnailUrl khong hop le' })
+  thumbnailUrl: string;
+}
+
 export class CreateProductDto {
   @IsString()
   name: string;
 
   @IsString()
   unitCode: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 
   @IsOptional()
   @IsString()
@@ -69,14 +88,18 @@ export class CreateProductDto {
   priceWithVat?: number;
 
   @IsOptional()
+  @IsIn([true, false])
+  isContactForPrice?: boolean;
+
+  @IsOptional()
   @IsString()
   promotionProgram?: string;
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  @IsUrl({ require_tld: false }, { each: true, message: 'policyImageUrls khong hop le' })
-  policyImageUrls?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => ProductImageDto)
+  policyImageUrls?: ProductImageDto[];
 
   @IsOptional()
   @IsArray()
@@ -116,6 +139,11 @@ export class UpdateProductDto {
   unitCode?: string;
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @IsOptional()
   @IsString()
   warehouseId?: string;
 
@@ -151,14 +179,18 @@ export class UpdateProductDto {
   priceWithVat?: number | null;
 
   @IsOptional()
+  @IsIn([true, false])
+  isContactForPrice?: boolean;
+
+  @IsOptional()
   @IsString()
   promotionProgram?: string;
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  @IsUrl({ require_tld: false }, { each: true, message: 'policyImageUrls khong hop le' })
-  policyImageUrls?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => ProductImageDto)
+  policyImageUrls?: ProductImageDto[];
 
   @IsOptional()
   @IsArray()
