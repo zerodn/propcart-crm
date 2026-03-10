@@ -128,14 +128,19 @@ export default function ProductPage() {
 
   const columns: DataGridColumn<PropertyProduct>[] = [
     {
-      key: 'unitCode',
-      label: 'Mã căn',
+      key: 'name',
+      label: 'Tên sản phẩm',
       render: (value, row) => (
         <div>
-          <div className="font-medium text-gray-900">{value}</div>
-          <div className="text-xs text-gray-500">{row.propertyType}</div>
+          <div className="font-medium text-gray-900">{value || '—'}</div>
+          <div className="text-xs text-gray-500">Mã: {row.unitCode}</div>
         </div>
       ),
+    },
+    {
+      key: 'propertyType',
+      label: 'Loại hình',
+      render: (value) => <span className="text-sm text-gray-700">{value}</span>,
     },
     {
       key: 'warehouse',
@@ -223,7 +228,7 @@ export default function ProductPage() {
           setEditingId(null);
         }}
         title={editingId ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm'}
-        maxWidth="4xl"
+        maxWidth="6xl"
         footer={
           <>
             <button

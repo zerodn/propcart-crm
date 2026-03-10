@@ -12,10 +12,11 @@ export interface PropertyProduct {
   id: string;
   workspaceId: string;
   warehouseId: string;
+  name: string;
+  unitCode: string;
   propertyType: string;
   zone?: string;
   block?: string;
-  unitCode: string;
   direction?: string;
   area?: number;
   priceWithoutVat?: number;

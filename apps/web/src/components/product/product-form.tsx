@@ -50,13 +50,14 @@ export function ProductForm({
   formId = 'product-form',
 }: ProductFormProps) {
   const [form, setForm] = useState({
+    name: '',
+    unitCode: '',
+    warehouseId: '',
     propertyType: '',
     zone: '',
     block: '',
-    unitCode: '',
     direction: '',
     area: '',
-    warehouseId: '',
     priceWithoutVat: '',
     priceWithVat: '',
     promotionProgram: '',
@@ -75,13 +76,14 @@ export function ProductForm({
   useEffect(() => {
     if (editingProduct) {
       setForm({
+        name: editingProduct.name || '',
+        unitCode: editingProduct.unitCode || '',
+        warehouseId: editingProduct.warehouseId || '',
         propertyType: editingProduct.propertyType || '',
         zone: editingProduct.zone || '',
         block: editingProduct.block || '',
-        unitCode: editingProduct.unitCode || '',
         direction: editingProduct.direction || '',
         area: editingProduct.area?.toString() || '',
-        warehouseId: editingProduct.warehouseId || '',
         priceWithoutVat: toCurrencyInput(editingProduct.priceWithoutVat),
         priceWithVat: toCurrencyInput(editingProduct.priceWithVat),
         promotionProgram: editingProduct.promotionProgram || '',
@@ -97,13 +99,14 @@ export function ProductForm({
     }
 
     setForm({
+      name: '',
+      unitCode: '',
+      warehouseId: '',
       propertyType: '',
       zone: '',
       block: '',
-      unitCode: '',
       direction: '',
       area: '',
-      warehouseId: '',
       priceWithoutVat: '',
       priceWithVat: '',
       promotionProgram: '',
@@ -152,15 +155,16 @@ export function ProductForm({
     e.preventDefault();
 
     const data: any = {
-      propertyType: form.propertyType.trim(),
+      name: form.name.trim(),
       unitCode: form.unitCode.trim(),
-      warehouseId: form.warehouseId,
+      propertyType: form.propertyType.trim(),
       transactionStatus: form.transactionStatus,
       policyImageUrls,
       productDocuments,
       contactMemberIds,
     };
 
+    if (form.warehouseId.trim()) data.warehouseId = form.warehouseId.trim();
     if (form.zone.trim()) data.zone = form.zone.trim();
     if (form.block.trim()) data.block = form.block.trim();
     if (form.direction.trim()) data.direction = form.direction.trim();
@@ -185,6 +189,51 @@ export function ProductForm({
         <div className="space-y-4">
           <div className="border border-gray-200 rounded-lg p-3 space-y-3">
             <h3 className="text-sm font-semibold text-gray-900">1. Thong tin san pham</h3>
+            
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Kho hang</label>
+              <select
+                value={form.warehouseId}
+                onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">-- Chon kho --</option>
+                {warehouseOptions.map((w) => (
+                  <option key={w.value} value={w.value}>
+                    {w.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ma san pham *</label>
+                <input
+                  type="text"
+                  value={form.unitCode}
+                  onChange={(e) => setForm({ ...form, unitCode: e.target.value })}
+                  required
+                  disabled={isSubmitting}
+                  placeholder="VD: TK2-P01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ten san pham *</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                  disabled={isSubmitting}
+                  placeholder="VD: Can ho 2PN+ - Toa TK2"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Loai hinh BDS *</label>
@@ -194,23 +243,10 @@ export function ProductForm({
                   onChange={(e) => setForm({ ...form, propertyType: e.target.value })}
                   required
                   disabled={isSubmitting}
+                  placeholder="VD: Can ho chung cu"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Ma can *</label>
-                <input
-                  type="text"
-                  value={form.unitCode}
-                  onChange={(e) => setForm({ ...form, unitCode: e.target.value })}
-                  required
-                  disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Phan khu</label>
                 <input
@@ -221,6 +257,9 @@ export function ProductForm({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Day / Block</label>
                 <input
@@ -231,9 +270,6 @@ export function ProductForm({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Huong</label>
                 <select
@@ -251,7 +287,7 @@ export function ProductForm({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Dien tich</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Dien tich (m2)</label>
                 <input
                   type="number"
                   value={form.area}
@@ -259,23 +295,6 @@ export function ProductForm({
                   disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Kho hang *</label>
-                <select
-                  value={form.warehouseId}
-                  onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
-                  required
-                  disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="">-- Chon kho --</option>
-                  {warehouseOptions.map((w) => (
-                    <option key={w.value} value={w.value}>
-                      {w.label}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>

@@ -19,10 +19,11 @@ export class ProductService {
     try {
       const data: any = {
         workspaceId,
-        warehouseId: dto.warehouseId,
+        warehouseId: dto.warehouseId || null,
         createdByUserId: userId,
-        propertyType: dto.propertyType,
+        name: dto.name,
         unitCode: dto.unitCode,
+        propertyType: dto.propertyType,
         zone: dto.zone || null,
         block: dto.block || null,
         direction: dto.direction || null,
@@ -74,6 +75,7 @@ export class ProductService {
     const where: any = { workspaceId };
     if (opts?.search) {
       where.OR = [
+        { name: { contains: opts.search } },
         { unitCode: { contains: opts.search } },
         { propertyType: { contains: opts.search } },
         { zone: { contains: opts.search } },
@@ -146,12 +148,13 @@ export class ProductService {
     try {
       const data: any = {};
 
+      if (dto.name !== undefined) data.name = dto.name;
+      if (dto.unitCode !== undefined) data.unitCode = dto.unitCode;
+      if (dto.warehouseId !== undefined) data.warehouseId = dto.warehouseId || null;
       if (dto.propertyType !== undefined) data.propertyType = dto.propertyType;
       if (dto.zone !== undefined) data.zone = dto.zone || null;
       if (dto.block !== undefined) data.block = dto.block || null;
-      if (dto.unitCode !== undefined) data.unitCode = dto.unitCode;
       if (dto.direction !== undefined) data.direction = dto.direction || null;
-      if (dto.warehouseId !== undefined) data.warehouseId = dto.warehouseId;
       if (dto.promotionProgram !== undefined) data.promotionProgram = dto.promotionProgram || null;
       if (dto.policyImageUrls !== undefined) data.policyImageUrls = dto.policyImageUrls || null;
       if (dto.productDocuments !== undefined) data.productDocuments = dto.productDocuments || null;

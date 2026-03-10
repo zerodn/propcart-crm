@@ -423,13 +423,14 @@ model PropertyWarehouse {
 model PropertyProduct {
   id                 String   @id @default(uuid())
   workspaceId        String
-  warehouseId        String
+  warehouseId        String?
 
   // 1) Thông tin sản phẩm
+  name               String   // Tên sản phẩm (bắt buộc)
+  unitCode           String   // Mã sản phẩm (bắt buộc)
   propertyType       String
   zone               String?
   block              String?
-  unitCode           String
   direction          String?
   area               Decimal? @db.Decimal(12, 2)
 
@@ -460,9 +461,9 @@ model PropertyProduct {
   updatedAt          DateTime @updatedAt
 
   // Relations
-  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  warehouse PropertyWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  createdBy User              @relation("ProductCreator", fields: [createdByUserId], references: [id])
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  warehouse  PropertyWarehouse? @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  createdBy  User               @relation("ProductCreator", fields: [createdByUserId], references: [id])
 
   @@unique([workspaceId, unitCode])
   @@index([workspaceId])

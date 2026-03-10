@@ -29,6 +29,16 @@ class ProductDocumentDto {
 
 export class CreateProductDto {
   @IsString()
+  name: string;
+
+  @IsString()
+  unitCode: string;
+
+  @IsOptional()
+  @IsString()
+  warehouseId?: string;
+
+  @IsString()
   propertyType: string;
 
   @IsOptional()
@@ -39,9 +49,6 @@ export class CreateProductDto {
   @IsString()
   block?: string;
 
-  @IsString()
-  unitCode: string;
-
   @IsOptional()
   @IsString()
   direction?: string;
@@ -50,9 +57,6 @@ export class CreateProductDto {
   @Transform(toNumberOrUndefined)
   @IsNumber()
   area?: number;
-
-  @IsString()
-  warehouseId: string;
 
   @IsOptional()
   @Transform(toNumberOrUndefined)
@@ -105,6 +109,18 @@ export class CreateProductDto {
 export class UpdateProductDto {
   @IsOptional()
   @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  unitCode?: string;
+
+  @IsOptional()
+  @IsString()
+  warehouseId?: string;
+
+  @IsOptional()
+  @IsString()
   propertyType?: string;
 
   @IsOptional()
@@ -117,20 +133,12 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  unitCode?: string;
-
-  @IsOptional()
-  @IsString()
   direction?: string;
 
   @IsOptional()
   @Transform(toNumberOrUndefined)
   @IsNumber()
   area?: number | null;
-
-  @IsOptional()
-  @IsString()
-  warehouseId?: string;
 
   @IsOptional()
   @Transform(toNumberOrUndefined)
