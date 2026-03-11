@@ -1,12 +1,14 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useRef, useEffect } from 'react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
+import TextStyle from '@tiptap/extension-text-style';
 import { 
   Bold, 
   Italic, 
@@ -20,7 +22,8 @@ import {
   AlignCenter,
   AlignRight,
   Trash2,
-  Code
+  Code,
+  Paintbrush
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -30,6 +33,17 @@ interface RichTextEditorProps {
   minHeight?: string;
   disabled?: boolean;
 }
+
+const TEXT_COLORS = [
+  { label: 'Mặc định', value: '' },
+  { label: 'Đen', value: '#111827' },
+  { label: 'Đỏ', value: '#dc2626' },
+  { label: 'Cam', value: '#ea580c' },
+  { label: 'Vàng', value: '#ca8a04' },
+  { label: 'Xanh lá', value: '#16a34a' },
+  { label: 'Xanh dương', value: '#2563eb' },
+  { label: 'Tím', value: '#7c3aed' },
+];
 
 export function RichTextEditor({
   value,
@@ -53,6 +67,7 @@ export function RichTextEditor({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      TextStyle,
       Underline,
       Color,
       Highlight.configure({
@@ -66,6 +81,21 @@ export function RichTextEditor({
     editable: !disabled,
   });
 
+  const colorInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync external value changes into the editor (e.g. when loading an existing project)
+  // onUpdate keeps editor → state in sync; this keeps state → editor in sync.
+  useEffect(() => {
+    if (!editor) return;
+    const currentHTML = editor.getHTML();
+    // Treat Tiptap's empty-doc '<p></p>' as equivalent to '' so we don't spuriously override
+    const normalizedCurrent = currentHTML === '<p></p>' ? '' : currentHTML;
+    const normalizedValue = value ?? '';
+    if (normalizedCurrent !== normalizedValue) {
+      editor.commands.setContent(normalizedValue, false /* don't emit onUpdate → no loop */);
+    }
+  }, [value, editor]);
+
   if (!editor) {
     return null;
   }
@@ -76,6 +106,8 @@ export function RichTextEditor({
       editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
     }
   };
+
+  const currentColor = editor.getAttributes('textStyle')?.color as string | undefined;
 
   return (
     <div className="border border-gray-300 rounded-lg overflow-hidden">
@@ -275,6 +307,78 @@ export function RichTextEditor({
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Bubble Menu — color picker on text selection */}
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 100, placement: 'top' }}
+        shouldShow={({ editor: ed }) => !ed.state.selection.empty}
+      >
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1.5">
+          <span className="text-[10px] text-gray-400 mr-1 select-none">Màu:</span>
+          {TEXT_COLORS.map((item) => {
+            const isActive = item.value
+              ? (currentColor ?? '').toLowerCase() === item.value.toLowerCase()
+              : !currentColor;
+
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (item.value) {
+                    editor.chain().focus().setColor(item.value).run();
+                  } else {
+                    editor.chain().focus().unsetColor().run();
+                  }
+                }}
+                disabled={disabled}
+                className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                  isActive
+                    ? 'border-blue-400 ring-2 ring-blue-200 scale-110'
+                    : 'border-gray-200 hover:scale-110'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title={`Màu chữ: ${item.label}`}
+                aria-label={`Màu chữ: ${item.label}`}
+                style={item.value ? { backgroundColor: item.value } : { backgroundColor: '#ffffff' }}
+              >
+                {!item.value && (
+                  <span className="text-[9px] font-bold text-gray-500">A</span>
+                )}
+              </button>
+            );
+          })}
+          {/* Divider */}
+          <div className="w-px h-5 bg-gray-200 mx-0.5" />
+
+          {/* Custom color picker */}
+          <div className="relative">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                colorInputRef.current?.click();
+              }}
+              disabled={disabled}
+              className="h-6 w-6 rounded-full border-2 border-gray-200 hover:scale-110 flex items-center justify-center transition-all bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Chọn màu tùy chỉnh"
+              aria-label="Chọn màu tùy chỉnh"
+            >
+              <Paintbrush className="h-3 w-3 text-gray-500" />
+            </button>
+            <input
+              ref={colorInputRef}
+              type="color"
+              defaultValue={currentColor ?? '#000000'}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none"
+              onChange={(e) => {
+                editor.chain().focus().setColor(e.target.value).run();
+              }}
+            />
+          </div>
+        </div>
+      </BubbleMenu>
 
       {/* Editor */}
       <div 

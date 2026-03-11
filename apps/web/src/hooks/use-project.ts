@@ -2,6 +2,13 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 
+export interface MediaItem {
+  originalUrl: string;
+  fileName?: string;
+  thumbnailUrl?: string;
+  description?: string;
+}
+
 export interface PlanningStat {
   label: string;
   icon?: string;
@@ -12,8 +19,8 @@ export interface ProjectContact {
   name: string;
   title?: string;
   phone?: string;
+  zaloPhone?: string;
   imageUrl?: string;
-  description?: string;
 }
 
 export interface Project {
@@ -25,14 +32,17 @@ export interface Project {
   displayStatus: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
   saleStatus: 'COMING_SOON' | 'ON_SALE' | 'SOLD_OUT';
   bannerUrl?: string | null;
-  bannerUrls?: string[] | null;
+  bannerUrls?: MediaItem[] | null;
   overviewHtml?: string | null;
   address?: string | null;
   province?: string | null;
   district?: string | null;
   zoneImageUrl?: string | null;
+  zoneImages?: MediaItem[] | null;
   productImageUrl?: string | null;
+  productImages?: MediaItem[] | null;
   amenityImageUrl?: string | null;
+  amenityImages?: MediaItem[] | null;
   videoUrl?: string | null;
   videoDescription?: string | null;
   contacts?: ProjectContact[] | null;
@@ -50,14 +60,17 @@ export interface CreateProjectPayload {
   displayStatus?: string;
   saleStatus?: string;
   bannerUrl?: string;
-  bannerUrls?: string[];
+  bannerUrls?: MediaItem[];
   overviewHtml?: string;
   address?: string;
   province?: string;
   district?: string;
   zoneImageUrl?: string;
+  zoneImages?: MediaItem[];
   productImageUrl?: string;
+  productImages?: MediaItem[];
   amenityImageUrl?: string;
+  amenityImages?: MediaItem[];
   videoUrl?: string;
   videoDescription?: string;
   contacts?: ProjectContact[];
@@ -74,18 +87,29 @@ function normalizeProject(raw: any): Project {
     displayStatus: raw.displayStatus ?? 'DRAFT',
     saleStatus: raw.saleStatus ?? 'COMING_SOON',
     bannerUrl: raw.bannerUrl ?? null,
-    bannerUrls: Array.isArray(raw.bannerUrls)
-      ? raw.bannerUrls
-      : raw.bannerUrl
-        ? [raw.bannerUrl]
-        : null,
+    bannerUrls: (() => {
+      const raw_urls = raw.bannerUrls;
+      if (!raw_urls) return null;
+      if (Array.isArray(raw_urls)) {
+        // Support both old string[] format and new MediaItem[] format
+        return raw_urls.map((item: any) =>
+          typeof item === 'string'
+            ? { originalUrl: item, fileName: 'Banner', thumbnailUrl: item }
+            : item
+        );
+      }
+      return null;
+    })(),
     overviewHtml: raw.overviewHtml ?? null,
     address: raw.address ?? null,
     province: raw.province ?? null,
     district: raw.district ?? null,
     zoneImageUrl: raw.zoneImageUrl ?? null,
+    zoneImages: Array.isArray(raw.zoneImages) ? raw.zoneImages : null,
     productImageUrl: raw.productImageUrl ?? null,
+    productImages: Array.isArray(raw.productImages) ? raw.productImages : null,
     amenityImageUrl: raw.amenityImageUrl ?? null,
+    amenityImages: Array.isArray(raw.amenityImages) ? raw.amenityImages : null,
     videoUrl: raw.videoUrl ?? null,
     videoDescription: raw.videoDescription ?? null,
     contacts: Array.isArray(raw.contacts) ? raw.contacts : null,

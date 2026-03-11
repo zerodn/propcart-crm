@@ -3,17 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Loader2, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import type { MediaItem } from '@/hooks/use-project';
 
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
-
-export interface MediaItem {
-  fileName: string;
-  originalUrl: string;
-  thumbnailUrl?: string;
-  description?: string;
-}
+export type { MediaItem };
 
 interface ProjectMediaUploadManagerProps {
   label: string;

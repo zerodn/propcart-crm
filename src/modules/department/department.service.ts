@@ -49,10 +49,13 @@ export class DepartmentService {
   async listWorkspaceMemberOptions(workspaceId: string) {
     return this.prisma.workspaceMember.findMany({
       where: { workspaceId, status: 1 },
-      include: {
+      select: {
+        userId: true,
+        displayName: true,
         user: {
           select: {
             id: true,
+            fullName: true,
             phone: true,
             email: true,
           },

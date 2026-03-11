@@ -1,5 +1,23 @@
-import { IsString, IsOptional, IsIn, IsArray, IsUrl, ValidateNested, IsNotEmpty, IsPhoneNumber } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsArray, ValidateNested, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class MediaItemDto {
+  @IsString()
+  @IsNotEmpty()
+  originalUrl: string;
+
+  @IsString()
+  @IsOptional()
+  fileName?: string;
+
+  @IsString()
+  @IsOptional()
+  thumbnailUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+}
 
 export class PlanningStat {
   @IsString()
@@ -28,11 +46,11 @@ export class ProjectContact {
 
   @IsString()
   @IsOptional()
-  imageUrl?: string;
+  zaloPhone?: string;
 
   @IsString()
   @IsOptional()
-  description?: string;
+  imageUrl?: string;
 }
 
 export class CreateProjectDto {
@@ -64,8 +82,9 @@ export class CreateProjectDto {
 
   @IsArray()
   @IsOptional()
-  @IsString({ each: true })
-  bannerUrls?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  bannerUrls?: MediaItemDto[];
 
   @IsString()
   @IsOptional()
@@ -87,13 +106,31 @@ export class CreateProjectDto {
   @IsOptional()
   zoneImageUrl?: string;
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  zoneImages?: MediaItemDto[];
+
   @IsString()
   @IsOptional()
   productImageUrl?: string;
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  productImages?: MediaItemDto[];
+
   @IsString()
   @IsOptional()
   amenityImageUrl?: string;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  amenityImages?: MediaItemDto[];
 
   @IsString()
   @IsOptional()
@@ -146,8 +183,9 @@ export class UpdateProjectDto {
 
   @IsArray()
   @IsOptional()
-  @IsString({ each: true })
-  bannerUrls?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  bannerUrls?: MediaItemDto[];
 
   @IsString()
   @IsOptional()
@@ -169,13 +207,31 @@ export class UpdateProjectDto {
   @IsOptional()
   zoneImageUrl?: string;
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  zoneImages?: MediaItemDto[];
+
   @IsString()
   @IsOptional()
   productImageUrl?: string;
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  productImages?: MediaItemDto[];
+
   @IsString()
   @IsOptional()
   amenityImageUrl?: string;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => MediaItemDto)
+  amenityImages?: MediaItemDto[];
 
   @IsString()
   @IsOptional()

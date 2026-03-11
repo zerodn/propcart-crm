@@ -8,7 +8,7 @@ export class ProjectService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(workspaceId: string, dto: CreateProjectDto, user: JwtPayload) {
-    const bannerUrls = dto.bannerUrls ?? (dto.bannerUrl ? [dto.bannerUrl] : []);
+    const bannerItems = dto.bannerUrls ?? (dto.bannerUrl ? [{ originalUrl: dto.bannerUrl, fileName: 'Banner 1' }] : []);
     return this.prisma.project.create({
       data: {
         workspaceId,
@@ -17,15 +17,18 @@ export class ProjectService {
         ownerId: dto.ownerId ?? null,
         displayStatus: dto.displayStatus ?? 'DRAFT',
         saleStatus: dto.saleStatus ?? 'COMING_SOON',
-        bannerUrl: bannerUrls[0] ?? null,
-        bannerUrls: bannerUrls.length > 0 ? (bannerUrls as any) : null,
+        bannerUrl: bannerItems[0]?.originalUrl ?? null,
+        bannerUrls: bannerItems.length > 0 ? (bannerItems as any) : null,
         overviewHtml: dto.overviewHtml ?? null,
         address: dto.address ?? null,
         province: dto.province ?? null,
         district: dto.district ?? null,
-        zoneImageUrl: dto.zoneImageUrl ?? null,
-        productImageUrl: dto.productImageUrl ?? null,
-        amenityImageUrl: dto.amenityImageUrl ?? null,
+        zoneImageUrl: dto.zoneImages?.[0]?.originalUrl ?? dto.zoneImageUrl ?? null,
+        zoneImages: dto.zoneImages ? (dto.zoneImages as any) : null,
+        productImageUrl: dto.productImages?.[0]?.originalUrl ?? dto.productImageUrl ?? null,
+        productImages: dto.productImages ? (dto.productImages as any) : null,
+        amenityImageUrl: dto.amenityImages?.[0]?.originalUrl ?? dto.amenityImageUrl ?? null,
+        amenityImages: dto.amenityImages ? (dto.amenityImages as any) : null,
         videoUrl: dto.videoUrl ?? null,
         videoDescription: dto.videoDescription ?? null,
         contacts: dto.contacts ? (dto.contacts as any) : null,
@@ -79,7 +82,7 @@ export class ProjectService {
   async update(workspaceId: string, id: string, dto: UpdateProjectDto) {
     await this.findById(workspaceId, id);
     const hasBannerUpdate = dto.bannerUrls !== undefined || dto.bannerUrl !== undefined;
-    const nextBannerUrls = dto.bannerUrls ?? (dto.bannerUrl !== undefined ? (dto.bannerUrl ? [dto.bannerUrl] : []) : undefined);
+    const nextBannerItems = dto.bannerUrls ?? (dto.bannerUrl !== undefined ? (dto.bannerUrl ? [{ originalUrl: dto.bannerUrl, fileName: 'Banner 1' }] : []) : undefined);
 
     return this.prisma.project.update({
       where: { id },
@@ -90,16 +93,28 @@ export class ProjectService {
         ...(dto.displayStatus !== undefined && { displayStatus: dto.displayStatus }),
         ...(dto.saleStatus !== undefined && { saleStatus: dto.saleStatus }),
         ...(hasBannerUpdate && {
-          bannerUrl: nextBannerUrls && nextBannerUrls.length > 0 ? nextBannerUrls[0] : null,
-          bannerUrls: nextBannerUrls && nextBannerUrls.length > 0 ? (nextBannerUrls as any) : null,
+          bannerUrl: nextBannerItems && nextBannerItems.length > 0 ? nextBannerItems[0].originalUrl : null,
+          bannerUrls: nextBannerItems && nextBannerItems.length > 0 ? (nextBannerItems as any) : null,
         }),
         ...(dto.overviewHtml !== undefined && { overviewHtml: dto.overviewHtml }),
         ...(dto.address !== undefined && { address: dto.address }),
         ...(dto.province !== undefined && { province: dto.province }),
         ...(dto.district !== undefined && { district: dto.district }),
-        ...(dto.zoneImageUrl !== undefined && { zoneImageUrl: dto.zoneImageUrl }),
-        ...(dto.productImageUrl !== undefined && { productImageUrl: dto.productImageUrl }),
-        ...(dto.amenityImageUrl !== undefined && { amenityImageUrl: dto.amenityImageUrl }),
+        ...(dto.zoneImages !== undefined && {
+          zoneImageUrl: dto.zoneImages.length > 0 ? dto.zoneImages[0].originalUrl : null,
+          zoneImages: dto.zoneImages.length > 0 ? (dto.zoneImages as any) : null,
+        }),
+        ...(dto.zoneImages === undefined && dto.zoneImageUrl !== undefined && { zoneImageUrl: dto.zoneImageUrl }),
+        ...(dto.productImages !== undefined && {
+          productImageUrl: dto.productImages.length > 0 ? dto.productImages[0].originalUrl : null,
+          productImages: dto.productImages.length > 0 ? (dto.productImages as any) : null,
+        }),
+        ...(dto.productImages === undefined && dto.productImageUrl !== undefined && { productImageUrl: dto.productImageUrl }),
+        ...(dto.amenityImages !== undefined && {
+          amenityImageUrl: dto.amenityImages.length > 0 ? dto.amenityImages[0].originalUrl : null,
+          amenityImages: dto.amenityImages.length > 0 ? (dto.amenityImages as any) : null,
+        }),
+        ...(dto.amenityImages === undefined && dto.amenityImageUrl !== undefined && { amenityImageUrl: dto.amenityImageUrl }),
         ...(dto.videoUrl !== undefined && { videoUrl: dto.videoUrl }),
         ...(dto.videoDescription !== undefined && { videoDescription: dto.videoDescription }),
         ...(dto.contacts !== undefined && { contacts: dto.contacts as any }),

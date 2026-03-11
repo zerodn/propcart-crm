@@ -9,12 +9,18 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  Search,
+  ChevronDown,
+  Check,
+  Camera,
 } from 'lucide-react';
-import { Project, CreateProjectPayload, PlanningStat, ProjectContact } from '@/hooks/use-project';
-import { ProjectMediaUploadManager, MediaItem } from './project-media-upload-manager';
+import { Project, CreateProjectPayload, PlanningStat, ProjectContact, MediaItem } from '@/hooks/use-project';
+import { ProjectMediaUploadManager } from './project-media-upload-manager';
 import { RichTextEditor } from '@/components/common/RichTextEditor';
 import { BaseDialog } from '@/components/common/base-dialog';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { uploadFileToTemp } from '@/lib/api-upload';
+import apiClient from '@/lib/api-client';
 import { IconPicker } from '@/components/common/icon-picker';
 
 // ─────────────────────────────────────────────────────────────
@@ -54,6 +60,24 @@ interface MemberOption {
   label: string;
 }
 
+interface MemberSearchItem {
+  value: string;
+  label: string;
+  phone?: string;
+  email?: string;
+}
+
+interface LocationItem {
+  code: number;
+  name: string;
+}
+
+interface ProvinceV2Detail {
+  code: number;
+  name: string;
+  wards: Array<{ code: number; name: string }>;
+}
+
 interface ProjectFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -86,6 +110,7 @@ export function ProjectForm({
   isSubmitting,
   uploadImage,
   accessToken,
+  workspaceId,
 }: ProjectFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [draftProjectId, setDraftProjectId] = useState<string | null>(editingProject?.id ?? null);
@@ -107,6 +132,12 @@ export function ProjectForm({
   const [address, setAddress] = useState('');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
+  const [provinceCode, setProvinceCode] = useState('');
+  const [wardCode, setWardCode] = useState('');
+  const [provinces, setProvinces] = useState<LocationItem[]>([]);
+  const [wards, setWards] = useState<LocationItem[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [wardLoading, setWardLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [overviewHtml, setOverviewHtml] = useState('');
   const [videoDescription, setVideoDescription] = useState('');
@@ -122,6 +153,14 @@ export function ProjectForm({
   const [planningStats, setPlanningStats] = useState<PlanningStat[]>([]);
   const [contacts, setContacts] = useState<ProjectContact[]>([]);
   const [newContactForm, setNewContactForm] = useState<ProjectContact>({ name: '' });
+  const [uploadingContactIndex, setUploadingContactIndex] = useState<number | null>(null);
+  const [deleteContactIndex, setDeleteContactIndex] = useState<number | null>(null);
+  const [workspaceMemberOptions, setWorkspaceMemberOptions] = useState<MemberSearchItem[]>([]);
+  const [memberKeyword, setMemberKeyword] = useState('');
+  const [memberResults, setMemberResults] = useState<MemberSearchItem[]>([]);
+  const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
+  const [isSearchingMembers, setIsSearchingMembers] = useState(false);
+  const memberDropdownRef = useRef<HTMLDivElement>(null);
   const isUploading = uploadingCount > 0;
 
   const handleUploadingChange = (uploading: boolean) => {
@@ -136,8 +175,8 @@ export function ProjectForm({
         name: (contact.name ?? '').trim(),
         title: contact.title?.trim() || undefined,
         phone: contact.phone?.trim() || undefined,
+        zaloPhone: contact.zaloPhone?.trim() || contact.phone?.trim() || undefined,
         imageUrl: contact.imageUrl?.trim() || undefined,
-        description: contact.description?.trim() || undefined,
       }))
       .filter((contact) => contact.name.length > 0);
 
@@ -148,14 +187,17 @@ export function ProjectForm({
     displayStatus,
     saleStatus,
     bannerUrl: bannerItems[0]?.originalUrl || undefined,
-    bannerUrls: bannerItems.length > 0 ? bannerItems.map((item) => item.originalUrl) : undefined,
+    bannerUrls: bannerItems.length > 0 ? bannerItems : undefined,
     overviewHtml: overviewHtml || undefined,
     address: address || undefined,
     province: province || undefined,
     district: district || undefined,
     zoneImageUrl: zoneItems[0]?.originalUrl || undefined,
+    zoneImages: zoneItems.length > 0 ? zoneItems : undefined,
     productImageUrl: productItems[0]?.originalUrl || undefined,
+    productImages: productItems.length > 0 ? productItems : undefined,
     amenityImageUrl: amenityItems[0]?.originalUrl || undefined,
+    amenityImages: amenityItems.length > 0 ? amenityItems : undefined,
     videoUrl: videoUrl || undefined,
     videoDescription: videoDescription || undefined,
     contacts: sanitizedContacts.length > 0 ? sanitizedContacts : undefined,
@@ -182,17 +224,21 @@ export function ProjectForm({
       setAddress(editingProject.address ?? '');
       setProvince(editingProject.province ?? '');
       setDistrict(editingProject.district ?? '');
+      setProvinceCode('');
+      setWardCode('');
+      setWards([]);
       setVideoUrl(editingProject.videoUrl ?? '');
       setOverviewHtml(editingProject.overviewHtml ?? '');
       setVideoDescription(editingProject.videoDescription ?? '');
       
-      // Sync media items
+      // Sync media items — prefer full MediaItem[] (with fileName/description), fall back to URL strings
       if (editingProject.bannerUrls && editingProject.bannerUrls.length > 0) {
         setBannerItems(
-          editingProject.bannerUrls.map((url, idx) => ({
-            fileName: `Banner ${idx + 1}`,
-            originalUrl: url,
-            thumbnailUrl: url,
+          editingProject.bannerUrls.map((item, idx) => ({
+            fileName: item.fileName || `Banner ${idx + 1}`,
+            originalUrl: item.originalUrl,
+            thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+            description: item.description,
           })),
         );
       } else if (editingProject.bannerUrl) {
@@ -200,17 +246,38 @@ export function ProjectForm({
       } else {
         setBannerItems([]);
       }
-      if (editingProject.zoneImageUrl) {
-        setZoneItems([{ fileName: 'Phân khu', originalUrl: editingProject.zoneImageUrl, thumbnailUrl: editingProject.zoneImageUrl }]);
+      if (editingProject.zoneImages && editingProject.zoneImages.length > 0) {
+        setZoneItems(editingProject.zoneImages.map((item) => ({
+          fileName: item.fileName || 'Mặt bằng',
+          originalUrl: item.originalUrl,
+          thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+          description: item.description,
+        })));
+      } else if (editingProject.zoneImageUrl) {
+        setZoneItems([{ fileName: 'Mặt bằng', originalUrl: editingProject.zoneImageUrl, thumbnailUrl: editingProject.zoneImageUrl }]);
       } else {
         setZoneItems([]);
       }
-      if (editingProject.productImageUrl) {
+      if (editingProject.productImages && editingProject.productImages.length > 0) {
+        setProductItems(editingProject.productImages.map((item) => ({
+          fileName: item.fileName || 'Sản phẩm',
+          originalUrl: item.originalUrl,
+          thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+          description: item.description,
+        })));
+      } else if (editingProject.productImageUrl) {
         setProductItems([{ fileName: 'Sản phẩm', originalUrl: editingProject.productImageUrl, thumbnailUrl: editingProject.productImageUrl }]);
       } else {
         setProductItems([]);
       }
-      if (editingProject.amenityImageUrl) {
+      if (editingProject.amenityImages && editingProject.amenityImages.length > 0) {
+        setAmenityItems(editingProject.amenityImages.map((item) => ({
+          fileName: item.fileName || 'Tiện ích',
+          originalUrl: item.originalUrl,
+          thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+          description: item.description,
+        })));
+      } else if (editingProject.amenityImageUrl) {
         setAmenityItems([{ fileName: 'Tiện ích', originalUrl: editingProject.amenityImageUrl, thumbnailUrl: editingProject.amenityImageUrl }]);
       } else {
         setAmenityItems([]);
@@ -228,6 +295,9 @@ export function ProjectForm({
       setAddress('');
       setProvince('');
       setDistrict('');
+      setProvinceCode('');
+      setWardCode('');
+      setWards([]);
       setVideoUrl('');
       setOverviewHtml('');
       setVideoDescription('');
@@ -238,11 +308,162 @@ export function ProjectForm({
       setPlanningStats([]);
       setContacts([]);
       setNewContactForm({ name: '' });
+      setDeleteContactIndex(null);
+      setWorkspaceMemberOptions([]);
+      setMemberKeyword('');
+      setMemberResults([]);
+      setIsMemberDropdownOpen(false);
     }
     if (isOpen) {
       setCurrentStep(0);
     }
   }, [isOpen, editingProject?.id]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadProvinces = async () => {
+      setLocationLoading(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/v2/?depth=1');
+        const provinceList = (await response.json()) as LocationItem[];
+        setProvinces(provinceList || []);
+      } catch (err) {
+        console.error('Failed to load provinces:', err);
+      } finally {
+        setLocationLoading(false);
+      }
+    };
+
+    loadProvinces();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!provinceCode) {
+      setWards([]);
+      return;
+    }
+
+    const loadWards = async () => {
+      setWardLoading(true);
+      try {
+        const response = await fetch(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`);
+        const payload = (await response.json()) as ProvinceV2Detail;
+        const wardList = (payload.wards || []).map((item) => ({ code: item.code, name: item.name }));
+        setWards(wardList);
+      } catch (err) {
+        console.error('Failed to load wards:', err);
+      } finally {
+        setWardLoading(false);
+      }
+    };
+
+    loadWards();
+  }, [provinceCode]);
+
+  useEffect(() => {
+    if (!province || provinceCode || provinces.length === 0) return;
+    const matchedProvince = provinces.find((p) => p.name.toLowerCase() === province.toLowerCase());
+    if (matchedProvince) {
+      setProvinceCode(String(matchedProvince.code));
+    }
+  }, [province, provinceCode, provinces]);
+
+  useEffect(() => {
+    if (!district || wardCode || wards.length === 0) return;
+    const matchedWard = wards.find((w) => w.name.toLowerCase() === district.toLowerCase());
+    if (matchedWard) {
+      setWardCode(String(matchedWard.code));
+    }
+  }, [district, wardCode, wards]);
+
+  useEffect(() => {
+    if (!workspaceId || !isOpen) return;
+
+    const loadWorkspaceMemberOptions = async () => {
+      try {
+        const { data } = await apiClient.get(`/workspaces/${workspaceId}/departments/member-options`);
+        const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        const mapped = items
+          .map((item: { userId?: string; phone?: string; email?: string; user?: { phone?: string; email?: string; fullName?: string }; displayName?: string }) => ({
+            value: item.userId || '',
+            label: item.displayName || item.user?.fullName || item.phone || item.user?.phone || item.email || item.user?.email || item.userId || 'N/A',
+            phone: item.phone || item.user?.phone,
+            email: item.email || item.user?.email,
+          }))
+          .filter((item: MemberSearchItem) => Boolean(item.value));
+        setWorkspaceMemberOptions(mapped);
+      } catch {
+        setWorkspaceMemberOptions([]);
+      }
+    };
+
+    void loadWorkspaceMemberOptions();
+  }, [workspaceId, isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
+        setIsMemberDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!workspaceId || !isOpen || !isMemberDropdownOpen) return;
+
+    const timer = setTimeout(async () => {
+      const q = memberKeyword.trim();
+
+      if (!q) {
+        setMemberResults(workspaceMemberOptions.slice(0, 20));
+        return;
+      }
+
+      try {
+        setIsSearchingMembers(true);
+        const { data } = await apiClient.get(`/workspaces/${workspaceId}/departments/member-search`, {
+          params: { q },
+        });
+
+        const items = Array.isArray(data?.data) ? data.data : [];
+        const mapped = items
+          .map((item: { userId?: string; name?: string; phone?: string; email?: string }) => ({
+            value: item.userId || '',
+            label: item.name || item.phone || item.email || item.userId || 'N/A',
+            phone: item.phone,
+            email: item.email,
+          }))
+          .filter((item: MemberSearchItem) => Boolean(item.value));
+
+        setMemberResults(mapped);
+      } catch {
+        setMemberResults([]);
+      } finally {
+        setIsSearchingMembers(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [workspaceId, isOpen, isMemberDropdownOpen, memberKeyword, workspaceMemberOptions]);
+
+  const handleProvinceChange = (code: string) => {
+    const selectedProvince = provinces.find((p) => String(p.code) === code);
+    setProvinceCode(code);
+    setProvince(selectedProvince?.name ?? '');
+    setWardCode('');
+    setDistrict('');
+    setWards([]);
+  };
+
+  const handleWardChange = (code: string) => {
+    const selectedWard = wards.find((w) => String(w.code) === code);
+    setWardCode(code);
+    setDistrict(selectedWard?.name ?? '');
+  };
 
   // ── Planning Stats Handlers ────────────────────────────────
   const addPlanningStat = () => setPlanningStats((p) => [...p, { label: '', icon: '', value: '' }]);
@@ -259,10 +480,83 @@ export function ProjectForm({
   // ── Contact Handlers ───────────────────────────────────────
   const addContact = () => {
     if (newContactForm.name.trim()) {
-      setContacts((c) => [...c, newContactForm]);
+      const normalizedPhone = newContactForm.phone?.trim() || undefined;
+      setContacts((c) => [
+        ...c,
+        {
+          ...newContactForm,
+          phone: normalizedPhone,
+          zaloPhone: newContactForm.zaloPhone?.trim() || normalizedPhone,
+        },
+      ]);
       setNewContactForm({ name: '' });
     }
   };
+
+  const addContactFromMember = (member: MemberSearchItem) => {
+    const normalizedName = (member.label || '').trim().toLowerCase();
+    const normalizedPhone = (member.phone || '').trim();
+    const duplicated = contacts.some(
+      (c) =>
+        (c.name || '').trim().toLowerCase() === normalizedName &&
+        (c.phone || '').trim() === normalizedPhone,
+    );
+
+    if (!duplicated) {
+      setContacts((c) => [
+        ...c,
+        {
+          name: member.label,
+          phone: member.phone,
+          zaloPhone: member.phone,
+        },
+      ]);
+    }
+
+    setMemberKeyword('');
+    setIsMemberDropdownOpen(false);
+  };
+
+  const updateContact = (index: number, field: keyof ProjectContact, value: string) => {
+    setContacts((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        if (field === 'phone') {
+          const prevPhone = (item.phone || '').trim();
+          const prevZalo = (item.zaloPhone || '').trim();
+          const shouldSyncZalo = !prevZalo || prevZalo === prevPhone;
+          return {
+            ...item,
+            phone: value,
+            ...(shouldSyncZalo ? { zaloPhone: value } : {}),
+          };
+        }
+        return { ...item, [field]: value };
+      }),
+    );
+  };
+
+  const handleContactAvatarUpload = async (index: number, file: File | null) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn tệp hình ảnh');
+      return;
+    }
+
+    try {
+      setUploadingContactIndex(index);
+      const url = await handleUploadFile(file);
+      if (!url) {
+        toast.error('Upload ảnh đại diện thất bại');
+        return;
+      }
+      updateContact(index, 'imageUrl', url);
+    } finally {
+      setUploadingContactIndex(null);
+    }
+  };
+
   const removeContact = (i: number) => setContacts((c) => c.filter((_, idx) => idx !== i));
 
   // ── Form Submit ────────────────────────────────────────────
@@ -367,7 +661,8 @@ export function ProjectForm({
   );
 
   return (
-    <BaseDialog
+    <>
+      <BaseDialog
       isOpen={isOpen}
       onClose={onClose}
       title={`${editingProject ? 'Chỉnh sửa dự án' : 'Thêm mới dự án'} - ${projectTypeLabel}`}
@@ -404,8 +699,8 @@ export function ProjectForm({
                   Thông tin tổng quan dự án
                 </h3>
 
-                {/* Row: Tên + Chủ dự án */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Row: Tên + Trạng thái hiển thị + Trạng thái bán */}
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Tên dự án <span className="text-red-500">*</span>
@@ -418,25 +713,6 @@ export function ProjectForm({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Chủ dự án
-                    </label>
-                    <select
-                      value={ownerId}
-                      onChange={(e) => setOwnerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
-                    >
-                      <option value="">Chọn chủ dự án</option>
-                      {ownerOptions.map((m) => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row: Trạng thái */}
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Trạng thái hiển thị <span className="text-red-500">*</span>
@@ -464,6 +740,71 @@ export function ProjectForm({
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* Row: Chủ dự án */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Chủ dự án
+                    </label>
+                    <select
+                      value={ownerId}
+                      onChange={(e) => setOwnerId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                    >
+                      <option value="">Chọn chủ dự án</option>
+                      {ownerOptions.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Address fields */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tỉnh/Thành phố</label>
+                    <select
+                      value={provinceCode}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      disabled={locationLoading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 bg-white"
+                    >
+                      <option value="">Chọn tỉnh/thành</option>
+                      {provinces.map((item) => (
+                        <option key={item.code} value={String(item.code)}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phường/Xã</label>
+                    <select
+                      value={wardCode}
+                      onChange={(e) => handleWardChange(e.target.value)}
+                      disabled={!provinceCode || locationLoading || wardLoading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 bg-white"
+                    >
+                      <option value="">Chọn phường/xã</option>
+                      {wards.map((item) => (
+                        <option key={item.code} value={String(item.code)}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ chi tiết</label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Nhập địa chỉ chi tiết"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
                   </div>
                 </div>
 
@@ -583,40 +924,6 @@ export function ProjectForm({
                   onUploadingChange={handleUploadingChange}
                 />
 
-                {/* Address fields */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ</label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Nhập địa chỉ"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tỉnh / Thành</label>
-                    <input
-                      type="text"
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      placeholder="Nhập tỉnh/thành"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Quận / Huyện</label>
-                    <input
-                      type="text"
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="Nhập quận/huyện"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                </div>
-
                 {/* Tổng quan dự án with RichTextEditor */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -631,7 +938,7 @@ export function ProjectForm({
 
                 {/* Phân khu, Sản phẩm, Tiện ích uploads */}
                 <ProjectMediaUploadManager
-                  label="Phân khu"
+                  label="Mặt bằng"
                   hint="Dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG. Kích thước 1910×735px."
                   items={zoneItems}
                   onItemsChange={setZoneItems}
@@ -698,13 +1005,22 @@ export function ProjectForm({
                   {/* Contact table */}
                   {contacts.length > 0 && (
                     <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                          <col className="w-[96px]" />
+                          <col className="w-[28%]" />
+                          <col className="w-[18%]" />
+                          <col className="w-[18%]" />
+                          <col className="w-[18%]" />
+                          <col className="w-[44px]" />
+                        </colgroup>
                         <thead>
                           <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Hình đại diện</th>
+                            <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-600">Hình đại diện</th>
                             <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Tên liên hệ</th>
                             <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Chức vụ</th>
                             <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Số điện thoại</th>
+                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Zalo</th>
                             <th className="w-8" />
                           </tr>
                         </thead>
@@ -712,24 +1028,77 @@ export function ProjectForm({
                           {contacts.map((contact, i) => (
                             <tr key={i} className="border-b border-gray-100 last:border-0">
                               <td className="px-3 py-2.5">
-                                {contact.imageUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={contact.imageUrl}
-                                    alt={contact.name}
-                                    className="w-10 h-10 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-gray-200" />
-                                )}
+                                <div className="relative w-10 h-10 mx-auto">
+                                  {contact.imageUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={contact.imageUrl}
+                                      alt={contact.name}
+                                      className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gray-200" />
+                                  )}
+
+                                  <label className="absolute -right-1 -bottom-1 inline-flex items-center justify-center w-6 h-6 rounded-full border border-white bg-amber-600 text-white shadow-sm hover:bg-amber-700 cursor-pointer">
+                                    {uploadingContactIndex === i ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Camera className="w-3 h-3" />
+                                    )}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0] ?? null;
+                                        void handleContactAvatarUpload(i, file);
+                                        e.currentTarget.value = '';
+                                      }}
+                                    />
+                                  </label>
+                                </div>
                               </td>
-                              <td className="px-3 py-2.5 text-sm text-gray-900">{contact.name}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{contact.title || '—'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{contact.phone || '—'}</td>
+                              <td className="px-3 py-2.5">
+                                <input
+                                  type="text"
+                                  value={contact.name || ''}
+                                  onChange={(e) => updateContact(i, 'name', e.target.value)}
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  placeholder="Tên liên hệ"
+                                />
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <input
+                                  type="text"
+                                  value={contact.title || ''}
+                                  onChange={(e) => updateContact(i, 'title', e.target.value)}
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  placeholder="Chức vụ"
+                                />
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <input
+                                  type="text"
+                                  value={contact.phone || ''}
+                                  onChange={(e) => updateContact(i, 'phone', e.target.value)}
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  placeholder="Số điện thoại"
+                                />
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <input
+                                  type="text"
+                                  value={contact.zaloPhone || ''}
+                                  onChange={(e) => updateContact(i, 'zaloPhone', e.target.value)}
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  placeholder="Số zalo"
+                                />
+                              </td>
                               <td className="px-3 py-2.5 text-center">
                                 <button
                                   type="button"
-                                  onClick={() => removeContact(i)}
+                                  onClick={() => setDeleteContactIndex(i)}
                                   className="text-red-400 hover:text-red-600"
                                   aria-label="Xóa"
                                 >
@@ -746,6 +1115,73 @@ export function ProjectForm({
                   {/* Add contact form */}
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Chọn nhân sự</label>
+                        <div className="relative" ref={memberDropdownRef}>
+                          <div className="rounded border border-gray-300 px-2 py-1.5 bg-white">
+                            <div className="flex items-center gap-2">
+                              <Search className="h-3.5 w-3.5 text-gray-400" />
+                              <input
+                                type="text"
+                                value={memberKeyword}
+                                onChange={(e) => {
+                                  setMemberKeyword(e.target.value);
+                                  setIsMemberDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsMemberDropdownOpen(true)}
+                                placeholder="Tìm theo tên, SĐT, email"
+                                className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400"
+                              />
+                              <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${isMemberDropdownOpen ? 'rotate-180' : ''}`} />
+                            </div>
+                          </div>
+
+                          {isMemberDropdownOpen && (
+                            <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
+                              {isSearchingMembers ? (
+                                <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Đang tìm nhân sự...
+                                </div>
+                              ) : memberResults.length > 0 ? (
+                                memberResults.map((member) => {
+                                  const exists = contacts.some(
+                                    (c) =>
+                                      (c.name || '').trim().toLowerCase() === member.label.trim().toLowerCase() &&
+                                      (c.phone || '').trim() === (member.phone || '').trim(),
+                                  );
+
+                                  return (
+                                    <button
+                                      key={member.value}
+                                      type="button"
+                                      onClick={() => addContactFromMember(member)}
+                                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="truncate font-medium">{member.label}</p>
+                                        <p className="truncate text-xs text-gray-500">
+                                          SĐT: {member.phone || '---'} | Email: {member.email || '---'}
+                                        </p>
+                                      </div>
+                                      {exists && <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />}
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-gray-500">Không tìm thấy nhân sự phù hợp</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 py-1">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-xs font-medium text-gray-500">Hoặc</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                      </div>
+
                       <input
                         type="text"
                         value={newContactForm.name}
@@ -753,7 +1189,7 @@ export function ProjectForm({
                         placeholder="Tên liên hệ"
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                       />
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                         <input
                           type="text"
                           value={newContactForm.title || ''}
@@ -764,8 +1200,27 @@ export function ProjectForm({
                         <input
                           type="text"
                           value={newContactForm.phone || ''}
-                          onChange={(e) => setNewContactForm({ ...newContactForm, phone: e.target.value })}
+                          onChange={(e) =>
+                            setNewContactForm((prev) => {
+                              const prevPhone = (prev.phone || '').trim();
+                              const prevZalo = (prev.zaloPhone || '').trim();
+                              const nextPhone = e.target.value;
+                              const shouldSyncZalo = !prevZalo || prevZalo === prevPhone;
+                              return {
+                                ...prev,
+                                phone: nextPhone,
+                                ...(shouldSyncZalo ? { zaloPhone: nextPhone } : {}),
+                              };
+                            })
+                          }
                           placeholder="Số điện thoại"
+                          className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
+                        />
+                        <input
+                          type="text"
+                          value={newContactForm.zaloPhone || ''}
+                          onChange={(e) => setNewContactForm({ ...newContactForm, zaloPhone: e.target.value })}
+                          placeholder="Số zalo"
                           className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                         />
                         <button
@@ -794,6 +1249,23 @@ export function ProjectForm({
             )}
           </div>
         </div>
-    </BaseDialog>
+      </BaseDialog>
+
+      <ConfirmDialog
+        isOpen={deleteContactIndex !== null}
+        onCancel={() => setDeleteContactIndex(null)}
+        onConfirm={() => {
+          if (deleteContactIndex !== null) {
+            removeContact(deleteContactIndex);
+          }
+          setDeleteContactIndex(null);
+        }}
+        title="Xóa liên hệ"
+        message="Bạn có chắc muốn xóa liên hệ này?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+      />
+    </>
   );
 }
