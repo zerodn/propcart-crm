@@ -10,12 +10,21 @@ import {
   Eye,
   Download,
   Trash2,
+  Search,
 } from 'lucide-react';
 import { PropertyProduct, ProductDocument, ProductImageItem } from '@/hooks/use-product';
 import { RichTextEditor } from '@/components/common/RichTextEditor';
 import { BaseImagePreviewDialog } from '@/components/common/base-image-preview-dialog';
 import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
 import { cn } from '@/lib/utils';
+import apiClient from '@/lib/api-client';
+
+interface MemberSearchItem {
+  value: string;
+  label: string;
+  phone?: string;
+  email?: string;
+}
 
 interface ProductDocumentWithSize extends ProductDocument {
   fileSize?: number;
@@ -34,6 +43,7 @@ function formatFileSize(bytes?: number) {
 }
 
 interface ProductFormProps {
+  workspaceId: string;
   onSubmit: (data: any) => Promise<void>;
   onUploadFiles: (files: File[]) => Promise<Array<{ fileName: string; fileUrl: string }>>;
   editingProduct?: PropertyProduct;
@@ -75,6 +85,7 @@ function inferMimeType(fileName?: string, fileUrl?: string) {
 }
 
 export function ProductForm({
+  workspaceId,
   onSubmit,
   onUploadFiles,
   editingProduct,
@@ -101,6 +112,7 @@ export function ProductForm({
     priceWithoutVat: '',
     priceWithVat: '',
     isContactForPrice: false,
+    isHidden: false,
     promotionProgram: '',
     callPhone: '',
     zaloPhone: '',
@@ -118,7 +130,12 @@ export function ProductForm({
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   const [deleteConfirmIdx, setDeleteConfirmIdx] = useState<number | null>(null);
+  const [memberKeyword, setMemberKeyword] = useState('');
+  const [memberResults, setMemberResults] = useState<MemberSearchItem[]>([]);
+  const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
+  const [isSearchingMembers, setIsSearchingMembers] = useState(false);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
+  const memberDropdownRef = useRef<HTMLDivElement>(null);
   const tagButtonRef = useRef<HTMLButtonElement>(null);
   const [tagButtonWidth, setTagButtonWidth] = useState(0);
 
@@ -140,6 +157,7 @@ export function ProductForm({
         priceWithoutVat: toCurrencyInput(editingProduct.priceWithoutVat),
         priceWithVat: toCurrencyInput(editingProduct.priceWithVat),
         isContactForPrice: editingProduct.isContactForPrice || false,
+        isHidden: editingProduct.isHidden || false,
         promotionProgram: editingProduct.promotionProgram || '',
         callPhone: editingProduct.callPhone || '',
         zaloPhone: editingProduct.zaloPhone || '',
@@ -169,6 +187,7 @@ export function ProductForm({
       priceWithoutVat: '',
       priceWithVat: '',
       isContactForPrice: false,
+      isHidden: false,
       promotionProgram: '',
       callPhone: '',
       zaloPhone: '',
@@ -182,6 +201,12 @@ export function ProductForm({
   }, [editingProduct, transactionStatusOptions]);
 
   const selectedMemberSet = useMemo(() => new Set(contactMemberIds), [contactMemberIds]);
+  const selectedMemberLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of memberOptions) map.set(item.value, item.label);
+    for (const item of memberResults) map.set(item.value, item.label);
+    return map;
+  }, [memberOptions, memberResults]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -189,10 +214,68 @@ export function ProductForm({
       if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
         setIsTagDropdownOpen(false);
       }
+
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
+        setIsMemberDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!workspaceId || isReadOnly || !isMemberDropdownOpen) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const q = memberKeyword.trim();
+
+      if (!q) {
+        setMemberResults(
+          memberOptions.slice(0, 20).map((item) => ({
+            value: item.value,
+            label: item.label,
+          })),
+        );
+        return;
+      }
+
+      try {
+        setIsSearchingMembers(true);
+        const { data } = await apiClient.get(`/workspaces/${workspaceId}/departments/member-search`, {
+          params: { q },
+        });
+
+        const items = Array.isArray(data?.data) ? data.data : [];
+        const mapped = items
+          .map((item: { userId?: string; name?: string; phone?: string; email?: string }) => ({
+            value: item.userId || '',
+            label: item.name || item.phone || item.email || item.userId || 'N/A',
+            phone: item.phone,
+            email: item.email,
+          }))
+          .filter((item: MemberSearchItem) => Boolean(item.value));
+
+        setMemberResults(mapped);
+      } catch {
+        setMemberResults([]);
+      } finally {
+        setIsSearchingMembers(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [workspaceId, memberKeyword, memberOptions, isReadOnly, isMemberDropdownOpen]);
+
+  const toggleContactMember = (userId: string) => {
+    if (selectedMemberSet.has(userId)) {
+      setContactMemberIds((prev) => prev.filter((id) => id !== userId));
+      return;
+    }
+
+    setContactMemberIds((prev) => [...prev, userId]);
+  };
 
   // Track combobox width to compute how many selected tags can be displayed.
   useEffect(() => {
@@ -439,6 +522,7 @@ export function ProductForm({
       propertyType: form.propertyType.trim(),
       transactionStatus: form.transactionStatus,
       isContactForPrice: form.isContactForPrice,
+      isHidden: form.isHidden,
       tags,
       policyImageUrls: productImages.map((img) => ({
         fileName: img.fileName || img.originalFileName || '',
@@ -768,16 +852,29 @@ export function ProductForm({
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.isContactForPrice}
-                onChange={(e) => setForm({ ...form, isContactForPrice: e.target.checked })}
-                disabled={isSubmitting || isReadOnly}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Lien he (khong hien thi gia)</span>
-            </label>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isContactForPrice}
+                  onChange={(e) => setForm({ ...form, isContactForPrice: e.target.checked })}
+                  disabled={isSubmitting || isReadOnly}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Lien he (khong hien thi gia)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isHidden}
+                  onChange={(e) => setForm({ ...form, isHidden: e.target.checked })}
+                  disabled={isSubmitting || isReadOnly}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Sản phẩm ẩn</span>
+              </label>
+            </div>
           </div>
 
           <div className="border border-gray-200 rounded-lg p-3 space-y-3">
@@ -979,7 +1076,7 @@ export function ProductForm({
           </div>
 
           <div className="border border-gray-200 rounded-lg p-3 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">5. Thong tin lien he</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Thông tin liên hệ</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">So dien thoai</label>
@@ -1004,24 +1101,82 @@ export function ProductForm({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Nhan su lien he (chon nhieu)</label>
-              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
-                {memberOptions.map((member) => (
-                  <label key={member.value} className="flex items-center gap-2 text-sm text-gray-700">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Chọn nhân sự</label>
+              <div className="relative" ref={memberDropdownRef}>
+                <div className="rounded-lg border border-gray-300 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-gray-400" />
                     <input
-                      type="checkbox"
-                      checked={selectedMemberSet.has(member.value)}
+                      type="text"
+                      value={memberKeyword}
                       onChange={(e) => {
-                        if (e.target.checked) {
-                          setContactMemberIds((prev) => [...prev, member.value]);
-                        } else {
-                          setContactMemberIds((prev) => prev.filter((id) => id !== member.value));
-                        }
+                        setMemberKeyword(e.target.value);
+                        setIsMemberDropdownOpen(true);
                       }}
+                      onFocus={() => setIsMemberDropdownOpen(true)}
+                      placeholder="Tìm theo tên, SĐT, email"
+                      disabled={isSubmitting || isReadOnly}
+                      className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400"
                     />
-                    {member.label}
-                  </label>
-                ))}
+                    <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', isMemberDropdownOpen && 'rotate-180')} />
+                  </div>
+
+                  {contactMemberIds.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {contactMemberIds.map((id) => (
+                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+                          {selectedMemberLabelMap.get(id) || id}
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => toggleContactMember(id)}
+                              className="rounded-full p-0.5 hover:bg-blue-100"
+                              aria-label="Xóa nhân sự liên hệ"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {isMemberDropdownOpen && !isReadOnly && (
+                  <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {isSearchingMembers ? (
+                      <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Đang tìm nhân sự...
+                      </div>
+                    ) : memberResults.length > 0 ? (
+                      memberResults.map((member) => {
+                        const checked = selectedMemberSet.has(member.value);
+                        return (
+                          <button
+                            key={member.value}
+                            type="button"
+                            onClick={() => toggleContactMember(member.value)}
+                            className={cn(
+                              'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50',
+                              checked && 'bg-blue-50 text-blue-700',
+                            )}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{member.label}</p>
+                              <p className="truncate text-xs text-gray-500">
+                                SĐT: {member.phone || '---'} | Email: {member.email || '---'}
+                              </p>
+                            </div>
+                            {checked && <Check className="h-4 w-4 flex-shrink-0" />}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-gray-500">Không tìm thấy nhân sự phù hợp</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

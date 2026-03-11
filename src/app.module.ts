@@ -20,7 +20,9 @@ import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { WarehouseModule } from './modules/warehouse/warehouse.module';
 import { ProductModule } from './modules/product/product.module';
+import { ProjectModule } from './modules/project/project.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { CleanupModule } from './modules/cleanup/cleanup.module';
     PermissionModule,
     WarehouseModule,
     ProductModule,
+    ProjectModule,
+    UploadModule,
     CleanupModule,
   ],
   providers: [

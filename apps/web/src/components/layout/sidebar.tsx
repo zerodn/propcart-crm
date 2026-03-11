@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Building2, Mail, Users, LogOut, ClipboardList, Shield, Briefcase, Bell, UserCircle2, Warehouse, Box } from 'lucide-react';
+import { LayoutDashboard, Building2, Mail, Users, LogOut, ClipboardList, Shield, Briefcase, Bell, UserCircle2, Warehouse, Box, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ export function Sidebar() {
     { href: '/workspace/members', label: t('sidebar.members'), icon: Users },
     { href: '/warehouse', label: t('sidebar.warehouses'), icon: Warehouse },
     { href: '/product', label: t('sidebar.products'), icon: Box },
+    { href: '/project', label: 'Dự án', icon: FolderOpen },
     { href: '/department', label: t('sidebar.departments'), icon: Briefcase },
     { href: '/catalog', label: t('sidebar.catalogs'), icon: ClipboardList },
     { href: '/permissions', label: t('sidebar.permissions'), icon: Shield },

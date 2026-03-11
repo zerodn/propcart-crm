@@ -53,6 +53,7 @@ model User {
   documents           UserDocument[]
   createdWarehouses   PropertyWarehouse[] @relation("WarehouseCreator")
   createdProducts     PropertyProduct[]   @relation("ProductCreator")
+  createdProjects     Project[]           @relation("ProjectCreator")
 
   @@index([email])
   @@map("users")
@@ -78,6 +79,7 @@ model Workspace {
   documents   UserDocument[]
   warehouses  PropertyWarehouse[]
   products    PropertyProduct[]
+  projects    Project[]
 
   @@index([ownerUserId])
   @@index([type])
@@ -440,6 +442,7 @@ model PropertyProduct {
   priceWithoutVat    Decimal? @db.Decimal(15, 2)
   priceWithVat       Decimal? @db.Decimal(15, 2)
   isContactForPrice  Boolean  @default(false) // true = hiển thị "Liên hệ" thay vì giá
+  isHidden           Boolean  @default(false) // true = chỉ user có quyền mới thấy
 
   // 3) Chính sách bán hàng
   promotionProgram   String?
@@ -472,6 +475,47 @@ model PropertyProduct {
   @@index([workspaceId])
   @@index([workspaceId, warehouseId])
   @@index([workspaceId, transactionStatus])
+  @@index([workspaceId, isHidden])
   @@map("property_products")
+}
+
+// ============================================================
+// PROJECTS (Dự án bất động sản)
+// ============================================================
+
+model Project {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  name          String                          // Tên dự án
+  projectType   String                          // "LOW_RISE" | "HIGH_RISE"
+  ownerId       String?                         // Chủ dự án (WorkspaceMember.userId)
+  displayStatus String   @default("DRAFT")      // DRAFT | PUBLISHED | HIDDEN
+  saleStatus    String   @default("COMING_SOON") // COMING_SOON | ON_SALE | SOLD_OUT
+  bannerUrl     String?                         // Hình ảnh banner
+  bannerUrls    Json?                           // Danh sách hình ảnh banner
+  overviewHtml  String?  @db.Text               // Tổng quan dự án (rich text)
+  address       String?
+  province      String?
+  district      String?
+  zoneImageUrl    String?                       // Phân khu
+  productImageUrl String?                       // Sản phẩm
+  amenityImageUrl String?                       // Tiện ích
+  videoUrl        String?                       // Video giới thiệu
+  videoDescription String? @db.Text             // Mô tả video (rich text)
+  contacts        Json?                         // [{name, title, phone, imageUrl, description}]
+  planningStats   Json?                         // [{label, icon, value}]
+
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("ProjectCreator", fields: [createdByUserId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, displayStatus])
+  @@index([workspaceId, saleStatus])
+  @@map("projects")
 }
 

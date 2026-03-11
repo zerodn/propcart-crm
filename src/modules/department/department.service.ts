@@ -169,12 +169,14 @@ export class DepartmentService {
           workspaceId,
           status: 1,
         },
-        include: {
+        select: {
+          displayName: true,
           user: {
             select: {
               id: true,
               phone: true,
               email: true,
+              fullName: true,
             },
           },
         },
@@ -185,11 +187,19 @@ export class DepartmentService {
 
       // Filter in application (case-insensitive)
       const filtered = workspaceMembers.filter((member) => {
+        const displayName = (member.displayName || '').toLowerCase();
+        const fullName = (member.user.fullName || '').toLowerCase();
         const phone = (member.user.phone || '').toLowerCase();
         const email = (member.user.email || '').toLowerCase();
-        const matches = phone.includes(trimmedQuery) || email.includes(trimmedQuery);
+        const matches =
+          displayName.includes(trimmedQuery) ||
+          fullName.includes(trimmedQuery) ||
+          phone.includes(trimmedQuery) ||
+          email.includes(trimmedQuery);
         if (matches) {
-          this.logger.debug(`Match found: phone="${member.user.phone}" email="${member.user.email}"`);
+          this.logger.debug(
+            `Match found: name="${member.displayName || member.user.fullName}" phone="${member.user.phone}" email="${member.user.email}"`,
+          );
         }
         return matches;
       });
@@ -201,7 +211,7 @@ export class DepartmentService {
           userId: member.user.id,
           phone: member.user.phone,
           email: member.user.email,
-          name: undefined,
+          name: member.displayName || member.user.fullName,
           score: 0, // No score from database search
         })),
       };

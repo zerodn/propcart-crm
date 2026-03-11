@@ -116,6 +116,24 @@ export class CatalogService {
       await this.initializeProductDocumentCatalog(workspaceId);
     }
 
+    // Auto-initialize project owner catalog if it doesn't exist
+    const projectOwnerCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'PROJECT_OWNER', code: 'PROJECT_OWNER' },
+    });
+
+    if (!projectOwnerCatalogExists) {
+      await this.initializeProjectOwnerCatalog(workspaceId);
+    }
+
+    // Auto-initialize project sale status catalog if it doesn't exist
+    const projectSaleStatusCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'PROJECT_SALE_STATUS', code: 'PROJECT_SALE_STATUS' },
+    });
+
+    if (!projectSaleStatusCatalogExists) {
+      await this.initializeProjectSaleStatusCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -507,5 +525,79 @@ export class CatalogService {
     });
 
     return productDocumentCatalog;
+  }
+
+  private async initializeProjectOwnerCatalog(workspaceId: string) {
+    const projectOwnerCatalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'PROJECT_OWNER',
+        code: 'PROJECT_OWNER',
+        name: 'Chủ dự án',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        {
+          catalogId: projectOwnerCatalog.id,
+          value: 'VIN',
+          label: 'VIN',
+          order: 0,
+        },
+        {
+          catalogId: projectOwnerCatalog.id,
+          value: 'SUN',
+          label: 'SUN',
+          order: 1,
+        },
+        {
+          catalogId: projectOwnerCatalog.id,
+          value: 'DONGTAYLAND',
+          label: 'DONGTAYLAND',
+          order: 2,
+        },
+      ],
+    });
+
+    return projectOwnerCatalog;
+  }
+
+  private async initializeProjectSaleStatusCatalog(workspaceId: string) {
+    const projectSaleStatusCatalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'PROJECT_SALE_STATUS',
+        code: 'PROJECT_SALE_STATUS',
+        name: 'Trạng thái bán BĐS',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        {
+          catalogId: projectSaleStatusCatalog.id,
+          value: 'COMING_SOON',
+          label: 'Sắp mở bán',
+          order: 0,
+        },
+        {
+          catalogId: projectSaleStatusCatalog.id,
+          value: 'ON_SALE',
+          label: 'Đang mở bán',
+          order: 1,
+        },
+        {
+          catalogId: projectSaleStatusCatalog.id,
+          value: 'SOLD_OUT',
+          label: 'Đã bán hết',
+          order: 2,
+        },
+      ],
+    });
+
+    return projectSaleStatusCatalog;
   }
 }

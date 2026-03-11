@@ -293,6 +293,7 @@ export default function ProductPage() {
         }
       >
         <ProductForm
+          workspaceId={workspaceId}
           formId="product-form"
           onSubmit={handleSubmit}
           onUploadFiles={uploadFiles}
@@ -331,6 +332,7 @@ export default function ProductPage() {
       >
         {detailsProduct && (
           <ProductForm
+            workspaceId={workspaceId}
             formId="product-details-form"
             onSubmit={async () => {}}
             onUploadFiles={async () => []}

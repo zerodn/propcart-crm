@@ -7,6 +7,7 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MinioService } from '../../common/storage/minio.service';
+import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto/index';
 
 @Injectable()
@@ -17,6 +18,33 @@ export class ProductService {
     private readonly prisma: PrismaService,
     private readonly minioService: MinioService,
   ) {}
+
+  private async canViewHiddenProducts(workspaceId: string, user: JwtPayload): Promise<boolean> {
+    if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
+
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: {
+        workspaceId,
+        userId: user.sub,
+        status: 1,
+      },
+      select: {
+        role: {
+          select: {
+            permissions: {
+              where: {
+                permission: { code: 'PRODUCT_VIEW_HIDDEN' },
+              },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    return Boolean(membership?.role?.permissions?.length);
+  }
 
   private collectPolicyImageUrls(items: unknown): string[] {
     if (!Array.isArray(items)) return [];
@@ -88,6 +116,7 @@ export class ProductService {
         block: dto.block || null,
         direction: dto.direction || null,
         isContactForPrice: dto.isContactForPrice || false,
+        isHidden: dto.isHidden || false,
         promotionProgram: dto.promotionProgram || null,
         policyImageUrls: dto.policyImageUrls || null,
         productDocuments: dto.productDocuments || null,
@@ -145,7 +174,9 @@ export class ProductService {
     }
   }
 
-  async list(workspaceId: string, opts?: ListProductDto) {
+  async list(workspaceId: string, user: JwtPayload, opts?: ListProductDto) {
+    const canViewHidden = await this.canViewHiddenProducts(workspaceId, user);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { workspaceId };
     if (opts?.search) {
@@ -159,6 +190,9 @@ export class ProductService {
     }
     if (opts?.warehouseId) where.warehouseId = opts.warehouseId;
     if (opts?.transactionStatus) where.transactionStatus = opts.transactionStatus;
+    if (!canViewHidden && !opts?.includeHidden) {
+      where.isHidden = false;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.propertyProduct.findMany({
@@ -188,9 +222,15 @@ export class ProductService {
     return { data: items, meta: { total } };
   }
 
-  async findById(id: string, workspaceId: string) {
+  async findById(id: string, workspaceId: string, user: JwtPayload) {
+    const canViewHidden = await this.canViewHiddenProducts(workspaceId, user);
+
     return this.prisma.propertyProduct.findFirstOrThrow({
-      where: { id, workspaceId },
+      where: {
+        id,
+        workspaceId,
+        ...(canViewHidden ? {} : { isHidden: false }),
+      },
       include: {
         warehouse: {
           select: {
@@ -244,6 +284,7 @@ export class ProductService {
       if (dto.block !== undefined) data.block = dto.block || null;
       if (dto.direction !== undefined) data.direction = dto.direction || null;
       if (dto.isContactForPrice !== undefined) data.isContactForPrice = dto.isContactForPrice;
+      if (dto.isHidden !== undefined) data.isHidden = dto.isHidden;
       if (dto.promotionProgram !== undefined) data.promotionProgram = dto.promotionProgram || null;
       if (dto.policyImageUrls !== undefined) data.policyImageUrls = dto.policyImageUrls || null;
       if (dto.productDocuments !== undefined) data.productDocuments = dto.productDocuments || null;

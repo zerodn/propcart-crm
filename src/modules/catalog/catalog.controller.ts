@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   Delete,
   Patch,
@@ -42,8 +43,8 @@ export class CatalogController {
 
   @Get()
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  list(@Param('workspaceId') workspaceId: string) {
-    return this.catalogService.list(workspaceId);
+  list(@Param('workspaceId') workspaceId: string, @Query('type') type?: string) {
+    return this.catalogService.list(workspaceId, type);
   }
 
   @Get(':id')

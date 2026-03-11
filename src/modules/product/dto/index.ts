@@ -92,6 +92,10 @@ export class CreateProductDto {
   isContactForPrice?: boolean;
 
   @IsOptional()
+  @IsIn([true, false])
+  isHidden?: boolean;
+
+  @IsOptional()
   @IsString()
   promotionProgram?: string;
 
@@ -183,6 +187,10 @@ export class UpdateProductDto {
   isContactForPrice?: boolean;
 
   @IsOptional()
+  @IsIn([true, false])
+  isHidden?: boolean;
+
+  @IsOptional()
   @IsString()
   promotionProgram?: string;
 
@@ -232,4 +240,8 @@ export class ListProductDto {
   @IsOptional()
   @IsString()
   transactionStatus?: string;
+
+  @IsOptional()
+  @IsIn([true, false])
+  includeHidden?: boolean;
 }

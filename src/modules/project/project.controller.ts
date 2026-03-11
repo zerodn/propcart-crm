@@ -7,83 +7,69 @@ import {
   Patch,
   Post,
   Query,
-  UploadedFiles,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { ProductService } from './product.service';
-import { CreateProductDto, ListProductDto, UpdateProductDto } from './dto/index';
+import { ProjectService } from './project.service';
+import { CreateProjectDto, UpdateProjectDto, ListProjectDto } from './dto';
 
-@Controller('workspaces/:workspaceId/products')
-export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+@Controller('workspaces/:workspaceId/projects')
+export class ProjectController {
+  constructor(private readonly projectService: ProjectService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
-  @RequirePermission('PRODUCT_CREATE')
+  @RequirePermission('PROJECT_CREATE')
   create(
     @Param('workspaceId') workspaceId: string,
+    @Body() dto: CreateProjectDto,
     @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateProductDto,
   ) {
-    return this.productService.create(workspaceId, user.sub, dto);
-  }
-
-  @Post('upload-files')
-  @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  @UseInterceptors(FilesInterceptor('files', 20))
-  uploadFiles(
-    @Param('workspaceId') workspaceId: string,
-    @UploadedFiles() files: Express.Multer.File[],
-  ) {
-    return this.productService.uploadFiles(workspaceId, files);
+    return this.projectService.create(workspaceId, dto, user);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
   list(
     @Param('workspaceId') workspaceId: string,
-    @CurrentUser() user: JwtPayload,
-    @Query() query: ListProductDto,
+    @Query() dto: ListProjectDto,
   ) {
-    return this.productService.list(workspaceId, user, query);
+    return this.projectService.list(workspaceId, dto);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
   findOne(
     @Param('workspaceId') workspaceId: string,
-    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
   ) {
-    return this.productService.findById(id, workspaceId, user);
+    return this.projectService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
-  @RequirePermission('PRODUCT_UPDATE')
+  // Wizard flow updates draft project by step; align permission with create flow.
+  @RequirePermission('PROJECT_CREATE')
   update(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateProductDto,
+    @Body() dto: UpdateProjectDto,
   ) {
-    return this.productService.update(id, workspaceId, dto);
+    return this.projectService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
-  @RequirePermission('PRODUCT_DELETE')
-  delete(
+  @RequirePermission('PROJECT_DELETE')
+  remove(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {
-    return this.productService.delete(id, workspaceId);
+    return this.projectService.delete(workspaceId, id);
   }
 }

@@ -34,6 +34,12 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const normalizeNullableText = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -158,16 +164,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...s,
         user: {
           id: profile.id,
-          phone: profile.phone ?? null,
-          email: profile.email ?? null,
-          fullName: profile.fullName ?? null,
-          addressLine: profile.addressLine ?? null,
-          provinceCode: profile.provinceCode ?? null,
-          provinceName: profile.provinceName ?? null,
-          districtCode: profile.districtCode ?? null,
-          districtName: profile.districtName ?? null,
-          wardCode: profile.wardCode ?? null,
-          wardName: profile.wardName ?? null,
+          phone: normalizeNullableText(profile.phone),
+          email: normalizeNullableText(profile.email),
+          fullName: normalizeNullableText(profile.fullName),
+          addressLine: normalizeNullableText(profile.addressLine),
+          provinceCode: normalizeNullableText(profile.provinceCode),
+          provinceName: normalizeNullableText(profile.provinceName),
+          districtCode: normalizeNullableText(profile.districtCode),
+          districtName: normalizeNullableText(profile.districtName),
+          wardCode: normalizeNullableText(profile.wardCode),
+          wardName: normalizeNullableText(profile.wardName),
           emailVerifiedAt: profile.emailVerifiedAt ?? null,
         },
       }));
@@ -175,6 +181,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Silent fail because this is a non-critical state refresh.
     }
   }, []);
+
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+    if (state.isLoading) return;
+    if (state.user?.fullName) return;
+    void refreshProfile();
+  }, [refreshProfile, state.isAuthenticated, state.isLoading, state.user?.fullName]);
 
   return (
     <AuthContext.Provider value={{ ...state, login, logout, switchWorkspace, refreshProfile }}>

@@ -29,6 +29,7 @@ export interface PropertyProduct {
   priceWithoutVat?: number;
   priceWithVat?: number;
   isContactForPrice?: boolean;
+  isHidden?: boolean;
   promotionProgram?: string;
   policyImageUrls?: ProductImageItem[];
   productDocuments?: ProductDocument[];
@@ -70,6 +71,7 @@ function normalizeProduct(raw: any): PropertyProduct {
         ? Number(raw.priceWithVat)
         : undefined,
     isContactForPrice: raw?.isContactForPrice ?? false,
+    isHidden: raw?.isHidden ?? false,
     tags: Array.isArray(raw?.tags) ? raw.tags : [],
     policyImageUrls: Array.isArray(raw?.policyImageUrls)
       ? raw.policyImageUrls

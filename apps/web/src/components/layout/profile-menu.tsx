@@ -14,7 +14,12 @@ export function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const displayName = user?.fullName ?? user?.phone ?? user?.email ?? 'Người dùng';
+  const normalizeText = (value?: string | null) => (value && value.trim().length > 0 ? value : null);
+  const displayName =
+    normalizeText(user?.fullName) ??
+    normalizeText(user?.phone) ??
+    normalizeText(user?.email) ??
+    'Người dùng';
   const initials = displayName.slice(0, 2).toUpperCase() || 'PC';
 
   // Close menu when clicking outside
