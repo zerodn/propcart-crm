@@ -86,10 +86,23 @@ export function BaseSlideOver({
   if (!isOpen) return null;
 
   const content = (
-    <div className={`fixed inset-0 ${zIndexClassName} flex justify-end bg-black/30 animate-fade-in`} role="dialog" aria-modal="true">
-      <div className="flex-1" />
+    <div
+      className={`fixed inset-0 ${zIndexClassName} flex justify-end bg-black/30 animate-fade-in`}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="flex-1"
+        onClick={() => {
+          if (!disableClose && closeOnOverlayClick) {
+            onClose();
+          }
+        }}
+      />
 
-      <div className={`h-full w-full ${widthClasses[width]} overflow-hidden bg-white shadow-2xl animate-slide-in-right`}>
+      <div
+        className={`h-full w-full ${widthClasses[width]} overflow-hidden bg-white shadow-2xl animate-slide-in-right`}
+      >
         <div className="flex h-full min-h-0 flex-col">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4">
             {headerContent || <h4 className="text-base font-semibold text-gray-900">{title}</h4>}

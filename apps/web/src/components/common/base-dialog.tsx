@@ -49,12 +49,12 @@ export function BaseDialog({
         onClose();
       }
     };
-    
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
@@ -64,7 +64,10 @@ export function BaseDialog({
   if (!isOpen) return null;
 
   const dialogContent = (
-    <div className={`fixed inset-0 ${zIndexClassName} flex items-center justify-center p-4 bg-black/40`} style={{ margin: 0, padding: '1rem' }}>
+    <div
+      className={`fixed inset-0 ${zIndexClassName} flex items-center justify-center p-4 bg-black/40`}
+      style={{ margin: 0, padding: '1rem' }}
+    >
       <div
         className={`bg-white rounded-2xl shadow-xl w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col`}
         role="dialog"
@@ -87,9 +90,7 @@ export function BaseDialog({
         )}
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">{children}</div>
 
         {/* Footer - Fixed (optional) */}
         {footer && (

@@ -2,7 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Building2, Mail, Users, LogOut, ClipboardList, Shield, Briefcase, Bell, UserCircle2, Warehouse, Box, FolderOpen } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Building2,
+  Mail,
+  Users,
+  LogOut,
+  ClipboardList,
+  Shield,
+  Briefcase,
+  Bell,
+  UserCircle2,
+  Warehouse,
+  Box,
+  FolderOpen,
+} from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
 import { cn } from '@/lib/utils';

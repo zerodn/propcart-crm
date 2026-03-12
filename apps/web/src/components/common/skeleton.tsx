@@ -1,10 +1,5 @@
 export function Skeleton({ className = '' }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse bg-gray-200 rounded ${className}`}
-      aria-label="loading"
-    />
-  );
+  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} aria-label="loading" />;
 }
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {

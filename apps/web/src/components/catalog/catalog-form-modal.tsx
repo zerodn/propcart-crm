@@ -1,18 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import apiClient from '../../lib/api-client';
 import { useAuth } from '../../providers/auth-provider';
 import { BaseDialog } from '../common/base-dialog';
+
+interface CatalogValue {
+  value: string;
+  label: string;
+  color?: string;
+}
 
 interface Catalog {
   id: string;
   type: string;
   code: string;
   name: string;
-  values?: Array<any>;
+  values?: CatalogValue[];
 }
 
 interface Props {
@@ -53,23 +58,18 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
     try {
       if (catalog?.id) {
         // Update existing
-        await apiClient.patch(
-          `/workspaces/${workspace.id}/catalogs/${catalog.id}`,
-          formData
-        );
+        await apiClient.patch(`/workspaces/${workspace.id}/catalogs/${catalog.id}`, formData);
         toast.success('Danh mục cập nhật thành công');
       } else {
         // Create new
-        await apiClient.post(
-          `/workspaces/${workspace.id}/catalogs`,
-          formData
-        );
+        await apiClient.post(`/workspaces/${workspace.id}/catalogs`, formData);
         toast.success('Danh mục tạo thành công');
       }
       onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { message?: string } } };
       console.error('Form submission error:', err);
-      toast.error(err.response?.data?.message || 'Không thể lưu danh mục');
+      toast.error(apiError.response?.data?.message || 'Không thể lưu danh mục');
     } finally {
       setLoading(false);
     }
@@ -102,12 +102,10 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
     >
       <form id="catalog-modal-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Loại danh mục
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Loại danh mục</label>
           <select
             value={formData.type}
-            onChange={e => setFormData({ ...formData, type: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="CUSTOM">Tùy chỉnh</option>
@@ -118,13 +116,11 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mã danh mục *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mã danh mục *</label>
           <input
             type="text"
             value={formData.code}
-            onChange={e => setFormData({ ...formData, code: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
             placeholder="VD: ROLE, DEPARTMENT"
             disabled={!!catalog}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -132,13 +128,11 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tên danh mục *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Tên danh mục *</label>
           <input
             type="text"
             value={formData.name}
-            onChange={e => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="VD: Vai trò nhân viên"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

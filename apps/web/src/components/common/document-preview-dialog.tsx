@@ -53,18 +53,25 @@ export function DocumentPreviewDialog({
   const isPdf = mimeType === 'application/pdf';
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-black/75 flex items-center justify-center" role="dialog" aria-modal="true" aria-label="document-preview-dialog">
+    <div
+      className="fixed inset-0 z-[10000] bg-black/75 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="document-preview-dialog"
+    >
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="relative flex h-full max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
         <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 px-6 py-4 bg-white">
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold text-gray-900">{fileName}</p>
-            {typeof currentNumber === 'number' && typeof totalCount === 'number' && totalCount > 0 && (
-              <p className="mt-1 text-sm text-gray-500">
-                {currentNumber} / {totalCount}
-              </p>
-            )}
+            {typeof currentNumber === 'number' &&
+              typeof totalCount === 'number' &&
+              totalCount > 0 && (
+                <p className="mt-1 text-sm text-gray-500">
+                  {currentNumber} / {totalCount}
+                </p>
+              )}
           </div>
           <button
             type="button"
@@ -83,7 +90,11 @@ export function DocumentPreviewDialog({
               Đang tải tài liệu...
             </div>
           ) : previewUrl && isPdf ? (
-            <iframe title={fileName} src={previewUrl} className="h-full w-full rounded-lg bg-white" />
+            <iframe
+              title={fileName}
+              src={previewUrl}
+              className="h-full w-full rounded-lg bg-white"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-center text-sm text-gray-600">
               <div>

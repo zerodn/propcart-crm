@@ -6,7 +6,7 @@ import { useI18n } from '@/providers/i18n-provider';
 import { usePermissions } from '@/hooks/use-permissions';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { Skeleton } from '@/components/common/skeleton';
-import { ROLE_LABELS, ROLE_COLORS } from '@/types';
+import { ROLE_LABELS } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function PermissionsPage() {
@@ -15,7 +15,12 @@ export default function PermissionsPage() {
     usePermissions();
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [permissionToRemove, setPermissionToRemove] = useState<{ roleId: string; permissionId: string; roleName: string; permissionName: string } | null>(null);
+  const [permissionToRemove, setPermissionToRemove] = useState<{
+    roleId: string;
+    permissionId: string;
+    roleName: string;
+    permissionName: string;
+  } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
   const groupedPermissions = permissions.reduce(

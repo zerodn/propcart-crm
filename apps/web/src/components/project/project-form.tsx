@@ -1,7 +1,7 @@
-'use client';
-
+import { RichTextEditor } from '@/components/common/RichTextEditor';
+import { ProjectMediaUploadManager } from './project-media-upload-manager';
+import { BaseDialog } from '@/components/common/base-dialog';
 import { useRef, useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import {
   Plus,
   Trash2,
@@ -19,42 +19,33 @@ import {
   Eye,
   Pencil,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import apiClient from '@/lib/api-client';
+import { uploadFileToTemp } from '@/lib/api-upload';
 import {
   Project,
   CreateProjectPayload,
+  MediaItem,
   PlanningStat,
   ProjectProgressUpdate,
   ProjectDocumentItem,
   ProjectContact,
-  MediaItem,
   ProjectSubdivision,
   ProjectTower,
   TowerFundProduct,
   FloorPlanImage,
 } from '@/hooks/use-project';
-import { ProjectMediaUploadManager } from './project-media-upload-manager';
-import { TowerCamera360Viewer } from './tower-camera-360-viewer';
-import { TowerFloorPlanEditor } from '@/components/project/tower-floor-plan-editor';
-import { RichTextEditor } from '@/components/common/RichTextEditor';
-import { BaseDataGrid } from '@/components/common/base-data-grid';
-import { BaseDialog } from '@/components/common/base-dialog';
-import { BaseSlideOver } from '@/components/common/base-slide-over';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { uploadFileToTemp } from '@/lib/api-upload';
-import apiClient from '@/lib/api-client';
+import { BaseSlideOver } from '@/components/common/base-slide-over';
+import { BaseDataGrid } from '@/components/common/base-data-grid';
 import { IconPicker } from '@/components/common/icon-picker';
+// ...existing code...
 
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
 
-const STEPS = [
-  'Tổng quan',
-  'Vị trí',
-  'Phân khu',
-  'Tiến độ',
-  'Tài liệu',
-];
+const STEPS = ['Tổng quan', 'Vị trí', 'Phân khu', 'Tiến độ', 'Tài liệu'];
 
 const DISPLAY_STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Nháp' },
@@ -245,7 +236,6 @@ export function ProjectForm({
   saleStatusOptions,
   onSubmit,
   isSubmitting,
-  uploadImage,
   accessToken,
   workspaceId,
 }: ProjectFormProps) {
@@ -265,7 +255,6 @@ export function ProjectForm({
   const [saleStatus, setSaleStatus] = useState('COMING_SOON');
   const [address, setAddress] = useState('');
   const [province, setProvince] = useState('');
-  const [district, setDistrict] = useState('');
   const [ward, setWard] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
@@ -280,14 +269,14 @@ export function ProjectForm({
   const [videoUrl, setVideoUrl] = useState('');
   const [overviewHtml, setOverviewHtml] = useState('');
   const [videoDescription, setVideoDescription] = useState('');
-  
+
   // Media items
   const [bannerItems, setBannerItems] = useState<MediaItem[]>([]);
   const [zoneItems, setZoneItems] = useState<MediaItem[]>([]);
   const [productItems, setProductItems] = useState<MediaItem[]>([]);
   const [amenityItems, setAmenityItems] = useState<MediaItem[]>([]);
   const [uploadingCount, setUploadingCount] = useState(0);
-  
+
   // Planning stats & contacts
   const [planningStats, setPlanningStats] = useState<PlanningStat[]>([]);
   const [progressUpdates, setProgressUpdates] = useState<ProjectProgressUpdate[]>([]);
@@ -295,7 +284,9 @@ export function ProjectForm({
   const [draggedDocumentIndex, setDraggedDocumentIndex] = useState<number | null>(null);
   const [documentDeleteIndex, setDocumentDeleteIndex] = useState<number | null>(null);
   const [isProgressDrawerOpen, setIsProgressDrawerOpen] = useState(false);
-  const [progressDrawerMode, setProgressDrawerMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [progressDrawerMode, setProgressDrawerMode] = useState<'create' | 'edit' | 'view'>(
+    'create',
+  );
   const [activeProgressIndex, setActiveProgressIndex] = useState<number | null>(null);
   const [progressDeleteIndex, setProgressDeleteIndex] = useState<number | null>(null);
   const [progressForm, setProgressForm] = useState<ProgressUpdateFormState>({
@@ -307,7 +298,9 @@ export function ProjectForm({
   const [contacts, setContacts] = useState<ProjectContact[]>([]);
   const [subdivisions, setSubdivisions] = useState<ProjectSubdivision[]>([]);
   const [isSubdivisionDialogOpen, setIsSubdivisionDialogOpen] = useState(false);
-  const [subdivisionDialogMode, setSubdivisionDialogMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [subdivisionDialogMode, setSubdivisionDialogMode] = useState<'create' | 'edit' | 'view'>(
+    'create',
+  );
   const [activeSubdivisionIndex, setActiveSubdivisionIndex] = useState<number | null>(null);
   const [subdivisionForm, setSubdivisionForm] = useState<SubdivisionFormState>({
     name: '',
@@ -338,7 +331,9 @@ export function ProjectForm({
   const [isLoadingTowerProducts, setIsLoadingTowerProducts] = useState(false);
   const [towerProductKeyword, setTowerProductKeyword] = useState('');
   const [towerWarehouseFilter, setTowerWarehouseFilter] = useState<string>('');
-  const [towerWarehouses, setTowerWarehouses] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [towerWarehouses, setTowerWarehouses] = useState<
+    { id: string; name: string; code: string }[]
+  >([]);
   const [towerProducts, setTowerProducts] = useState<TowerProductOption[]>([]);
   const [floorPlanEditorOpen, setFloorPlanEditorOpen] = useState(false);
   const [floorPlanEditorIndex, setFloorPlanEditorIndex] = useState<number | null>(null);
@@ -379,6 +374,12 @@ export function ProjectForm({
   };
 
   const projectTypeLabel = projectType === 'LOW_RISE' ? 'Dự án thấp tầng' : 'Dự án cao tầng';
+  const shouldIncludeEmptyCollections = Boolean(draftProjectId || editingProject?.id);
+
+  const toCollectionField = <T,>(items: T[]): T[] | undefined => {
+    if (items.length > 0) return items;
+    return shouldIncludeEmptyCollections ? [] : undefined;
+  };
 
   const coordinatePreviewUrl = buildCoordinatePreviewUrl(latitude, longitude);
   const googleMapPreviewUrl = buildGoogleMapPreviewUrl(googleMapUrl);
@@ -396,46 +397,44 @@ export function ProjectForm({
       .filter((contact) => contact.name.length > 0);
 
     return {
-    name: name.trim(),
-    projectType,
-    ownerId: ownerId || undefined,
-    displayStatus,
-    saleStatus,
-    bannerUrl: bannerItems[0]?.originalUrl || undefined,
-    bannerUrls: bannerItems.length > 0 ? bannerItems : undefined,
-    overviewHtml: overviewHtml || undefined,
-    zoneImageUrl: zoneItems[0]?.originalUrl || undefined,
-    zoneImages: zoneItems.length > 0 ? zoneItems : undefined,
-    productImageUrl: productItems[0]?.originalUrl || undefined,
-    productImages: productItems.length > 0 ? productItems : undefined,
-    amenityImageUrl: amenityItems[0]?.originalUrl || undefined,
-    amenityImages: amenityItems.length > 0 ? amenityItems : undefined,
-    videoUrl: videoUrl || undefined,
-    videoDescription: videoDescription || undefined,
-    contacts: sanitizedContacts.length > 0 ? sanitizedContacts : undefined,
-    planningStats: planningStats.filter((s) => s.label && s.value),
-    progressUpdates:
-      progressUpdates.length > 0
-        ? progressUpdates
-            .map((item) => ({
-              label: item.label.trim(),
-              detailHtml: item.detailHtml || undefined,
-              videoUrl: item.videoUrl?.trim() || undefined,
-              images: item.images && item.images.length > 0 ? item.images : undefined,
-            }))
-            .filter((item) => item.label.length > 0)
-        : undefined,
-    documentItems:
-      documentItems.length > 0
-        ? documentItems
-            .map((item) => ({
-              icon: item.icon?.trim() || undefined,
-              documentType: item.documentType.trim(),
-              documentUrl: normalizeExternalUrl(item.documentUrl)?.trim() || item.documentUrl.trim(),
-            }))
-            .filter((item) => item.documentType.length > 0 && item.documentUrl.length > 0)
-        : undefined,
-    subdivisions: subdivisions.length > 0 ? subdivisions : undefined,
+      name: name.trim(),
+      projectType,
+      ownerId: ownerId || undefined,
+      displayStatus,
+      saleStatus,
+      bannerUrl: bannerItems[0]?.originalUrl || undefined,
+      bannerUrls: toCollectionField(bannerItems),
+      overviewHtml: overviewHtml || undefined,
+      zoneImageUrl: zoneItems[0]?.originalUrl || undefined,
+      zoneImages: toCollectionField(zoneItems),
+      productImageUrl: productItems[0]?.originalUrl || undefined,
+      productImages: toCollectionField(productItems),
+      amenityImageUrl: amenityItems[0]?.originalUrl || undefined,
+      amenityImages: toCollectionField(amenityItems),
+      videoUrl: videoUrl || undefined,
+      videoDescription: videoDescription || undefined,
+      contacts: toCollectionField(sanitizedContacts),
+      planningStats: toCollectionField(planningStats.filter((s) => s.label && s.value)),
+      progressUpdates: toCollectionField(
+        progressUpdates
+          .map((item) => ({
+            label: item.label.trim(),
+            detailHtml: item.detailHtml || undefined,
+            videoUrl: item.videoUrl?.trim() || undefined,
+            images: item.images && item.images.length > 0 ? item.images : undefined,
+          }))
+          .filter((item) => item.label.length > 0),
+      ),
+      documentItems: toCollectionField(
+        documentItems
+          .map((item) => ({
+            icon: item.icon?.trim() || undefined,
+            documentType: item.documentType.trim(),
+            documentUrl: normalizeExternalUrl(item.documentUrl)?.trim() || item.documentUrl.trim(),
+          }))
+          .filter((item) => item.documentType.length > 0 && item.documentUrl.length > 0),
+      ),
+      subdivisions: toCollectionField(subdivisions),
     };
   };
 
@@ -463,37 +462,35 @@ export function ProjectForm({
     }
     if (step === 2) {
       return {
-        subdivisions: subdivisions.length > 0 ? subdivisions : undefined,
+        subdivisions: toCollectionField(subdivisions),
       };
     }
     if (step === 3) {
       return {
-        progressUpdates:
-          progressUpdates.length > 0
-            ? progressUpdates
-                .map((item) => ({
-                  label: item.label.trim(),
-                  detailHtml: item.detailHtml || undefined,
-                  videoUrl: item.videoUrl?.trim() || undefined,
-                  images: item.images && item.images.length > 0 ? item.images : undefined,
-                }))
-                .filter((item) => item.label.length > 0)
-            : undefined,
+        progressUpdates: toCollectionField(
+          progressUpdates
+            .map((item) => ({
+              label: item.label.trim(),
+              detailHtml: item.detailHtml || undefined,
+              videoUrl: item.videoUrl?.trim() || undefined,
+              images: item.images && item.images.length > 0 ? item.images : undefined,
+            }))
+            .filter((item) => item.label.length > 0),
+        ),
       };
     }
     if (step === 4) {
       return {
-        documentItems:
-          documentItems.length > 0
-            ? documentItems
-                .map((item) => ({
-                  icon: item.icon?.trim() || undefined,
-                  documentType: item.documentType.trim(),
-                  documentUrl:
-                    normalizeExternalUrl(item.documentUrl)?.trim() || item.documentUrl.trim(),
-                }))
-                .filter((item) => item.documentType.length > 0 && item.documentUrl.length > 0)
-            : undefined,
+        documentItems: toCollectionField(
+          documentItems
+            .map((item) => ({
+              icon: item.icon?.trim() || undefined,
+              documentType: item.documentType.trim(),
+              documentUrl:
+                normalizeExternalUrl(item.documentUrl)?.trim() || item.documentUrl.trim(),
+            }))
+            .filter((item) => item.documentType.length > 0 && item.documentUrl.length > 0),
+        ),
       };
     }
     return {};
@@ -510,7 +507,6 @@ export function ProjectForm({
       setSaleStatus(editingProject.saleStatus ?? 'COMING_SOON');
       setAddress(editingProject.address ?? '');
       setProvince(editingProject.province ?? '');
-      setDistrict(editingProject.district ?? '');
       setWard(editingProject.ward ?? '');
       setLatitude(editingProject.latitude ?? '');
       setLongitude(editingProject.longitude ?? '');
@@ -522,7 +518,7 @@ export function ProjectForm({
       setVideoUrl(editingProject.videoUrl ?? '');
       setOverviewHtml(editingProject.overviewHtml ?? '');
       setVideoDescription(editingProject.videoDescription ?? '');
-      
+
       // Sync media items — prefer full MediaItem[] (with fileName/description), fall back to URL strings
       if (editingProject.bannerUrls && editingProject.bannerUrls.length > 0) {
         setBannerItems(
@@ -531,46 +527,76 @@ export function ProjectForm({
             originalUrl: item.originalUrl,
             thumbnailUrl: item.thumbnailUrl || item.originalUrl,
             description: item.description,
-          })),
+          }))
         );
       } else if (editingProject.bannerUrl) {
-        setBannerItems([{ fileName: 'Banner 1', originalUrl: editingProject.bannerUrl, thumbnailUrl: editingProject.bannerUrl }]);
+        setBannerItems([
+          {
+            fileName: 'Banner 1',
+            originalUrl: editingProject.bannerUrl,
+            thumbnailUrl: editingProject.bannerUrl,
+          },
+        ]);
       } else {
         setBannerItems([]);
       }
       if (editingProject.zoneImages && editingProject.zoneImages.length > 0) {
-        setZoneItems(editingProject.zoneImages.map((item) => ({
-          fileName: item.fileName || 'Mặt bằng',
-          originalUrl: item.originalUrl,
-          thumbnailUrl: item.thumbnailUrl || item.originalUrl,
-          description: item.description,
-        })));
+        setZoneItems(
+          editingProject.zoneImages.map((item) => ({
+            fileName: item.fileName || 'Mặt bằng',
+            originalUrl: item.originalUrl,
+            thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+            description: item.description,
+          }))
+        );
       } else if (editingProject.zoneImageUrl) {
-        setZoneItems([{ fileName: 'Mặt bằng', originalUrl: editingProject.zoneImageUrl, thumbnailUrl: editingProject.zoneImageUrl }]);
+        setZoneItems([
+          {
+            fileName: 'Mặt bằng',
+            originalUrl: editingProject.zoneImageUrl,
+            thumbnailUrl: editingProject.zoneImageUrl,
+          },
+        ]);
       } else {
         setZoneItems([]);
       }
       if (editingProject.productImages && editingProject.productImages.length > 0) {
-        setProductItems(editingProject.productImages.map((item) => ({
-          fileName: item.fileName || 'Sản phẩm',
-          originalUrl: item.originalUrl,
-          thumbnailUrl: item.thumbnailUrl || item.originalUrl,
-          description: item.description,
-        })));
+        setProductItems(
+          editingProject.productImages.map((item) => ({
+            fileName: item.fileName || 'Sản phẩm',
+            originalUrl: item.originalUrl,
+            thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+            description: item.description,
+          })),
+        );
       } else if (editingProject.productImageUrl) {
-        setProductItems([{ fileName: 'Sản phẩm', originalUrl: editingProject.productImageUrl, thumbnailUrl: editingProject.productImageUrl }]);
+        setProductItems([
+          {
+            fileName: 'Sản phẩm',
+            originalUrl: editingProject.productImageUrl,
+            thumbnailUrl: editingProject.productImageUrl,
+          },
+        ]);
       } else {
         setProductItems([]);
       }
       if (editingProject.amenityImages && editingProject.amenityImages.length > 0) {
-        setAmenityItems(editingProject.amenityImages.map((item) => ({
-          fileName: item.fileName || 'Tiện ích',
-          originalUrl: item.originalUrl,
-          thumbnailUrl: item.thumbnailUrl || item.originalUrl,
-          description: item.description,
-        })));
+        setAmenityItems(
+          editingProject.amenityImages.map((item) => ({
+            fileName: item.fileName || 'Tiện ích',
+            originalUrl: item.originalUrl,
+            thumbnailUrl: item.thumbnailUrl || item.originalUrl,
+            description: item.description,
+          })),
+        );
       } else if (editingProject.amenityImageUrl) {
-        setAmenityItems([{ fileName: 'Tiện ích', originalUrl: editingProject.amenityImageUrl, thumbnailUrl: editingProject.amenityImageUrl }]);
+        setAmenityItems([
+          {
+            fileName: 'Tiện ích',
+            originalUrl: editingProject.amenityImageUrl,
+            thumbnailUrl: editingProject.amenityImageUrl,
+          },
+        ]);
       } else {
         setAmenityItems([]);
       }
@@ -596,7 +622,6 @@ export function ProjectForm({
       setSaleStatus('COMING_SOON');
       setAddress('');
       setProvince('');
-      setDistrict('');
       setWard('');
       setLatitude('');
       setLongitude('');
@@ -664,9 +689,14 @@ export function ProjectForm({
     const loadWards = async () => {
       setWardLoading(true);
       try {
-        const response = await fetch(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`);
+        const response = await fetch(
+          `https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`,
+        );
         const payload = (await response.json()) as ProvinceV2Detail;
-        const wardList = (payload.wards || []).map((item) => ({ code: item.code, name: item.name }));
+        const wardList = (payload.wards || []).map((item) => ({
+          code: item.code,
+          name: item.name,
+        }));
         setWards(wardList);
       } catch (err) {
         console.error('Failed to load wards:', err);
@@ -699,15 +729,33 @@ export function ProjectForm({
 
     const loadWorkspaceMemberOptions = async () => {
       try {
-        const { data } = await apiClient.get(`/workspaces/${workspaceId}/departments/member-options`);
+        const { data } = await apiClient.get(
+          `/workspaces/${workspaceId}/departments/member-options`,
+        );
         const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
         const mapped = items
-          .map((item: { userId?: string; phone?: string; email?: string; user?: { phone?: string; email?: string; fullName?: string }; displayName?: string }) => ({
-            value: item.userId || '',
-            label: item.displayName || item.user?.fullName || item.phone || item.user?.phone || item.email || item.user?.email || item.userId || 'N/A',
-            phone: item.phone || item.user?.phone,
-            email: item.email || item.user?.email,
-          }))
+          .map(
+            (item: {
+              userId?: string;
+              phone?: string;
+              email?: string;
+              user?: { phone?: string; email?: string; fullName?: string };
+              displayName?: string;
+            }) => ({
+              value: item.userId || '',
+              label:
+                item.displayName ||
+                item.user?.fullName ||
+                item.phone ||
+                item.user?.phone ||
+                item.email ||
+                item.user?.email ||
+                item.userId ||
+                'N/A',
+              phone: item.phone || item.user?.phone,
+              email: item.email || item.user?.email,
+            }),
+          )
           .filter((item: MemberSearchItem) => Boolean(item.value));
         setWorkspaceMemberOptions(mapped);
       } catch {
@@ -742,9 +790,12 @@ export function ProjectForm({
 
       try {
         setIsSearchingMembers(true);
-        const { data } = await apiClient.get(`/workspaces/${workspaceId}/departments/member-search`, {
-          params: { q },
-        });
+        const { data } = await apiClient.get(
+          `/workspaces/${workspaceId}/departments/member-search`,
+          {
+            params: { q },
+          },
+        );
 
         const items = Array.isArray(data?.data) ? data.data : [];
         const mapped = items
@@ -773,7 +824,6 @@ export function ProjectForm({
     setProvince(selectedProvince?.name ?? '');
     setWardCode('');
     setWard('');
-    setDistrict('');
     setWards([]);
   };
 
@@ -787,7 +837,8 @@ export function ProjectForm({
   const addPlanningStat = () => setPlanningStats((p) => [...p, { label: '', icon: '', value: '' }]);
   const updatePlanningStat = (i: number, field: keyof PlanningStat, val: string) =>
     setPlanningStats((p) => p.map((s, idx) => (idx === i ? { ...s, [field]: val } : s)));
-  const removePlanningStat = (i: number) => setPlanningStats((p) => p.filter((_, idx) => idx !== i));
+  const removePlanningStat = (i: number) =>
+    setPlanningStats((p) => p.filter((_, idx) => idx !== i));
   const movePlanningStat = (fromIdx: number, toIdx: number) => {
     if (toIdx < 0 || toIdx >= planningStats.length) return;
     const arr = [...planningStats];
@@ -988,10 +1039,7 @@ export function ProjectForm({
       ...(existingSubdivision?.towers ? { towers: existingSubdivision.towers } : {}),
       name: subdivisionForm.name.trim(),
       imageUrl: subdivisionForm.imageUrl.trim() || undefined,
-      towerCount:
-        projectType === 'LOW_RISE'
-          ? '1'
-          : subdivisionForm.towerCount.trim() || undefined,
+      towerCount: projectType === 'LOW_RISE' ? '1' : subdivisionForm.towerCount.trim() || undefined,
       unitCount: subdivisionForm.unitCount.trim() || subdivisionForm.towerCount.trim() || undefined,
       unitStandard: subdivisionForm.unitStandard.trim() || undefined,
       handoverDate: subdivisionForm.handoverDate || undefined,
@@ -1105,12 +1153,14 @@ export function ProjectForm({
   const isDocumentStep = currentStep === 4;
 
   const selectedSubdivision =
-    selectedSubdivisionIndex !== null ? subdivisions[selectedSubdivisionIndex] ?? null : null;
-  const towerCoordinatePreviewUrl = buildCoordinatePreviewUrl(towerForm.latitude, towerForm.longitude);
+    selectedSubdivisionIndex !== null ? (subdivisions[selectedSubdivisionIndex] ?? null) : null;
+  const towerCoordinatePreviewUrl = buildCoordinatePreviewUrl(
+    towerForm.latitude,
+    towerForm.longitude,
+  );
   const towerGoogleMapPreviewUrl = buildGoogleMapPreviewUrl(towerForm.googleMapUrl);
   const towerGoogleMapExternalUrl = normalizeExternalUrl(towerForm.googleMapUrl);
   const towerCamera360PreviewUrl = normalizeExternalUrl(towerForm.camera360Url);
-
 
   // Load warehouses once when the product dialog opens
   useEffect(() => {
@@ -1119,7 +1169,13 @@ export function ProjectForm({
       .get(`/workspaces/${workspaceId}/warehouses`, { params: { limit: 200 } })
       .then(({ data }) => {
         const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-        setTowerWarehouses(items.map((w: any) => ({ id: w.id, name: w.name, code: w.code })));
+        setTowerWarehouses(
+          items.map((w: { id: string; name: string; code: string }) => ({
+            id: w.id,
+            name: w.name,
+            code: w.code,
+          })),
+        );
       })
       .catch(() => setTowerWarehouses([]));
   }, [isTowerProductDialogOpen, workspaceId]);
@@ -1144,12 +1200,15 @@ export function ProjectForm({
         });
 
         const rawItems = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-        const mapped: TowerProductOption[] = rawItems.map((item: any) => ({
-          id: item.id,
-          unitCode: item.unitCode,
-          name: item.name,
-          warehouseId: item.warehouse?.id || item.warehouseId || undefined,
-          warehouseName: item.warehouse?.name || undefined,
+        const mapped: TowerProductOption[] = rawItems.map((item: Record<string, unknown>) => ({
+          id: item.id as string,
+          unitCode: item.unitCode as string,
+          name: item.name as string,
+          warehouseId:
+            ((item.warehouse as { id?: string } | undefined)?.id as string | undefined) ||
+            (item.warehouseId as string | undefined) ||
+            undefined,
+          warehouseName: (item.warehouse as { name?: string } | undefined)?.name || undefined,
         }));
         setTowerProducts(mapped);
       } catch {
@@ -1162,7 +1221,9 @@ export function ProjectForm({
     return () => clearTimeout(timer);
   }, [isTowerProductDialogOpen, towerProductKeyword, towerWarehouseFilter, workspaceId]);
 
-  const getTowerRowsFromSubdivision = (subdivision: ProjectSubdivision | null): ProjectTowerRow[] => {
+  const getTowerRowsFromSubdivision = (
+    subdivision: ProjectSubdivision | null,
+  ): ProjectTowerRow[] => {
     if (!subdivision) return [];
 
     const maybeTowers = subdivision.towers;
@@ -1220,10 +1281,10 @@ export function ProjectForm({
       handoverStandard: '',
       constructionStartDate: '',
       completionDate: '',
-      latitude: '',
-      longitude: '',
-      googleMapUrl: '',
-      locationDescriptionHtml: '',
+      latitude: editingProject?.latitude || '',
+      longitude: editingProject?.longitude || '',
+      googleMapUrl: editingProject?.googleMapUrl || '',
+      locationDescriptionHtml: editingProject?.locationDescriptionHtml || '',
       camera360Url: '',
       camera360Images: [],
       salesPolicyImages: [],
@@ -1356,7 +1417,9 @@ export function ProjectForm({
         ? primaryTower.salesPolicyImages
         : [],
       fundProducts: Array.isArray(primaryTower?.fundProducts) ? primaryTower.fundProducts : [],
-      floorPlanImages: Array.isArray(primaryTower?.floorPlanImages) ? primaryTower.floorPlanImages : [],
+      floorPlanImages: Array.isArray(primaryTower?.floorPlanImages)
+        ? primaryTower.floorPlanImages
+        : [],
       descriptionHtml: primaryTower?.descriptionHtml || subdivision.descriptionHtml || '',
     });
 
@@ -1396,13 +1459,29 @@ export function ProjectForm({
       if (idx !== selectedSubdivisionIndex) return item;
 
       const currentTowers = getEditableTowers(item);
-      const nextTowers =
-        towerDrawerMode === 'edit' && activeTowerIndex !== null
-          ? currentTowers.map((existingTower, towerIdx) =>
-              towerIdx === activeTowerIndex ? tower : existingTower,
+      let nextTowers;
+      if (towerDrawerMode === 'edit' && activeTowerIndex !== null) {
+        nextTowers = currentTowers.map((existingTower, towerIdx) =>
+          towerIdx === activeTowerIndex ? tower : existingTower
+        );
+      } else {
+        // Prevent duplicate: check if tower with same name exists
+        const exists = currentTowers.some(
+          (t) =>
+            t.name === tower.name &&
+            t.latitude === tower.latitude &&
+            t.longitude === tower.longitude,
+        );
+        nextTowers = exists
+          ? currentTowers.map((existingTower) =>
+              existingTower.name === tower.name &&
+              existingTower.latitude === tower.latitude &&
+              existingTower.longitude === tower.longitude
+                ? tower
+                : existingTower,
             )
           : [...currentTowers, tower];
-
+      }
       return {
         ...item,
         towers: nextTowers,
@@ -1444,7 +1523,8 @@ export function ProjectForm({
       locationDescriptionHtml: towerForm.locationDescriptionHtml || undefined,
       camera360Url: towerForm.camera360Url.trim() || undefined,
       camera360Images: towerForm.camera360Images.length > 0 ? towerForm.camera360Images : undefined,
-      salesPolicyImages: towerForm.salesPolicyImages.length > 0 ? towerForm.salesPolicyImages : undefined,
+      salesPolicyImages:
+        towerForm.salesPolicyImages.length > 0 ? towerForm.salesPolicyImages : undefined,
       fundProducts: towerForm.fundProducts.length > 0 ? towerForm.fundProducts : undefined,
       floorPlanImages: towerForm.floorPlanImages.length > 0 ? towerForm.floorPlanImages : undefined,
       descriptionHtml:
@@ -1454,7 +1534,9 @@ export function ProjectForm({
     };
 
     if (!normalizedTower.name) {
-      toast.error(projectType === 'LOW_RISE' ? 'Vui lòng nhập tên phân khu' : 'Vui lòng nhập tên tòa nhà');
+      toast.error(
+        projectType === 'LOW_RISE' ? 'Vui lòng nhập tên phân khu' : 'Vui lòng nhập tên tòa nhà',
+      );
       return false;
     }
 
@@ -1652,11 +1734,7 @@ export function ProjectForm({
     setDocumentItems((prev) => [...prev, { icon: '📄', documentType: '', documentUrl: '' }]);
   };
 
-  const updateDocumentItem = (
-    index: number,
-    field: keyof ProjectDocumentItem,
-    value: string,
-  ) => {
+  const updateDocumentItem = (index: number, field: keyof ProjectDocumentItem, value: string) => {
     setDocumentItems((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
     );
@@ -1751,7 +1829,11 @@ export function ProjectForm({
 
   const handleTowerDrop = (dropIndex: number, e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (draggedTowerIndex === null || draggedTowerIndex === dropIndex || selectedSubdivisionIndex === null) {
+    if (
+      draggedTowerIndex === null ||
+      draggedTowerIndex === dropIndex ||
+      selectedSubdivisionIndex === null
+    ) {
       setDraggedTowerIndex(null);
       return;
     }
@@ -1840,13 +1922,13 @@ export function ProjectForm({
   return (
     <>
       <BaseDialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`${editingProject ? 'Chỉnh sửa dự án' : 'Thêm mới dự án'} - ${projectTypeLabel}`}
-      maxWidth="6xl"
-      footer={footer}
-    >
-      <div className="flex h-[65vh] border border-gray-200 rounded-xl overflow-hidden bg-white">
+        isOpen={isOpen}
+        onClose={onClose}
+        title={`${editingProject ? 'Chỉnh sửa dự án' : 'Thêm mới dự án'} - ${projectTypeLabel}`}
+        maxWidth="6xl"
+        footer={footer}
+      >
+        <div className="flex h-[65vh] border border-gray-200 rounded-xl overflow-hidden bg-white">
           {/* Sidebar steps */}
           <aside className="w-48 flex-shrink-0 border-r border-gray-200 py-4 overflow-y-auto">
             <ul className="space-y-0.5 px-2">
@@ -1896,7 +1978,9 @@ export function ProjectForm({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
                     >
                       {DISPLAY_STATUS_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1909,9 +1993,13 @@ export function ProjectForm({
                       onChange={(e) => setSaleStatus(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
                     >
-                      {(saleStatusOptions.length > 0 ? saleStatusOptions : SALE_STATUS_OPTIONS).map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
+                      {(saleStatusOptions.length > 0 ? saleStatusOptions : SALE_STATUS_OPTIONS).map(
+                        (o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </div>
                 </div>
@@ -1928,7 +2016,9 @@ export function ProjectForm({
                     >
                       <option value="">Chọn chủ dự án</option>
                       {ownerOptions.map((m) => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1953,9 +2043,15 @@ export function ProjectForm({
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
                           <th className="w-8 px-2 py-2" />
-                          <th className="text-left px-3 py-2 text-xs font-medium text-gray-600 w-2/5">Nhãn thông số</th>
-                          <th className="text-center px-3 py-2 text-xs font-medium text-gray-600 w-1/5">Biểu tượng</th>
-                          <th className="text-left px-3 py-2 text-xs font-medium text-gray-600 w-2/5">Giá trị</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-gray-600 w-2/5">
+                            Nhãn thông số
+                          </th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-gray-600 w-1/5">
+                            Biểu tượng
+                          </th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-gray-600 w-2/5">
+                            Giá trị
+                          </th>
                           <th className="w-8 px-2 py-2" />
                         </tr>
                       </thead>
@@ -2076,11 +2172,11 @@ export function ProjectForm({
 
                 <ProjectMediaUploadManager
                   label="Sản phẩm *"
-                  hint="Dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG. Kích thước 1910×735px."
+                  hint="Dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG. Kích thước 1910×735px. Không giới hạn số lượng tệp."
                   items={productItems}
                   onItemsChange={setProductItems}
                   uploadFn={handleUploadFile}
-                  maxFiles={10}
+                  maxFiles={Number.MAX_SAFE_INTEGER}
                   showMultiple={true}
                   onUploadingChange={handleUploadingChange}
                 />
@@ -2142,11 +2238,21 @@ export function ProjectForm({
                         </colgroup>
                         <thead>
                           <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-600">Hình đại diện</th>
-                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Tên liên hệ</th>
-                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Chức vụ</th>
-                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Số điện thoại</th>
-                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Zalo</th>
+                            <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-600">
+                              Hình đại diện
+                            </th>
+                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                              Tên liên hệ
+                            </th>
+                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                              Chức vụ
+                            </th>
+                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                              Số điện thoại
+                            </th>
+                            <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                              Zalo
+                            </th>
                             <th className="w-8" />
                           </tr>
                         </thead>
@@ -2156,7 +2262,6 @@ export function ProjectForm({
                               <td className="px-3 py-2.5">
                                 <div className="relative w-10 h-10 mx-auto">
                                   {contact.imageUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                       src={contact.imageUrl}
                                       alt={contact.name}
@@ -2242,7 +2347,9 @@ export function ProjectForm({
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Chọn nhân sự</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Chọn nhân sự
+                        </label>
                         <div className="relative" ref={memberDropdownRef}>
                           <div className="rounded border border-gray-300 px-2 py-1.5 bg-white">
                             <div className="flex items-center gap-2">
@@ -2258,7 +2365,9 @@ export function ProjectForm({
                                 placeholder="Tìm theo tên, SĐT, email"
                                 className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400"
                               />
-                              <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${isMemberDropdownOpen ? 'rotate-180' : ''}`} />
+                              <ChevronDown
+                                className={`h-3.5 w-3.5 text-gray-400 transition-transform ${isMemberDropdownOpen ? 'rotate-180' : ''}`}
+                              />
                             </div>
                           </div>
 
@@ -2273,7 +2382,8 @@ export function ProjectForm({
                                 memberResults.map((member) => {
                                   const exists = contacts.some(
                                     (c) =>
-                                      (c.name || '').trim().toLowerCase() === member.label.trim().toLowerCase() &&
+                                      (c.name || '').trim().toLowerCase() ===
+                                        member.label.trim().toLowerCase() &&
                                       (c.phone || '').trim() === (member.phone || '').trim(),
                                   );
 
@@ -2287,15 +2397,20 @@ export function ProjectForm({
                                       <div className="min-w-0">
                                         <p className="truncate font-medium">{member.label}</p>
                                         <p className="truncate text-xs text-gray-500">
-                                          SĐT: {member.phone || '---'} | Email: {member.email || '---'}
+                                          SĐT: {member.phone || '---'} | Email:{' '}
+                                          {member.email || '---'}
                                         </p>
                                       </div>
-                                      {exists && <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />}
+                                      {exists && (
+                                        <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />
+                                      )}
                                     </button>
                                   );
                                 })
                               ) : (
-                                <div className="px-3 py-2 text-sm text-gray-500">Không tìm thấy nhân sự phù hợp</div>
+                                <div className="px-3 py-2 text-sm text-gray-500">
+                                  Không tìm thấy nhân sự phù hợp
+                                </div>
                               )}
                             </div>
                           )}
@@ -2311,7 +2426,9 @@ export function ProjectForm({
                       <input
                         type="text"
                         value={newContactForm.name}
-                        onChange={(e) => setNewContactForm({ ...newContactForm, name: e.target.value })}
+                        onChange={(e) =>
+                          setNewContactForm({ ...newContactForm, name: e.target.value })
+                        }
                         placeholder="Tên liên hệ"
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                       />
@@ -2319,7 +2436,9 @@ export function ProjectForm({
                         <input
                           type="text"
                           value={newContactForm.title || ''}
-                          onChange={(e) => setNewContactForm({ ...newContactForm, title: e.target.value })}
+                          onChange={(e) =>
+                            setNewContactForm({ ...newContactForm, title: e.target.value })
+                          }
                           placeholder="Chức vụ"
                           className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                         />
@@ -2345,7 +2464,9 @@ export function ProjectForm({
                         <input
                           type="text"
                           value={newContactForm.zaloPhone || ''}
-                          onChange={(e) => setNewContactForm({ ...newContactForm, zaloPhone: e.target.value })}
+                          onChange={(e) =>
+                            setNewContactForm({ ...newContactForm, zaloPhone: e.target.value })
+                          }
                           placeholder="Số zalo"
                           className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                         />
@@ -2455,15 +2576,21 @@ export function ProjectForm({
                         <MapPinned className="h-8 w-8 text-amber-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Chưa có tọa độ để hiển thị bản đồ</p>
-                        <p className="mt-1 text-xs text-gray-500">Nhập vĩ độ và kinh độ để xem vị trí dự án trên bản đồ.</p>
+                        <p className="text-sm font-medium text-gray-700">
+                          Chưa có tọa độ để hiển thị bản đồ
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Nhập vĩ độ và kinh độ để xem vị trí dự án trên bản đồ.
+                        </p>
                       </div>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Google Mymap</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Google Mymap
+                  </label>
                   <input
                     type="text"
                     value={googleMapUrl}
@@ -2486,8 +2613,12 @@ export function ProjectForm({
                         <MapPinned className="h-8 w-8 text-amber-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Nhập link để hiển thị Google MyMap</p>
-                        <p className="mt-1 text-xs text-gray-500">Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.</p>
+                        <p className="text-sm font-medium text-gray-700">
+                          Nhập link để hiển thị Google MyMap
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.
+                        </p>
                       </div>
                       {googleMapExternalUrl && (
                         <a
@@ -2504,7 +2635,9 @@ export function ProjectForm({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả vị trí</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Mô tả vị trí
+                  </label>
                   <RichTextEditor
                     value={locationDescriptionHtml}
                     onChange={setLocationDescriptionHtml}
@@ -2526,7 +2659,9 @@ export function ProjectForm({
                     </button>
                   </div>
 
-                  <div className="px-4 py-3 text-sm text-gray-600">Có {subdivisions.length} kết quả</div>
+                  <div className="px-4 py-3 text-sm text-gray-600">
+                    Có {subdivisions.length} kết quả
+                  </div>
 
                   <div className="border-t border-gray-200 p-4">
                     {subdivisions.length === 0 ? (
@@ -2553,11 +2688,16 @@ export function ProjectForm({
                               <GripVertical className="h-4 w-4" />
                             </div>
 
-                            <div className="flex-1 min-w-0" onClick={() => {
+                            <div
+                              className="flex-1 min-w-0"
+                              onClick={() => {
                                 if (projectType === 'HIGH_RISE') {
-                                  setSelectedSubdivisionIndex((current) => (current === index ? null : index));
+                                  setSelectedSubdivisionIndex((current) =>
+                                    current === index ? null : index,
+                                  );
                                 }
-                              }}>
+                              }}
+                            >
                               <div className="font-medium text-sm text-gray-900">{item.name}</div>
                               {item.unitStandard && (
                                 <div className="text-xs text-gray-600 mt-1">
@@ -2636,7 +2776,9 @@ export function ProjectForm({
                     </div>
                     <div className="p-4">
                       {towerRows.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">Phân khu này chưa có dữ liệu tòa nhà</div>
+                        <div className="text-center py-8 text-gray-500">
+                          Phân khu này chưa có dữ liệu tòa nhà
+                        </div>
                       ) : (
                         <div className="space-y-2">
                           {towerRows.map((tower, index) => (
@@ -2658,9 +2800,13 @@ export function ProjectForm({
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm text-gray-900">{tower.name || '-'}</div>
+                                <div className="font-medium text-sm text-gray-900">
+                                  {tower.name || '-'}
+                                </div>
                                 {tower.unitStandard && (
-                                  <div className="text-xs text-gray-600 mt-1">Tiêu chuẩn: {tower.unitStandard}</div>
+                                  <div className="text-xs text-gray-600 mt-1">
+                                    Tiêu chuẩn: {tower.unitStandard}
+                                  </div>
                                 )}
                               </div>
 
@@ -2720,7 +2866,9 @@ export function ProjectForm({
                     </button>
                   </div>
 
-                  <div className="px-4 py-3 text-sm text-gray-600">Có {progressUpdates.length} mốc tiến độ</div>
+                  <div className="px-4 py-3 text-sm text-gray-600">
+                    Có {progressUpdates.length} mốc tiến độ
+                  </div>
 
                   <div className="border-t border-gray-200 p-4">
                     {progressUpdates.length === 0 ? (
@@ -2814,7 +2962,9 @@ export function ProjectForm({
                     </button>
                   </div>
 
-                  <div className="px-4 py-3 text-sm text-gray-600">Có {documentItems.length} tài liệu</div>
+                  <div className="px-4 py-3 text-sm text-gray-600">
+                    Có {documentItems.length} tài liệu
+                  </div>
 
                   <div className="border-t border-gray-200 p-4">
                     {documentItems.length === 0 ? (
@@ -3023,7 +3173,9 @@ export function ProjectForm({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Chi tiết tiến độ</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Chi tiết tiến độ
+              </label>
               <RichTextEditor
                 value={progressForm.detailHtml}
                 onChange={(value) => setProgressForm((prev) => ({ ...prev, detailHtml: value }))}
@@ -3094,157 +3246,185 @@ export function ProjectForm({
             </div>
           }
         >
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Ảnh đại diện</label>
-                <div
-                  className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4"
-                  onClick={() => {
-                    if (subdivisionDialogMode !== 'view') {
-                      subdivisionImageInputRef.current?.click();
-                    }
-                  }}
-                >
-                  {subdivisionForm.imageUrl ? (
-                    <div className="flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={subdivisionForm.imageUrl}
-                        alt="Subdivision avatar"
-                        className="h-16 w-16 rounded-lg object-cover"
-                      />
-                      {subdivisionDialogMode !== 'view' && (
-                        <span className="text-sm text-gray-600">Nhấn để đổi ảnh đại diện</span>
-                      )}
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Ảnh đại diện</label>
+              <div
+                className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4"
+                onClick={() => {
+                  if (subdivisionDialogMode !== 'view') {
+                    subdivisionImageInputRef.current?.click();
+                  }
+                }}
+              >
+                {subdivisionForm.imageUrl ? (
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={subdivisionForm.imageUrl}
+                      alt="Subdivision avatar"
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                    {subdivisionDialogMode !== 'view' && (
+                      <span className="text-sm text-gray-600">Nhấn để đổi ảnh đại diện</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="text-sm text-gray-600">
+                      Kéo thả hoặc tải tệp hình ảnh tiện ích lên tại đây.
                     </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Kéo thả hoặc tải tệp hình ảnh tiện ích lên tại đây.</div>
-                      <div className="mt-1 text-xs text-gray-500">Dung lượng tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG.</div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      Dung lượng tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG.
                     </div>
-                  )}
-                </div>
-                <input
-                  ref={subdivisionImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={subdivisionDialogMode === 'view' || isUploadingSubdivisionImage}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    void handleSubdivisionImageUpload(file);
-                    e.currentTarget.value = '';
-                  }}
-                />
-                {isUploadingSubdivisionImage && (
-                  <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải ảnh...
                   </div>
                 )}
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Tên phân khu <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={subdivisionForm.name}
-                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, name: e.target.value }))}
-                    disabled={subdivisionDialogMode === 'view'}
-                    placeholder="Nhập tên phân khu"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
+              <input
+                ref={subdivisionImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={subdivisionDialogMode === 'view' || isUploadingSubdivisionImage}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  void handleSubdivisionImageUpload(file);
+                  e.currentTarget.value = '';
+                }}
+              />
+              {isUploadingSubdivisionImage && (
+                <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải ảnh...
                 </div>
+              )}
+            </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số tòa nhà</label>
-                  <input
-                    type="text"
-                    value={subdivisionForm.towerCount}
-                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, towerCount: e.target.value }))}
-                    disabled={subdivisionDialogMode === 'view'}
-                    placeholder="Nhập số tòa nhà"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Tiêu chuẩn căn hộ</label>
-                  <input
-                    type="text"
-                    value={subdivisionForm.unitStandard}
-                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, unitStandard: e.target.value }))}
-                    disabled={subdivisionDialogMode === 'view'}
-                    placeholder="Nhập tiêu chuẩn căn hộ"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Ngày bàn giao</label>
-                  <input
-                    type="date"
-                    value={subdivisionForm.handoverDate}
-                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, handoverDate: e.target.value }))}
-                    disabled={subdivisionDialogMode === 'view'}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Diện tích</label>
-                  <input
-                    type="text"
-                    value={subdivisionForm.area}
-                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, area: e.target.value }))}
-                    disabled={subdivisionDialogMode === 'view'}
-                    placeholder="Nhập mô tả diện tích"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Phong cách xây dựng</label>
-                  <input
-                    type="text"
-                    value={subdivisionForm.constructionStyle}
-                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, constructionStyle: e.target.value }))}
-                    disabled={subdivisionDialogMode === 'view'}
-                    placeholder="Nhập phong cách xây dựng"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Hình thức sở hữu</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Tên phân khu <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  value={subdivisionForm.ownershipType}
-                  onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, ownershipType: e.target.value }))}
+                  value={subdivisionForm.name}
+                  onChange={(e) =>
+                    setSubdivisionForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   disabled={subdivisionDialogMode === 'view'}
-                  placeholder="Nhập hình thức sở hữu"
+                  placeholder="Nhập tên phân khu"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả phân khu</label>
-                <RichTextEditor
-                  value={subdivisionForm.descriptionHtml}
-                  onChange={(value) => setSubdivisionForm((prev) => ({ ...prev, descriptionHtml: value }))}
-                  placeholder="Nhập mô tả"
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Số tòa nhà</label>
+                <input
+                  type="text"
+                  value={subdivisionForm.towerCount}
+                  onChange={(e) =>
+                    setSubdivisionForm((prev) => ({ ...prev, towerCount: e.target.value }))
+                  }
                   disabled={subdivisionDialogMode === 'view'}
+                  placeholder="Nhập số tòa nhà"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Tiêu chuẩn căn hộ
+                </label>
+                <input
+                  type="text"
+                  value={subdivisionForm.unitStandard}
+                  onChange={(e) =>
+                    setSubdivisionForm((prev) => ({ ...prev, unitStandard: e.target.value }))
+                  }
+                  disabled={subdivisionDialogMode === 'view'}
+                  placeholder="Nhập tiêu chuẩn căn hộ"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                 />
               </div>
 
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Ngày bàn giao
+                </label>
+                <input
+                  type="date"
+                  value={subdivisionForm.handoverDate}
+                  onChange={(e) =>
+                    setSubdivisionForm((prev) => ({ ...prev, handoverDate: e.target.value }))
+                  }
+                  disabled={subdivisionDialogMode === 'view'}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                />
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Diện tích</label>
+                <input
+                  type="text"
+                  value={subdivisionForm.area}
+                  onChange={(e) =>
+                    setSubdivisionForm((prev) => ({ ...prev, area: e.target.value }))
+                  }
+                  disabled={subdivisionDialogMode === 'view'}
+                  placeholder="Nhập mô tả diện tích"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Phong cách xây dựng
+                </label>
+                <input
+                  type="text"
+                  value={subdivisionForm.constructionStyle}
+                  onChange={(e) =>
+                    setSubdivisionForm((prev) => ({ ...prev, constructionStyle: e.target.value }))
+                  }
+                  disabled={subdivisionDialogMode === 'view'}
+                  placeholder="Nhập phong cách xây dựng"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Hình thức sở hữu
+              </label>
+              <input
+                type="text"
+                value={subdivisionForm.ownershipType}
+                onChange={(e) =>
+                  setSubdivisionForm((prev) => ({ ...prev, ownershipType: e.target.value }))
+                }
+                disabled={subdivisionDialogMode === 'view'}
+                placeholder="Nhập hình thức sở hữu"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Mô tả phân khu
+              </label>
+              <RichTextEditor
+                value={subdivisionForm.descriptionHtml}
+                onChange={(value) =>
+                  setSubdivisionForm((prev) => ({ ...prev, descriptionHtml: value }))
+                }
+                placeholder="Nhập mô tả"
+                disabled={subdivisionDialogMode === 'view'}
+              />
+            </div>
+          </div>
         </BaseSlideOver>
       )}
 
@@ -3265,7 +3445,7 @@ export function ProjectForm({
                   ? 'Chỉnh sửa tòa nhà'
                   : 'Chi tiết tòa nhà'
           }
-                    width="xl"
+          width="xl"
           zIndexClassName="z-[10001]"
           footer={
             <div className="flex justify-end gap-2">
@@ -3294,670 +3474,792 @@ export function ProjectForm({
                   disabled={isSavingTowerStep}
                   className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
                 >
-                  {isSavingTowerStep ? 'Đang lưu...' : towerCurrentStep === TOWER_STEPS.length - 1 ? 'Hoàn tất' : 'Tiếp tục'}
+                  {isSavingTowerStep
+                    ? 'Đang lưu...'
+                    : towerCurrentStep === TOWER_STEPS.length - 1
+                      ? 'Hoàn tất'
+                      : 'Tiếp tục'}
                 </button>
               )}
             </div>
           }
         >
+          <div className="mb-5">
+            <div>
+              <div className="relative mx-auto px-2">
+                <div className="absolute left-[6.75%] right-[6.75%] top-[14px] h-[2px] bg-gray-200" />
+                <div
+                  className="absolute left-[6.75%] top-[14px] h-[2px] bg-amber-600 transition-all"
+                  style={{ width: `${(towerCurrentStep / (TOWER_STEPS.length - 1)) * 86.5}%` }}
+                />
 
-            <div className="mb-5">
-              <div>
-                <div className="relative mx-auto px-2">
-                  <div className="absolute left-[6.75%] right-[6.75%] top-[14px] h-[2px] bg-gray-200" />
-                  <div
-                    className="absolute left-[6.75%] top-[14px] h-[2px] bg-amber-600 transition-all"
-                    style={{ width: `${(towerCurrentStep / (TOWER_STEPS.length - 1)) * 86.5}%` }}
-                  />
-
-                  <div
-                    className="grid gap-2"
-                    style={{ gridTemplateColumns: `repeat(${TOWER_STEPS.length}, minmax(0, 1fr))` }}
-                  >
-                    {TOWER_STEPS.map((step, index) => {
-                      const isActive = index === towerCurrentStep;
-                      const isDone = index < towerCurrentStep;
-                      return (
-                        <div key={step} className="relative flex flex-col items-center text-center">
-                          <div
-                            className={`relative z-[1] flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
-                              isActive
-                                ? 'border-amber-600 bg-white text-amber-700'
-                                : isDone
-                                  ? 'border-amber-600 bg-amber-600 text-white'
-                                  : 'border-gray-300 bg-white text-gray-500'
-                            }`}
-                          >
-                            {index + 1}
-                          </div>
-                          <span
-                            className={`mt-2 min-h-[30px] px-1 text-[11px] leading-4 ${
-                              isActive ? 'font-medium text-amber-700' : 'text-gray-600'
-                            }`}
-                          >
-                            {step}
-                          </span>
+                <div
+                  className="grid gap-2"
+                  style={{ gridTemplateColumns: `repeat(${TOWER_STEPS.length}, minmax(0, 1fr))` }}
+                >
+                  {TOWER_STEPS.map((step, index) => {
+                    const isActive = index === towerCurrentStep;
+                    const isDone = index < towerCurrentStep;
+                    return (
+                      <div key={step} className="relative flex flex-col items-center text-center">
+                        <div
+                          className={`relative z-[1] flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
+                            isActive
+                              ? 'border-amber-600 bg-white text-amber-700'
+                              : isDone
+                                ? 'border-amber-600 bg-amber-600 text-white'
+                                : 'border-gray-300 bg-white text-gray-500'
+                          }`}
+                        >
+                          {index + 1}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <span
+                          className={`mt-2 min-h-[30px] px-1 text-[11px] leading-4 ${
+                            isActive ? 'font-medium text-amber-700' : 'text-gray-600'
+                          }`}
+                        >
+                          {step}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-3">
-              {towerCurrentStep === 0 && projectType === 'LOW_RISE' ? (
-                <>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Ảnh đại diện</label>
-                    <div
-                      className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4"
-                      onClick={() => {
-                        if (towerDrawerMode !== 'view') {
-                          subdivisionImageInputRef.current?.click();
-                        }
-                      }}
-                    >
-                      {subdivisionForm.imageUrl ? (
-                        <div className="flex items-center gap-3">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={subdivisionForm.imageUrl}
-                            alt="Subdivision avatar"
-                            className="h-16 w-16 rounded-lg object-cover"
-                          />
-                          {towerDrawerMode !== 'view' && (
-                            <span className="text-sm text-gray-600">Nhấn để đổi ảnh đại diện</span>
-                          )}
+          <div className="space-y-3">
+            {towerCurrentStep === 0 && projectType === 'LOW_RISE' ? (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Ảnh đại diện
+                  </label>
+                  <div
+                    className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4"
+                    onClick={() => {
+                      if (towerDrawerMode !== 'view') {
+                        subdivisionImageInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    {subdivisionForm.imageUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={subdivisionForm.imageUrl}
+                          alt="Subdivision avatar"
+                          className="h-16 w-16 rounded-lg object-cover"
+                        />
+                        {towerDrawerMode !== 'view' && (
+                          <span className="text-sm text-gray-600">Nhấn để đổi ảnh đại diện</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600">
+                          Kéo thả hoặc tải tệp hình ảnh tiện ích lên tại đây.
                         </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="text-sm text-gray-600">Kéo thả hoặc tải tệp hình ảnh tiện ích lên tại đây.</div>
-                          <div className="mt-1 text-xs text-gray-500">Dung lượng tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG.</div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          Dung lượng tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG.
                         </div>
-                      )}
-                    </div>
-                    <input
-                      ref={subdivisionImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={towerDrawerMode === 'view' || isUploadingSubdivisionImage}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] ?? null;
-                        void handleSubdivisionImageUpload(file);
-                        e.currentTarget.value = '';
-                      }}
-                    />
-                    {isUploadingSubdivisionImage && (
-                      <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải ảnh...
                       </div>
                     )}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                        Tên phân khu <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={subdivisionForm.name}
-                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, name: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập tên phân khu"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
+                  <input
+                    ref={subdivisionImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={towerDrawerMode === 'view' || isUploadingSubdivisionImage}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      void handleSubdivisionImageUpload(file);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                  {isUploadingSubdivisionImage && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải ảnh...
                     </div>
+                  )}
+                </div>
 
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Số căn hộ</label>
-                      <input
-                        type="text"
-                        value={subdivisionForm.unitCount}
-                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, unitCount: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập số căn hộ"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Tiêu chuẩn căn hộ</label>
-                      <input
-                        type="text"
-                        value={subdivisionForm.unitStandard}
-                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, unitStandard: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập tiêu chuẩn căn hộ"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Ngày bàn giao</label>
-                      <input
-                        type="date"
-                        value={subdivisionForm.handoverDate}
-                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, handoverDate: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Diện tích</label>
-                      <input
-                        type="text"
-                        value={subdivisionForm.area}
-                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, area: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập mô tả diện tích"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Phong cách xây dựng</label>
-                      <input
-                        type="text"
-                        value={subdivisionForm.constructionStyle}
-                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, constructionStyle: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập phong cách xây dựng"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Hình thức sở hữu</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Tên phân khu <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      value={subdivisionForm.ownershipType}
-                      onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, ownershipType: e.target.value }))}
+                      value={subdivisionForm.name}
+                      onChange={(e) =>
+                        setSubdivisionForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
                       disabled={towerDrawerMode === 'view'}
-                      placeholder="Nhập hình thức sở hữu"
+                      placeholder="Nhập tên phân khu"
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả phân khu</label>
-                    <RichTextEditor
-                      value={subdivisionForm.descriptionHtml}
-                      onChange={(value) => setSubdivisionForm((prev) => ({ ...prev, descriptionHtml: value }))}
-                      placeholder="Nhập mô tả"
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Số căn hộ
+                    </label>
+                    <input
+                      type="text"
+                      value={subdivisionForm.unitCount}
+                      onChange={(e) =>
+                        setSubdivisionForm((prev) => ({ ...prev, unitCount: e.target.value }))
+                      }
                       disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập số căn hộ"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                     />
                   </div>
-                </>
-              ) : towerCurrentStep === 0 ? (
-                <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Tên tòa nhà <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={towerForm.name}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, name: e.target.value }))}
-                    disabled={towerDrawerMode === 'view'}
-                    placeholder="Nhập tòa nhà"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Phân khu</label>
-                  <input
-                    type="text"
-                    value={selectedSubdivision?.name ?? ''}
-                    disabled
-                    className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số tầng <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={towerForm.floorCount}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, floorCount: e.target.value }))}
-                    disabled={towerDrawerMode === 'view'}
-                    placeholder="Nhập số tầng"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số căn hộ <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={towerForm.unitCount}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, unitCount: e.target.value }))}
-                    disabled={towerDrawerMode === 'view'}
-                    placeholder="Nhập số căn hộ"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Tiêu chuẩn căn hộ
+                    </label>
+                    <input
+                      type="text"
+                      value={subdivisionForm.unitStandard}
+                      onChange={(e) =>
+                        setSubdivisionForm((prev) => ({ ...prev, unitStandard: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập tiêu chuẩn căn hộ"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số thang máy</label>
-                  <input
-                    type="text"
-                    value={towerForm.elevatorCount}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, elevatorCount: e.target.value }))}
-                    disabled={towerDrawerMode === 'view'}
-                    placeholder="Nhập số thang máy"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Ngày bàn giao
+                    </label>
+                    <input
+                      type="date"
+                      value={subdivisionForm.handoverDate}
+                      onChange={(e) =>
+                        setSubdivisionForm((prev) => ({ ...prev, handoverDate: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Diện tích
+                    </label>
+                    <input
+                      type="text"
+                      value={subdivisionForm.area}
+                      onChange={(e) =>
+                        setSubdivisionForm((prev) => ({ ...prev, area: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập mô tả diện tích"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Phong cách xây dựng
+                    </label>
+                    <input
+                      type="text"
+                      value={subdivisionForm.constructionStyle}
+                      onChange={(e) =>
+                        setSubdivisionForm((prev) => ({
+                          ...prev,
+                          constructionStyle: e.target.value,
+                        }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập phong cách xây dựng"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Hình thức sở hữu</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Hình thức sở hữu
+                  </label>
                   <input
                     type="text"
-                    value={towerForm.ownershipType}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, ownershipType: e.target.value }))}
+                    value={subdivisionForm.ownershipType}
+                    onChange={(e) =>
+                      setSubdivisionForm((prev) => ({ ...prev, ownershipType: e.target.value }))
+                    }
                     disabled={towerDrawerMode === 'view'}
                     placeholder="Nhập hình thức sở hữu"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Tiêu chuẩn bàn giao</label>
-                  <input
-                    type="text"
-                    value={towerForm.handoverStandard}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, handoverStandard: e.target.value }))}
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Mô tả phân khu
+                  </label>
+                  <RichTextEditor
+                    value={subdivisionForm.descriptionHtml}
+                    onChange={(value) =>
+                      setSubdivisionForm((prev) => ({ ...prev, descriptionHtml: value }))
+                    }
+                    placeholder="Nhập mô tả"
                     disabled={towerDrawerMode === 'view'}
-                    placeholder="Nhập tiêu chuẩn bàn giao"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                   />
                 </div>
+              </>
+            ) : towerCurrentStep === 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Tên tòa nhà <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.name}
+                      onChange={(e) => setTowerForm((prev) => ({ ...prev, name: e.target.value }))}
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập tòa nhà"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Phân khu
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedSubdivision?.name ?? ''}
+                      disabled
+                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Số tầng <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.floorCount}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, floorCount: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập số tầng"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Số căn hộ <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.unitCount}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, unitCount: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập số căn hộ"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Số thang máy
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.elevatorCount}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, elevatorCount: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập số thang máy"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Hình thức sở hữu
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.ownershipType}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, ownershipType: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập hình thức sở hữu"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Tiêu chuẩn bàn giao
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.handoverStandard}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, handoverStandard: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập tiêu chuẩn bàn giao"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Thời điểm khởi công
+                    </label>
+                    <input
+                      type="date"
+                      value={towerForm.constructionStartDate}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, constructionStartDate: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Thời điểm khởi công</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Thời điểm hoàn thành
+                  </label>
                   <input
                     type="date"
-                    value={towerForm.constructionStartDate}
-                    onChange={(e) => setTowerForm((prev) => ({ ...prev, constructionStartDate: e.target.value }))}
+                    value={towerForm.completionDate}
+                    onChange={(e) =>
+                      setTowerForm((prev) => ({ ...prev, completionDate: e.target.value }))
+                    }
                     disabled={towerDrawerMode === 'view'}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Thời điểm hoàn thành</label>
-                <input
-                  type="date"
-                  value={towerForm.completionDate}
-                  onChange={(e) => setTowerForm((prev) => ({ ...prev, completionDate: e.target.value }))}
-                  disabled={towerDrawerMode === 'view'}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả tòa nhà</label>
-                <RichTextEditor
-                  value={towerForm.descriptionHtml}
-                  onChange={(value) => setTowerForm((prev) => ({ ...prev, descriptionHtml: value }))}
-                  placeholder="Nhập mô tả"
-                  disabled={towerDrawerMode === 'view'}
-                />
-              </div>
-                </>
-              ) : towerCurrentStep === 1 ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                        Vĩ độ (Latitude) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={towerForm.latitude}
-                        onChange={(e) => setTowerForm((prev) => ({ ...prev, latitude: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập vĩ độ"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                        Kinh độ (Longitude) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={towerForm.longitude}
-                        onChange={(e) => setTowerForm((prev) => ({ ...prev, longitude: e.target.value }))}
-                        disabled={towerDrawerMode === 'view'}
-                        placeholder="Nhập kinh độ"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
-                    {towerCoordinatePreviewUrl ? (
-                      <iframe
-                        title="Tower coordinate preview"
-                        src={towerCoordinatePreviewUrl}
-                        className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
-                      />
-                    ) : (
-                      <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
-                          <MapPinned className="h-7 w-7 text-amber-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Chưa có tọa độ để hiển thị bản đồ</p>
-                          <p className="mt-1 text-xs text-gray-500">Nhập vĩ độ và kinh độ để xem vị trí tòa nhà.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Google Mymap</label>
-                    <input
-                      type="text"
-                      value={towerForm.googleMapUrl}
-                      onChange={(e) => setTowerForm((prev) => ({ ...prev, googleMapUrl: e.target.value }))}
-                      disabled={towerDrawerMode === 'view'}
-                      placeholder="Nhập link bản đồ"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
-                    {towerGoogleMapPreviewUrl ? (
-                      <iframe
-                        title="Tower Google MyMap preview"
-                        src={towerGoogleMapPreviewUrl}
-                        className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
-                      />
-                    ) : (
-                      <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
-                          <MapPinned className="h-7 w-7 text-amber-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Nhập link để hiển thị Google MyMap</p>
-                          <p className="mt-1 text-xs text-gray-500">Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.</p>
-                        </div>
-                        {towerGoogleMapExternalUrl && (
-                          <a
-                            href={towerGoogleMapExternalUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                          >
-                            Mở liên kết bản đồ <ExternalLink className="h-4 w-4" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả vị trí</label>
-                    <RichTextEditor
-                      value={towerForm.locationDescriptionHtml}
-                      onChange={(value) => setTowerForm((prev) => ({ ...prev, locationDescriptionHtml: value }))}
-                      placeholder="Nhập mô tả"
-                      disabled={towerDrawerMode === 'view'}
-                    />
-                  </div>
-                </>
-              ) : towerCurrentStep === 2 ? (
-                <>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Link nhúng 360 (Iframe/URL)</label>
-                    <input
-                      type="text"
-                      value={towerForm.camera360Url}
-                      onChange={(e) => setTowerForm((prev) => ({ ...prev, camera360Url: e.target.value }))}
-                      disabled={towerDrawerMode === 'view'}
-                      placeholder="https://view360.example.com"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
-                    {towerCamera360PreviewUrl ? (
-                      <iframe
-                        title="Tower 360 preview"
-                        src={towerCamera360PreviewUrl}
-                        className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
-                      />
-                    ) : (
-                      <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
-                          <Camera className="h-7 w-7 text-amber-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Chưa có link nhúng 360 để xem thử</p>
-                          <p className="mt-1 text-xs text-gray-500">Nhập URL/iframe hợp lệ để hiển thị preview.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <ProjectMediaUploadManager
-                    label="Hình ảnh toàn cảnh 360"
-                    hint="Dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG. Kích thước 1910x735px."
-                    items={towerForm.camera360Images}
-                    onItemsChange={(items) => setTowerForm((prev) => ({ ...prev, camera360Images: items }))}
-                    uploadFn={handleUploadFile}
-                    maxFiles={20}
-                    maxFileSizeMB={10}
-                    showMultiple
-                    onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Mô tả tòa nhà
+                  </label>
+                  <RichTextEditor
+                    value={towerForm.descriptionHtml}
+                    onChange={(value) =>
+                      setTowerForm((prev) => ({ ...prev, descriptionHtml: value }))
+                    }
+                    placeholder="Nhập mô tả"
+                    disabled={towerDrawerMode === 'view'}
                   />
+                </div>
+              </>
+            ) : towerCurrentStep === 1 ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Vĩ độ (Latitude) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.latitude}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, latitude: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập vĩ độ"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Kinh độ (Longitude) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.longitude}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, longitude: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập kinh độ"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
 
-                  {towerForm.camera360Images.length > 0 && (
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">Danh sách ảnh 360 xem thử</label>
-                      <TowerCamera360Viewer items={towerForm.camera360Images} />
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                  {towerCoordinatePreviewUrl ? (
+                    <iframe
+                      title="Tower coordinate preview"
+                      src={towerCoordinatePreviewUrl}
+                      className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                    />
+                  ) : (
+                    <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                        <MapPinned className="h-7 w-7 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Chưa có tọa độ để hiển thị bản đồ
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Nhập vĩ độ và kinh độ để xem vị trí tòa nhà.
+                        </p>
+                      </div>
                     </div>
                   )}
-                </>
-              ) : towerCurrentStep === 3 ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">Danh sách sản phẩm trong quỹ hàng</p>
-                      <p className="text-xs text-gray-500">1 tòa nhà có thể chứa nhiều sản phẩm từ kho sản phẩm.</p>
-                    </div>
-                    {towerDrawerMode !== 'view' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!workspaceId) {
-                            toast.error('Không xác định được workspace để tải kho sản phẩm');
-                            return;
-                          }
-                          setIsTowerProductDialogOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
-                      >
-                        <Plus className="h-4 w-4" /> Thêm sản phẩm
-                      </button>
-                    )}
-                  </div>
+                </div>
 
-                  <div className="rounded-xl border border-gray-200 bg-white">
-                    <div className="border-b border-gray-200 px-4 py-3 text-sm text-gray-600">
-                      Có {towerForm.fundProducts.length} sản phẩm đã chọn
-                    </div>
-                    {towerForm.fundProducts.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-sm text-gray-500">
-                        Chưa có sản phẩm nào trong quỹ hàng. Nhấn Thêm sản phẩm để chọn từ kho.
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-gray-50 text-gray-600">
-                              <th className="px-4 py-2 text-left font-medium">Mã sản phẩm</th>
-                              <th className="px-4 py-2 text-left font-medium">Tên sản phẩm</th>
-                              <th className="px-4 py-2 text-left font-medium">Kho hàng</th>
-                              {towerDrawerMode !== 'view' && <th className="px-4 py-2 text-right font-medium">Thao tác</th>}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {towerForm.fundProducts.map((item) => (
-                              <tr key={item.productId} className="border-t border-gray-100">
-                                <td className="px-4 py-2">{item.unitCode}</td>
-                                <td className="px-4 py-2">{item.name}</td>
-                                <td className="px-4 py-2">{item.warehouseName || '-'}</td>
-                                {towerDrawerMode !== 'view' && (
-                                  <td className="px-4 py-2 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => removeFundProductFromTower(item.productId)}
-                                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" /> Bỏ khỏi quỹ hàng
-                                    </button>
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : towerCurrentStep === 4 ? (
-                <>
-                  <ProjectMediaUploadManager
-                    label="Hình ảnh mặt bằng quỹ hàng"
-                    hint="Upload hình ảnh mặt bằng tầng. Sau đó bấm Đặt vị trí để gắn marker sản phẩm lên từng hình."
-                    items={towerForm.floorPlanImages}
-                    onItemsChange={(newItems) => {
-                      setTowerForm((prev) => {
-                        // Merge: preserve existing markers when items are reordered / renamed
-                        const merged: FloorPlanImage[] = newItems.map((item) => {
-                          const existing = prev.floorPlanImages.find(
-                            (fp) => fp.originalUrl === item.originalUrl,
-                          );
-                          return { ...item, markers: existing?.markers };
-                        });
-                        return { ...prev, floorPlanImages: merged };
-                      });
-                    }}
-                    uploadFn={handleUploadFile}
-                    maxFiles={20}
-                    maxFileSizeMB={10}
-                    showMultiple
-                    onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Google Mymap
+                  </label>
+                  <input
+                    type="text"
+                    value={towerForm.googleMapUrl}
+                    onChange={(e) =>
+                      setTowerForm((prev) => ({ ...prev, googleMapUrl: e.target.value }))
+                    }
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập link bản đồ"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                   />
+                </div>
 
-                  {towerForm.floorPlanImages.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">Gắn vị trí sản phẩm</p>
-                      {towerForm.floorPlanImages.map((img, idx) => {
-                        const markerCount = img.markers?.length ?? 0;
-                        const assignedCount = img.markers?.filter((m) => m.productId).length ?? 0;
-                        return (
-                          <div
-                            key={img.originalUrl + idx}
-                            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={img.thumbnailUrl || img.originalUrl}
-                              alt={img.fileName || `Hình ${idx + 1}`}
-                              className="h-12 w-20 shrink-0 rounded object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-gray-800">
-                                {img.fileName || `Hình ${idx + 1}`}
-                              </p>
-                              {markerCount > 0 ? (
-                                <p className="mt-0.5 text-xs text-gray-500">
-                                  {markerCount} marker · {assignedCount} đã gán sản phẩm
-                                </p>
-                              ) : (
-                                <p className="mt-0.5 text-xs text-gray-400">Chưa có marker</p>
-                              )}
-                            </div>
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                  {towerGoogleMapPreviewUrl ? (
+                    <iframe
+                      title="Tower Google MyMap preview"
+                      src={towerGoogleMapPreviewUrl}
+                      className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                    />
+                  ) : (
+                    <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                        <MapPinned className="h-7 w-7 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Nhập link để hiển thị Google MyMap
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.
+                        </p>
+                      </div>
+                      {towerGoogleMapExternalUrl && (
+                        <a
+                          href={towerGoogleMapExternalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                        >
+                          Mở liên kết bản đồ <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Mô tả vị trí
+                  </label>
+                  <RichTextEditor
+                    value={towerForm.locationDescriptionHtml}
+                    onChange={(value) =>
+                      setTowerForm((prev) => ({ ...prev, locationDescriptionHtml: value }))
+                    }
+                    placeholder="Nhập mô tả"
+                    disabled={towerDrawerMode === 'view'}
+                  />
+                </div>
+              </>
+            ) : towerCurrentStep === 2 ? (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Link nhúng 360 (Iframe/URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={towerForm.camera360Url}
+                    onChange={(e) =>
+                      setTowerForm((prev) => ({ ...prev, camera360Url: e.target.value }))
+                    }
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="https://view360.example.com"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                  {towerCamera360PreviewUrl ? (
+                    <iframe
+                      title="Tower 360 preview"
+                      src={towerCamera360PreviewUrl}
+                      className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                    />
+                  ) : (
+                    <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                        <Camera className="h-7 w-7 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Chưa có link nhúng 360 để xem thử
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Nhập URL/iframe hợp lệ để hiển thị preview.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <ProjectMediaUploadManager
+                  label="Hình ảnh toàn cảnh 360"
+                  hint="Dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG. Kích thước 1910x735px."
+                  items={towerForm.camera360Images}
+                  onItemsChange={(items) =>
+                    setTowerForm((prev) => ({ ...prev, camera360Images: items }))
+                  }
+                  uploadFn={handleUploadFile}
+                  maxFiles={20}
+                  maxFileSizeMB={10}
+                  showMultiple
+                  onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                />
+
+                {towerForm.camera360Images.length > 0 && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Danh sách ảnh 360 xem thử
+                    </label>
+                    <TowerCamera360Viewer items={towerForm.camera360Images} />
+                  </div>
+                )}
+              </>
+            ) : towerCurrentStep === 3 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">
+                      Danh sách sản phẩm trong quỹ hàng
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      1 tòa nhà có thể chứa nhiều sản phẩm từ kho sản phẩm.
+                    </p>
+                  </div>
+                  {towerDrawerMode !== 'view' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!workspaceId) {
+                          toast.error('Không xác định được workspace để tải kho sản phẩm');
+                          return;
+                        }
+                        setIsTowerProductDialogOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                    >
+                      <Plus className="h-4 w-4" /> Thêm sản phẩm
+                    </button>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-white">
+                  <div className="border-b border-gray-200 px-4 py-3 text-sm text-gray-600">
+                    Có {towerForm.fundProducts.length} sản phẩm đã chọn
+                  </div>
+                  {towerForm.fundProducts.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-500">
+                      Chưa có sản phẩm nào trong quỹ hàng. Nhấn Thêm sản phẩm để chọn từ kho.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 text-gray-600">
+                            <th className="px-4 py-2 text-left font-medium">Mã sản phẩm</th>
+                            <th className="px-4 py-2 text-left font-medium">Tên sản phẩm</th>
+                            <th className="px-4 py-2 text-left font-medium">Kho hàng</th>
                             {towerDrawerMode !== 'view' && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFloorPlanEditorIndex(idx);
-                                  setFloorPlanEditorOpen(true);
-                                }}
-                                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                              >
-                                <MapPin className="h-3.5 w-3.5" />
-                                Đặt vị trí
-                              </button>
+                              <th className="px-4 py-2 text-right font-medium">Thao tác</th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {towerForm.fundProducts.map((item) => (
+                            <tr key={item.productId} className="border-t border-gray-100">
+                              <td className="px-4 py-2">{item.unitCode}</td>
+                              <td className="px-4 py-2">{item.name}</td>
+                              <td className="px-4 py-2">{item.warehouseName || '-'}</td>
+                              {towerDrawerMode !== 'view' && (
+                                <td className="px-4 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFundProductFromTower(item.productId)}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" /> Bỏ khỏi quỹ hàng
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : towerCurrentStep === 4 ? (
+              <>
+                <ProjectMediaUploadManager
+                  label="Hình ảnh mặt bằng quỹ hàng"
+                  hint="Upload hình ảnh mặt bằng tầng. Sau đó bấm Đặt vị trí để gắn marker sản phẩm lên từng hình."
+                  items={towerForm.floorPlanImages}
+                  onItemsChange={(newItems) => {
+                    setTowerForm((prev) => {
+                      // Merge: preserve existing markers when items are reordered / renamed
+                      const merged: FloorPlanImage[] = newItems.map((item) => {
+                        const existing = prev.floorPlanImages.find(
+                          (fp) => fp.originalUrl === item.originalUrl,
+                        );
+                        return { ...item, markers: existing?.markers };
+                      });
+                      return { ...prev, floorPlanImages: merged };
+                    });
+                  }}
+                  uploadFn={handleUploadFile}
+                  maxFiles={20}
+                  maxFileSizeMB={10}
+                  showMultiple
+                  onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                />
+
+                {towerForm.floorPlanImages.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">Gắn vị trí sản phẩm</p>
+                    {towerForm.floorPlanImages.map((img, idx) => {
+                      const markerCount = img.markers?.length ?? 0;
+                      const assignedCount = img.markers?.filter((m) => m.productId).length ?? 0;
+                      return (
+                        <div
+                          key={img.originalUrl + idx}
+                          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3"
+                        >
+                          <img
+                            src={img.thumbnailUrl || img.originalUrl}
+                            alt={img.fileName || `Hình ${idx + 1}`}
+                            className="h-12 w-20 shrink-0 rounded object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-gray-800">
+                              {img.fileName || `Hình ${idx + 1}`}
+                            </p>
+                            {markerCount > 0 ? (
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                {markerCount} marker · {assignedCount} đã gán sản phẩm
+                              </p>
+                            ) : (
+                              <p className="mt-0.5 text-xs text-gray-400">Chưa có marker</p>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              ) : towerCurrentStep === 5 ? (
-                <>
-                  <ProjectMediaUploadManager
-                    label="Hình ảnh chính sách bán hàng"
-                    hint="Upload danh sách hình ảnh chính sách bán hàng. Có thể chỉnh sửa tên/mô tả từng ảnh sau khi tải lên."
-                    items={towerForm.salesPolicyImages}
-                    onItemsChange={(items) => setTowerForm((prev) => ({ ...prev, salesPolicyImages: items }))}
-                    uploadFn={handleUploadFile}
-                    maxFiles={20}
-                    maxFileSizeMB={10}
-                    showMultiple
-                    onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
-                  />
-                </>
-              ) : (
-                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                  <p className="font-medium text-gray-700">Bước {towerCurrentStep + 1}: {TOWER_STEPS[towerCurrentStep]}</p>
-                  <p className="mt-1">Dữ liệu hiện tại của tòa nhà sẽ được lưu khi bấm Tiếp tục. Nội dung chi tiết cho bước này sẽ được bổ sung ở phase tiếp theo.</p>
-                </div>
-              )}
-            </div>
-
+                          {towerDrawerMode !== 'view' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFloorPlanEditorIndex(idx);
+                                setFloorPlanEditorOpen(true);
+                              }}
+                              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                            >
+                              <MapPin className="h-3.5 w-3.5" />
+                              Đặt vị trí
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            ) : towerCurrentStep === 5 ? (
+              <>
+                <ProjectMediaUploadManager
+                  label="Hình ảnh chính sách bán hàng"
+                  hint="Upload danh sách hình ảnh chính sách bán hàng. Có thể chỉnh sửa tên/mô tả từng ảnh sau khi tải lên."
+                  items={towerForm.salesPolicyImages}
+                  onItemsChange={(items) =>
+                    setTowerForm((prev) => ({ ...prev, salesPolicyImages: items }))
+                  }
+                  uploadFn={handleUploadFile}
+                  maxFiles={20}
+                  maxFileSizeMB={10}
+                  showMultiple
+                  onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                />
+              </>
+            ) : (
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                <p className="font-medium text-gray-700">
+                  Bước {towerCurrentStep + 1}: {TOWER_STEPS[towerCurrentStep]}
+                </p>
+                <p className="mt-1">
+                  Dữ liệu hiện tại của tòa nhà sẽ được lưu khi bấm Tiếp tục. Nội dung chi tiết cho
+                  bước này sẽ được bổ sung ở phase tiếp theo.
+                </p>
+              </div>
+            )}
+          </div>
         </BaseSlideOver>
       )}
 
       {/* Floor Plan Marker Editor */}
-      {floorPlanEditorOpen && floorPlanEditorIndex !== null && towerForm.floorPlanImages[floorPlanEditorIndex] && (
-        <TowerFloorPlanEditor
-          isOpen={floorPlanEditorOpen}
-          image={towerForm.floorPlanImages[floorPlanEditorIndex]}
-          fundProducts={towerForm.fundProducts}
-          onSave={(updated: FloorPlanImage) => {
-            setTowerForm((prev) => {
-              const next = [...prev.floorPlanImages];
-              next[floorPlanEditorIndex!] = updated;
-              return { ...prev, floorPlanImages: next };
-            });
-          }}
-          onClose={() => {
-            setFloorPlanEditorOpen(false);
-            setFloorPlanEditorIndex(null);
-          }}
-        />
-      )}
+      {floorPlanEditorOpen &&
+        floorPlanEditorIndex !== null &&
+        towerForm.floorPlanImages[floorPlanEditorIndex] && (
+          <TowerFloorPlanEditor
+            isOpen={floorPlanEditorOpen}
+            image={towerForm.floorPlanImages[floorPlanEditorIndex]}
+            fundProducts={towerForm.fundProducts}
+            onSave={(updated: FloorPlanImage) => {
+              setTowerForm((prev) => {
+                const next = [...prev.floorPlanImages];
+                next[floorPlanEditorIndex!] = updated;
+                return { ...prev, floorPlanImages: next };
+              });
+            }}
+            onClose={() => {
+              setFloorPlanEditorOpen(false);
+              setFloorPlanEditorIndex(null);
+            }}
+          />
+        )}
 
       <BaseSlideOver
         isOpen={isTowerProductDialogOpen}
@@ -4025,7 +4327,9 @@ export function ProjectForm({
                 label: 'Chọn',
                 headerClassName: 'w-14',
                 render: (_val, product) => {
-                  const selected = towerForm.fundProducts.some((item) => item.productId === product.id);
+                  const selected = towerForm.fundProducts.some(
+                    (item) => item.productId === product.id,
+                  );
                   return (
                     <button
                       type="button"
@@ -4054,7 +4358,7 @@ export function ProjectForm({
               {
                 key: 'warehouseName',
                 label: 'Kho hàng',
-                render: (val) => val || '—',
+                render: (val) => (typeof val === 'string' && val.trim() ? val : '—'),
               },
             ]}
             rowClassName={(product) =>

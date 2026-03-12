@@ -17,10 +17,7 @@ export class UploadService {
       buffer: file.buffer,
     };
 
-    const result = await this.minioService.uploadTemporaryFile(
-      workspaceId,
-      uploadFile,
-    );
+    const result = await this.minioService.uploadTemporaryFile(workspaceId, uploadFile);
 
     return {
       data: {

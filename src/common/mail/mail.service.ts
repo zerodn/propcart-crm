@@ -60,7 +60,11 @@ export class MailService {
   }
 
   // Stub methods that can be implemented later with actual providers
-  private async sendViaEmailService(to: string, subject: string, htmlContent: string): Promise<boolean> {
+  private async sendViaEmailService(
+    to: string,
+    subject: string,
+    htmlContent: string,
+  ): Promise<boolean> {
     // TODO: Implement SendGrid or other service integration
     this.logger.log(`[SendGrid] Sending email to ${to}: subject=${subject}`);
     return true;

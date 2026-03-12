@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useI18n } from '@/providers/i18n-provider';
 import { PropertyWarehouse } from '@/hooks/use-warehouse';
 import { PersonalInfoForm, type LocationFormData } from '@/components/common/personal-info-form';
 
 interface WarehouseFormProps {
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: Record<string, unknown>) => Promise<void>;
   warehouseTypes: Array<{ value: string; label: string }>;
   editingWarehouse?: PropertyWarehouse;
   isSubmitting?: boolean;
@@ -20,7 +19,6 @@ export function WarehouseForm({
   isSubmitting = false,
   formId = 'warehouse-form',
 }: WarehouseFormProps) {
-  const { t } = useI18n();
   const [form, setForm] = useState({
     name: '',
     code: '',
@@ -79,27 +77,27 @@ export function WarehouseForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Only send fields that backend expects
-    const data: any = {
+    const data: Record<string, unknown> = {
       name: form.name.trim(),
       code: form.code.trim(),
       type: form.type.trim(),
     };
-    
+
     // Add optional fields only if they have values
     if (form.description?.trim()) data.description = form.description.trim();
     if (form.latitude) data.latitude = parseFloat(form.latitude);
     if (form.longitude) data.longitude = parseFloat(form.longitude);
-    
+
     // Location data from PersonalInfoForm
     if (locationData.provinceCode) data.provinceCode = locationData.provinceCode;
     if (locationData.provinceName) data.provinceName = locationData.provinceName;
     if (locationData.wardCode) data.wardCode = locationData.wardCode;
     if (locationData.wardName) data.wardName = locationData.wardName;
-    
+
     if (form.fullAddress?.trim()) data.fullAddress = form.fullAddress.trim();
-    
+
     console.log('Warehouse form data to send:', data);
     await onSubmit(data);
   };

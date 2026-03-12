@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useI18n } from '@/providers/i18n-provider';
 
 export function LanguageSwitcher() {
-  const { locale, setLocale, t } = useI18n();
+  const { locale, setLocale } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 

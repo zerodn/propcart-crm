@@ -15,9 +15,23 @@ const mockUser = {
   id: 'user-id-1',
   phone: '+84901234567',
   email: null,
+  fullName: null,
+  addressLine: null,
+  provinceCode: null,
+  provinceName: null,
+  districtCode: null,
+  districtName: null,
+  wardCode: null,
+  wardName: null,
+  emailVerifiedAt: null,
+  emailVerifyToken: null,
+  emailVerifyExpiresAt: null,
   googleId: null,
   passwordHash: null,
   status: 1,
+  avatarUrl: null,
+  gender: null,
+  dateOfBirth: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -31,7 +45,13 @@ const mockWorkspace = {
   createdAt: new Date(),
 };
 
-const mockRole = { id: 'role-id-1', code: 'OWNER', name: 'Owner', description: null, createdAt: new Date() };
+const mockRole = {
+  id: 'role-id-1',
+  code: 'OWNER',
+  name: 'Owner',
+  description: null,
+  createdAt: new Date(),
+};
 
 const mockDevice = {
   id: 'device-id-1',
@@ -400,10 +420,7 @@ describe('AuthService', () => {
       prisma.workspace.findUnique.mockResolvedValue(mockWorkspace);
       prisma.workspaceMember.findFirst.mockResolvedValue(mockMembership);
 
-      const result = await service.switchWorkspace(
-        { workspace_id: mockWorkspace.id },
-        currentUser,
-      );
+      const result = await service.switchWorkspace({ workspace_id: mockWorkspace.id }, currentUser);
 
       expect(result.data).toHaveProperty('access_token', 'mock.access.token');
       expect(result.data.workspace.id).toBe(mockWorkspace.id);

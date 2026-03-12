@@ -74,7 +74,10 @@ export class RoleService {
   async delete(id: string) {
     const used = await this.prisma.workspaceMember.count({ where: { roleId: id } });
     if (used > 0) {
-      throw new HttpException({ code: 'ROLE_IN_USE', message: 'Role is in use' }, HttpStatus.CONFLICT);
+      throw new HttpException(
+        { code: 'ROLE_IN_USE', message: 'Role is in use' },
+        HttpStatus.CONFLICT,
+      );
     }
     return this.prisma.role.delete({ where: { id } });
   }

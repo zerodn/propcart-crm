@@ -21,7 +21,9 @@ const COUNTRIES = [
 
 export function PhoneForm({ onSuccess }: PhoneFormProps) {
   const { t } = useI18n();
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0] as (typeof COUNTRIES)[number]);
+  const [selectedCountry, setSelectedCountry] = useState(
+    COUNTRIES[0] as (typeof COUNTRIES)[number],
+  );
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
@@ -46,12 +48,17 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
       onSuccess(fullPhone);
     } catch (err: unknown) {
       console.error('❌ Send OTP error:', err);
-      const response = (err as any)?.response;
-      const msg = response?.data?.message ?? 
-                  (response?.data?.code) ??
-                  (typeof response?.data === 'string' ? response.data : null) ??
-                  t('auth.errors.loginFailed');
-      console.error('Error details:', { status: response?.status, data: response?.data, msg });
+      const response = (err as { response?: { status?: number; data?: unknown } })?.response;
+      const responseData = response?.data as
+        | { message?: string; code?: string }
+        | string
+        | undefined;
+      const msg =
+        (typeof responseData === 'object' && responseData !== null ? responseData.message : null) ??
+        (typeof responseData === 'object' && responseData !== null ? responseData.code : null) ??
+        (typeof responseData === 'string' ? responseData : null) ??
+        t('auth.errors.loginFailed');
+      console.error('Error details:', { status: response?.status, data: responseData, msg });
       toast.error(msg);
     } finally {
       setIsLoading(false);

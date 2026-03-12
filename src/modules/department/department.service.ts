@@ -165,7 +165,7 @@ export class DepartmentService {
     // 3. ES timeout or error
     try {
       this.logger.debug(`ES returned no results, falling back to database search`);
-      
+
       // Find all active workspace members with limited results
       const workspaceMembers = await this.prisma.workspaceMember.findMany({
         where: {

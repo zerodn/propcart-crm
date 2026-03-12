@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
 
 interface DepartmentFormProps {
   onSubmit: (name: string, code: string, description?: string) => Promise<void>;
@@ -18,7 +17,7 @@ interface DepartmentFormProps {
 export function DepartmentForm({
   onSubmit,
   isLoading = false,
-  onCancel,
+  onCancel: _onCancel,
   initialData,
   formId = 'department-form',
 }: DepartmentFormProps) {

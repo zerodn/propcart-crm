@@ -9,7 +9,6 @@ import { DepartmentMembersDialog } from '@/components/department/department-memb
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { GridSkeleton } from '@/components/common/skeleton';
-import type { Department } from '@/hooks/use-department';
 
 export default function DepartmentPage() {
   const { t } = useI18n();
@@ -103,9 +102,7 @@ export default function DepartmentPage() {
             </div>
             <h1 className="text-xl font-bold text-gray-900">{t('department.title')}</h1>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            {t('department.subtitle')}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{t('department.subtitle')}</p>
         </div>
         <button
           onClick={() => {

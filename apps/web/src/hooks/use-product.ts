@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 
+type UnknownRecord = Record<string, unknown>;
+
 export interface ProductDocument {
   documentType: string;
   fileName: string;
@@ -54,28 +56,37 @@ export interface PropertyProduct {
   updatedAt: string;
 }
 
-function normalizeProduct(raw: any): PropertyProduct {
-  const createdBy = raw?.createdBy ?? raw?.created_by ?? null;
-  const warehouse = raw?.warehouse ?? raw?.warehouse_info ?? null;
+function normalizeProduct(raw: UnknownRecord): PropertyProduct {
+  const createdBy =
+    (raw.createdBy as UnknownRecord | undefined) ??
+    (raw.created_by as UnknownRecord | undefined) ??
+    null;
+  const warehouse =
+    (raw.warehouse as UnknownRecord | undefined) ??
+    (raw.warehouse_info as UnknownRecord | undefined) ??
+    null;
 
   return {
     ...raw,
-    createdByUserId: raw?.createdByUserId ?? raw?.created_by_user_id ?? '',
-    area: raw?.area !== undefined && raw?.area !== null ? Number(raw.area) : undefined,
+    createdByUserId:
+      (raw.createdByUserId as string | undefined) ??
+      (raw.created_by_user_id as string | undefined) ??
+      '',
+    area: raw.area !== undefined && raw.area !== null ? Number(raw.area) : undefined,
     priceWithoutVat:
-      raw?.priceWithoutVat !== undefined && raw?.priceWithoutVat !== null
+      raw.priceWithoutVat !== undefined && raw.priceWithoutVat !== null
         ? Number(raw.priceWithoutVat)
         : undefined,
     priceWithVat:
-      raw?.priceWithVat !== undefined && raw?.priceWithVat !== null
+      raw.priceWithVat !== undefined && raw.priceWithVat !== null
         ? Number(raw.priceWithVat)
         : undefined,
-    isContactForPrice: raw?.isContactForPrice ?? false,
-    isHidden: raw?.isHidden ?? false,
-    tags: Array.isArray(raw?.tags) ? raw.tags : [],
-    policyImageUrls: Array.isArray(raw?.policyImageUrls)
+    isContactForPrice: (raw.isContactForPrice as boolean | undefined) ?? false,
+    isHidden: (raw.isHidden as boolean | undefined) ?? false,
+    tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
+    policyImageUrls: Array.isArray(raw.policyImageUrls)
       ? raw.policyImageUrls
-          .map((item: any) => {
+          .map((item: unknown) => {
             if (typeof item === 'string') {
               return {
                 fileName: '',
@@ -85,11 +96,18 @@ function normalizeProduct(raw: any): PropertyProduct {
             }
 
             if (item && typeof item === 'object') {
-              const originalUrl = item.originalUrl || item.fileUrl || '';
-              const thumbnailUrl = item.thumbnailUrl || item.thumbUrl || originalUrl;
+              const record = item as UnknownRecord;
+              const originalUrl =
+                (record.originalUrl as string | undefined) ||
+                (record.fileUrl as string | undefined) ||
+                '';
+              const thumbnailUrl =
+                (record.thumbnailUrl as string | undefined) ||
+                (record.thumbUrl as string | undefined) ||
+                originalUrl;
               if (!originalUrl && !thumbnailUrl) return null;
               return {
-                fileName: item.fileName || '',
+                fileName: (record.fileName as string | undefined) || '',
                 originalUrl,
                 thumbnailUrl,
               };
@@ -99,21 +117,25 @@ function normalizeProduct(raw: any): PropertyProduct {
           })
           .filter(Boolean)
       : [],
-    contactMemberIds: Array.isArray(raw?.contactMemberIds) ? raw.contactMemberIds : [],
-    productDocuments: Array.isArray(raw?.productDocuments) ? raw.productDocuments : [],
+    contactMemberIds: Array.isArray(raw.contactMemberIds) ? (raw.contactMemberIds as string[]) : [],
+    productDocuments: Array.isArray(raw.productDocuments)
+      ? (raw.productDocuments as ProductDocument[])
+      : [],
     createdBy: createdBy
       ? {
-          id: createdBy.id,
-          fullName: createdBy.fullName ?? createdBy.full_name,
-          phone: createdBy.phone,
-          email: createdBy.email,
+          id: createdBy.id as string,
+          fullName:
+            (createdBy.fullName as string | undefined) ??
+            (createdBy.full_name as string | undefined),
+          phone: createdBy.phone as string | undefined,
+          email: createdBy.email as string | undefined,
         }
       : null,
     warehouse: warehouse
       ? {
           id: warehouse.id,
-          name: warehouse.name,
-          code: warehouse.code,
+          name: warehouse.name as string,
+          code: warehouse.code as string,
         }
       : null,
   } as PropertyProduct;
@@ -133,8 +155,10 @@ export function useProduct(workspaceId: string) {
           `/workspaces/${workspaceId}/products`,
           { params: opts },
         );
-        const rawItems = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
-        const items = rawItems.map(normalizeProduct);
+        const rawItems = (
+          Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+        ) as unknown[];
+        const items = rawItems.map((item) => normalizeProduct(item as UnknownRecord));
         setProducts(items);
         return items;
       } catch (err) {
@@ -150,14 +174,14 @@ export function useProduct(workspaceId: string) {
   );
 
   const create = useCallback(
-    async (data: any) => {
+    async (data: Record<string, unknown>) => {
       try {
         const response = await apiClient.post<PropertyProduct>(
           `/workspaces/${workspaceId}/products`,
           data,
         );
         toast.success('San pham da duoc tao');
-        return normalizeProduct(response.data);
+        return normalizeProduct(response.data as unknown as UnknownRecord);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to create product';
         toast.error(message);
@@ -168,14 +192,14 @@ export function useProduct(workspaceId: string) {
   );
 
   const update = useCallback(
-    async (id: string, data: any) => {
+    async (id: string, data: Record<string, unknown>) => {
       try {
         const response = await apiClient.patch<PropertyProduct>(
           `/workspaces/${workspaceId}/products/${id}`,
           data,
         );
         toast.success('San pham da duoc cap nhat');
-        return normalizeProduct(response.data);
+        return normalizeProduct(response.data as unknown as UnknownRecord);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update product';
         toast.error(message);
@@ -187,14 +211,19 @@ export function useProduct(workspaceId: string) {
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
-      if (!files.length) return [] as Array<{ fileName: string; fileUrl: string; objectKey: string }>;
+      if (!files.length)
+        return [] as Array<{ fileName: string; fileUrl: string; objectKey: string }>;
 
       const formData = new FormData();
       files.forEach((file) => formData.append('files', file));
 
-      const response = await apiClient.post(`/workspaces/${workspaceId}/products/upload-files`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await apiClient.post(
+        `/workspaces/${workspaceId}/products/upload-files`,
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
+      );
 
       const payload = Array.isArray(response.data)
         ? response.data

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 
 export function useNotifications() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications] = useState<unknown[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {

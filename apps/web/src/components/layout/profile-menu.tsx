@@ -8,13 +8,14 @@ import { useI18n } from '@/providers/i18n-provider';
 import Link from 'next/link';
 
 export function ProfileMenu() {
-  const { user, workspace, role, switchWorkspace, logout } = useAuth();
+  const { user, workspace, switchWorkspace, logout } = useAuth();
   const { workspaces } = useWorkspaces();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const normalizeText = (value?: string | null) => (value && value.trim().length > 0 ? value : null);
+  const normalizeText = (value?: string | null) =>
+    value && value.trim().length > 0 ? value : null;
   const displayName =
     normalizeText(user?.fullName) ??
     normalizeText(user?.phone) ??
@@ -52,7 +53,9 @@ export function ProfileMenu() {
         <span className="text-sm text-gray-700 font-medium max-w-[120px] truncate hidden sm:block">
           {displayName}
         </span>
-        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-4 w-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {/* Dropdown Menu */}
@@ -98,7 +101,9 @@ export function ProfileMenu() {
                     <p className="text-xs text-gray-400">{ws.role}</p>
                   </div>
                   {ws.id === workspace?.id && (
-                    <span className="text-xs text-blue-600 flex-shrink-0">{t('common.current')}</span>
+                    <span className="text-xs text-blue-600 flex-shrink-0">
+                      {t('common.current')}
+                    </span>
                   )}
                 </button>
               ))}

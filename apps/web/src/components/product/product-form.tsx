@@ -44,7 +44,7 @@ function formatFileSize(bytes?: number) {
 
 interface ProductFormProps {
   workspaceId: string;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: Record<string, unknown>) => Promise<void>;
   onUploadFiles: (files: File[]) => Promise<Array<{ fileName: string; fileUrl: string }>>;
   editingProduct?: PropertyProduct;
   warehouseOptions: Array<{ value: string; label: string }>;
@@ -140,8 +140,13 @@ export function ProductForm({
   const [tagButtonWidth, setTagButtonWidth] = useState(0);
 
   const previewDocument = previewIndex !== null ? productDocuments[previewIndex] : null;
-  const previewDocumentMimeType = inferMimeType(previewDocument?.fileName, previewDocument?.fileUrl);
-  const isPreviewingImageDocument = Boolean(previewDocument && previewDocumentMimeType.startsWith('image/'));
+  const previewDocumentMimeType = inferMimeType(
+    previewDocument?.fileName,
+    previewDocument?.fileUrl,
+  );
+  const isPreviewingImageDocument = Boolean(
+    previewDocument && previewDocumentMimeType.startsWith('image/'),
+  );
 
   useEffect(() => {
     if (editingProduct) {
@@ -165,11 +170,13 @@ export function ProductForm({
         note: editingProduct.note || '',
       });
       setTags(editingProduct.tags || []);
-      setProductImages((editingProduct.policyImageUrls || []).map((item) => ({
-        ...item,
-        originalFileName: item.fileName || '',
-        fileSize: undefined,
-      })));
+      setProductImages(
+        (editingProduct.policyImageUrls || []).map((item) => ({
+          ...item,
+          originalFileName: item.fileName || '',
+          fileSize: undefined,
+        })),
+      );
       setProductDocuments(editingProduct.productDocuments || []);
       setContactMemberIds(editingProduct.contactMemberIds || []);
       return;
@@ -243,9 +250,12 @@ export function ProductForm({
 
       try {
         setIsSearchingMembers(true);
-        const { data } = await apiClient.get(`/workspaces/${workspaceId}/departments/member-search`, {
-          params: { q },
-        });
+        const { data } = await apiClient.get(
+          `/workspaces/${workspaceId}/departments/member-search`,
+          {
+            params: { q },
+          },
+        );
 
         const items = Array.isArray(data?.data) ? data.data : [];
         const mapped = items
@@ -394,13 +404,17 @@ export function ProductForm({
     imageBitmap.close();
 
     const thumbBlob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error('Khong the xuat thumbnail'));
-          return;
-        }
-        resolve(blob);
-      }, 'image/webp', 0.78);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Khong the xuat thumbnail'));
+            return;
+          }
+          resolve(blob);
+        },
+        'image/webp',
+        0.78,
+      );
     });
 
     return new File([thumbBlob], `thumb-${Date.now()}-${index}.webp`, { type: 'image/webp' });
@@ -439,8 +453,8 @@ export function ProductForm({
   };
 
   const handleDocumentTypeChange = (idx: number, newType: string) => {
-    setProductDocuments((prev) => 
-      prev.map((doc, i) => i === idx ? { ...doc, documentType: newType } : doc)
+    setProductDocuments((prev) =>
+      prev.map((doc, i) => (i === idx ? { ...doc, documentType: newType } : doc)),
     );
   };
 
@@ -516,7 +530,7 @@ export function ProductForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const data: any = {
+    const data: Record<string, unknown> = {
       name: form.name.trim(),
       unitCode: form.unitCode.trim(),
       propertyType: form.propertyType.trim(),
@@ -561,7 +575,9 @@ export function ProductForm({
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Ma san pham *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Ma san pham *
+                </label>
                 <input
                   type="text"
                   value={form.unitCode}
@@ -573,7 +589,9 @@ export function ProductForm({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Ten san pham *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Ten san pham *
+                </label>
                 <input
                   type="text"
                   value={form.name}
@@ -585,7 +603,9 @@ export function ProductForm({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Loai hinh BDS *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Loai hinh BDS *
+                </label>
                 <select
                   value={form.propertyType}
                   onChange={(e) => setForm({ ...form, propertyType: e.target.value })}
@@ -644,7 +664,9 @@ export function ProductForm({
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Trang thai giao dich</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Trang thai giao dich
+                </label>
                 <select
                   value={form.transactionStatus}
                   onChange={(e) => setForm({ ...form, transactionStatus: e.target.value })}
@@ -675,7 +697,9 @@ export function ProductForm({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Nhan san pham</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nhan san pham
+                </label>
                 <div className="relative" ref={tagDropdownRef}>
                   <button
                     ref={tagButtonRef}
@@ -816,7 +840,9 @@ export function ProductForm({
             <h3 className="text-sm font-semibold text-gray-900">Giá giao dịch</h3>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Gia truoc VAT (chua gom VAT)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Gia truoc VAT (chua gom VAT)
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -830,19 +856,25 @@ export function ProductForm({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Gia sau VAT (da gom VAT)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Gia sau VAT (da gom VAT)
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
                   placeholder="VD: 5,500,000"
                   value={form.priceWithVat}
-                  onChange={(e) => setForm({ ...form, priceWithVat: formatCurrencyInput(e.target.value) })}
+                  onChange={(e) =>
+                    setForm({ ...form, priceWithVat: formatCurrencyInput(e.target.value) })
+                  }
                   disabled={isSubmitting || isReadOnly || form.isContactForPrice}
                   className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Dien tich (m2)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Dien tich (m2)
+                </label>
                 <input
                   type="number"
                   value={form.area}
@@ -899,7 +931,11 @@ export function ProductForm({
                   : 'bg-blue-50 text-blue-700 cursor-pointer',
               )}
             >
-              {isUploadingImages ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {isUploadingImages ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
               Tải hình ảnh sản phẩm
               <input
                 type="file"
@@ -924,10 +960,15 @@ export function ProductForm({
                   />
 
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-800 text-sm truncate" title={image.fileName || image.originalFileName}>
+                    <div
+                      className="font-medium text-gray-800 text-sm truncate"
+                      title={image.fileName || image.originalFileName}
+                    >
                       {image.fileName || image.originalFileName || `Hình ${idx + 1}`}
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">{formatFileSize(image.fileSize)}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {formatFileSize(image.fileSize)}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -944,7 +985,12 @@ export function ProductForm({
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDownloadDocument(image.originalUrl, image.fileName || image.originalFileName)}
+                      onClick={() =>
+                        handleDownloadDocument(
+                          image.originalUrl,
+                          image.fileName || image.originalFileName,
+                        )
+                      }
                       className="p-1.5 hover:bg-gray-100 rounded transition-colors"
                       title="Tải ảnh gốc"
                       disabled={!image.originalUrl}
@@ -954,7 +1000,9 @@ export function ProductForm({
                     <button
                       type="button"
                       onClick={() =>
-                        setProductImages((prev) => prev.filter((_, imageIndex) => imageIndex !== idx))
+                        setProductImages((prev) =>
+                          prev.filter((_, imageIndex) => imageIndex !== idx),
+                        )
                       }
                       className="p-1.5 hover:bg-red-50 rounded transition-colors"
                       title="Xóa"
@@ -977,210 +1025,232 @@ export function ProductForm({
           <div className="border border-gray-200 rounded-lg p-3 space-y-3 h-fit">
             <h3 className="text-sm font-semibold text-gray-900">Tài liệu sản phẩm</h3>
             <div className="grid grid-cols-2 gap-2">
-            <select
-              value={documentType}
-              onChange={(e) => setDocumentType(e.target.value)}
-              disabled={isSubmitting || isReadOnly}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              {documentTypeOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-            <label
-              className={cn(
-                'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm',
-                isSubmitting || isReadOnly || isUploadingDocument
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-indigo-50 text-indigo-700 cursor-pointer',
-              )}
-            >
-              {isUploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Tai tai lieu
-              <input
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => handleDocumentUpload(e.target.files)}
-                disabled={isSubmitting || isReadOnly || isUploadingDocument}
-              />
-            </label>
-          </div>
-
-          <div className="space-y-2 max-h-[520px] overflow-y-auto">
-            {productDocuments.map((doc, idx) => (
-              <div key={`${doc.fileUrl}-${idx}`} className="border border-gray-200 rounded-lg p-2.5 flex items-center gap-3">
-                {/* Left: File name & size */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-800 text-sm truncate" title={doc.fileName}>
-                    {doc.fileName}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {formatFileSize(doc.fileSize)}
-                  </div>
-                </div>
-
-                {/* Right: Document type dropdown */}
-                <select
-                  value={doc.documentType}
-                  onChange={(e) => handleDocumentTypeChange(idx, e.target.value)}
-                  className="px-2 py-1.5 border border-gray-300 rounded text-xs bg-white min-w-[130px]"
-                  disabled={isSubmitting || isReadOnly}
-                >
-                  {documentTypeOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Action icons */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewIndex(idx)}
-                    className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                    title="Xem"
-                    disabled={isSubmitting || isReadOnly}
-                  >
-                    <Eye className="h-4 w-4 text-gray-600" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadDocument(doc.fileUrl, doc.fileName)}
-                    className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                    title="Tải xuống"
-                    disabled={!doc.fileUrl}
-                  >
-                    <Download className="h-4 w-4 text-gray-600" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteConfirmIdx(idx)}
-                    className="p-1.5 hover:bg-red-50 rounded transition-colors"
-                    title="Xóa"
-                    disabled={isSubmitting || isReadOnly}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {!productDocuments.length && (
-              <div className="text-xs text-gray-500 border border-dashed border-gray-300 rounded-lg p-3 text-center">
-                Chua co tai lieu nao
-              </div>
-            )}
-          </div>
-
-          <div className="border border-gray-200 rounded-lg p-3 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">Thông tin liên hệ</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">So dien thoai</label>
+              <select
+                value={documentType}
+                onChange={(e) => setDocumentType(e.target.value)}
+                disabled={isSubmitting || isReadOnly}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                {documentTypeOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+              <label
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm',
+                  isSubmitting || isReadOnly || isUploadingDocument
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-indigo-50 text-indigo-700 cursor-pointer',
+                )}
+              >
+                {isUploadingDocument ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Tai tai lieu
                 <input
-                  type="text"
-                  value={form.callPhone}
-                  onChange={(e) => setForm({ ...form, callPhone: e.target.value })}
-                  disabled={isSubmitting || isReadOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleDocumentUpload(e.target.files)}
+                  disabled={isSubmitting || isReadOnly || isUploadingDocument}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Zalo</label>
-                <input
-                  type="text"
-                  value={form.zaloPhone}
-                  onChange={(e) => setForm({ ...form, zaloPhone: e.target.value })}
-                  disabled={isSubmitting || isReadOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-              </div>
+              </label>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Chọn nhân sự</label>
-              <div className="relative" ref={memberDropdownRef}>
-                <div className="rounded-lg border border-gray-300 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Search className="h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={memberKeyword}
-                      onChange={(e) => {
-                        setMemberKeyword(e.target.value);
-                        setIsMemberDropdownOpen(true);
-                      }}
-                      onFocus={() => setIsMemberDropdownOpen(true)}
-                      placeholder="Tìm theo tên, SĐT, email"
-                      disabled={isSubmitting || isReadOnly}
-                      className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400"
-                    />
-                    <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', isMemberDropdownOpen && 'rotate-180')} />
+            <div className="space-y-2 max-h-[520px] overflow-y-auto">
+              {productDocuments.map((doc, idx) => (
+                <div
+                  key={`${doc.fileUrl}-${idx}`}
+                  className="border border-gray-200 rounded-lg p-2.5 flex items-center gap-3"
+                >
+                  {/* Left: File name & size */}
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="font-medium text-gray-800 text-sm truncate"
+                      title={doc.fileName}
+                    >
+                      {doc.fileName}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {formatFileSize(doc.fileSize)}
+                    </div>
                   </div>
 
-                  {contactMemberIds.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {contactMemberIds.map((id) => (
-                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
-                          {selectedMemberLabelMap.get(id) || id}
-                          {!isReadOnly && (
+                  {/* Right: Document type dropdown */}
+                  <select
+                    value={doc.documentType}
+                    onChange={(e) => handleDocumentTypeChange(idx, e.target.value)}
+                    className="px-2 py-1.5 border border-gray-300 rounded text-xs bg-white min-w-[130px]"
+                    disabled={isSubmitting || isReadOnly}
+                  >
+                    {documentTypeOptions.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Action icons */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewIndex(idx)}
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                      title="Xem"
+                      disabled={isSubmitting || isReadOnly}
+                    >
+                      <Eye className="h-4 w-4 text-gray-600" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadDocument(doc.fileUrl, doc.fileName)}
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                      title="Tải xuống"
+                      disabled={!doc.fileUrl}
+                    >
+                      <Download className="h-4 w-4 text-gray-600" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmIdx(idx)}
+                      className="p-1.5 hover:bg-red-50 rounded transition-colors"
+                      title="Xóa"
+                      disabled={isSubmitting || isReadOnly}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {!productDocuments.length && (
+                <div className="text-xs text-gray-500 border border-dashed border-gray-300 rounded-lg p-3 text-center">
+                  Chua co tai lieu nao
+                </div>
+              )}
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-900">Thông tin liên hệ</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    So dien thoai
+                  </label>
+                  <input
+                    type="text"
+                    value={form.callPhone}
+                    onChange={(e) => setForm({ ...form, callPhone: e.target.value })}
+                    disabled={isSubmitting || isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Zalo</label>
+                  <input
+                    type="text"
+                    value={form.zaloPhone}
+                    onChange={(e) => setForm({ ...form, zaloPhone: e.target.value })}
+                    disabled={isSubmitting || isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Chọn nhân sự</label>
+                <div className="relative" ref={memberDropdownRef}>
+                  <div className="rounded-lg border border-gray-300 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={memberKeyword}
+                        onChange={(e) => {
+                          setMemberKeyword(e.target.value);
+                          setIsMemberDropdownOpen(true);
+                        }}
+                        onFocus={() => setIsMemberDropdownOpen(true)}
+                        placeholder="Tìm theo tên, SĐT, email"
+                        disabled={isSubmitting || isReadOnly}
+                        className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400"
+                      />
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 text-gray-400 transition-transform',
+                          isMemberDropdownOpen && 'rotate-180',
+                        )}
+                      />
+                    </div>
+
+                    {contactMemberIds.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {contactMemberIds.map((id) => (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700"
+                          >
+                            {selectedMemberLabelMap.get(id) || id}
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => toggleContactMember(id)}
+                                className="rounded-full p-0.5 hover:bg-blue-100"
+                                aria-label="Xóa nhân sự liên hệ"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {isMemberDropdownOpen && !isReadOnly && (
+                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      {isSearchingMembers ? (
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang tìm nhân sự...
+                        </div>
+                      ) : memberResults.length > 0 ? (
+                        memberResults.map((member) => {
+                          const checked = selectedMemberSet.has(member.value);
+                          return (
                             <button
+                              key={member.value}
                               type="button"
-                              onClick={() => toggleContactMember(id)}
-                              className="rounded-full p-0.5 hover:bg-blue-100"
-                              aria-label="Xóa nhân sự liên hệ"
+                              onClick={() => toggleContactMember(member.value)}
+                              className={cn(
+                                'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50',
+                                checked && 'bg-blue-50 text-blue-700',
+                              )}
                             >
-                              <X className="h-3 w-3" />
+                              <div className="min-w-0">
+                                <p className="truncate font-medium">{member.label}</p>
+                                <p className="truncate text-xs text-gray-500">
+                                  SĐT: {member.phone || '---'} | Email: {member.email || '---'}
+                                </p>
+                              </div>
+                              {checked && <Check className="h-4 w-4 flex-shrink-0" />}
                             </button>
-                          )}
-                        </span>
-                      ))}
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          Không tìm thấy nhân sự phù hợp
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-
-                {isMemberDropdownOpen && !isReadOnly && (
-                  <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                    {isSearchingMembers ? (
-                      <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Đang tìm nhân sự...
-                      </div>
-                    ) : memberResults.length > 0 ? (
-                      memberResults.map((member) => {
-                        const checked = selectedMemberSet.has(member.value);
-                        return (
-                          <button
-                            key={member.value}
-                            type="button"
-                            onClick={() => toggleContactMember(member.value)}
-                            className={cn(
-                              'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50',
-                              checked && 'bg-blue-50 text-blue-700',
-                            )}
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate font-medium">{member.label}</p>
-                              <p className="truncate text-xs text-gray-500">
-                                SĐT: {member.phone || '---'} | Email: {member.email || '---'}
-                              </p>
-                            </div>
-                            {checked && <Check className="h-4 w-4 flex-shrink-0" />}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="px-3 py-2 text-sm text-gray-500">Không tìm thấy nhân sự phù hợp</div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -1246,7 +1316,8 @@ export function ProductForm({
           <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-sm mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Xác nhận xóa</h3>
             <p className="text-gray-600 mb-6">
-              Bạn có chắc chắn muốn xóa file <strong>{productDocuments[deleteConfirmIdx]?.fileName}</strong> không?
+              Bạn có chắc chắn muốn xóa file{' '}
+              <strong>{productDocuments[deleteConfirmIdx]?.fileName}</strong> không?
             </p>
             <div className="flex gap-3 justify-end">
               <button

@@ -196,6 +196,320 @@ async function main() {
 
   console.log('✅ Catalog templates ready for auto-initialization');
 
+  // ============================================================
+  // Seed Demo Workspace Data (Warehouses + Products)
+  // ============================================================
+  console.log('🏬 Seeding demo warehouses and products...');
+
+  const demoOwner = await prisma.user.upsert({
+    where: { phone: '0900000001' },
+    update: {
+      fullName: 'Demo Owner',
+      email: 'demo-owner@propcart.local',
+      status: 1,
+    },
+    create: {
+      phone: '0900000001',
+      email: 'demo-owner@propcart.local',
+      fullName: 'Demo Owner',
+      passwordHash: 'seeded-password',
+      status: 1,
+    },
+  });
+
+  const ownerRoleData = await prisma.role.findUnique({ where: { code: 'OWNER' } });
+  if (!ownerRoleData) {
+    throw new Error('OWNER role not found during seeding');
+  }
+
+  let demoWorkspace = await prisma.workspace.findFirst({
+    where: {
+      ownerUserId: demoOwner.id,
+      name: 'Demo Workspace Seed',
+    },
+  });
+
+  if (!demoWorkspace) {
+    demoWorkspace = await prisma.workspace.create({
+      data: {
+        type: 'COMPANY',
+        name: 'Demo Workspace Seed',
+        ownerUserId: demoOwner.id,
+        status: 1,
+      },
+    });
+  }
+
+  await prisma.workspaceMember.upsert({
+    where: {
+      workspaceId_userId: {
+        workspaceId: demoWorkspace.id,
+        userId: demoOwner.id,
+      },
+    },
+    update: {
+      roleId: ownerRoleData.id,
+      status: 1,
+      displayName: 'Demo Owner',
+    },
+    create: {
+      workspaceId: demoWorkspace.id,
+      userId: demoOwner.id,
+      roleId: ownerRoleData.id,
+      status: 1,
+      displayName: 'Demo Owner',
+    },
+  });
+
+  const warehouseTypePool = ['PRIMARY', 'SATELLITE', 'TEMP', 'PROJECT'];
+  const provincePool = ['Ho Chi Minh', 'Ha Noi', 'Da Nang', 'Can Tho'];
+  const wardPool = ['Phuong 1', 'Phuong 2', 'Phuong 3', 'Phuong 4'];
+
+  const seededWarehouses: Array<{ id: string; code: string; name: string }> = [];
+
+  for (let i = 1; i <= 24; i++) {
+    const code = `WH-${String(i).padStart(3, '0')}`;
+    const type = warehouseTypePool[(i - 1) % warehouseTypePool.length];
+    const provinceName = provincePool[(i - 1) % provincePool.length];
+    const wardName = wardPool[(i - 1) % wardPool.length];
+
+    const payload = {
+      workspaceId: demoWorkspace.id,
+      name: `Kho BDS ${i}`,
+      code,
+      type,
+      description: `Kho mẫu ${i} phục vụ kiểm thử phân trang`,
+      status: i % 7 === 0 ? 0 : 1,
+      latitude: (10.75 + i * 0.001).toFixed(8),
+      longitude: (106.66 + i * 0.001).toFixed(8),
+      provinceCode: `${79 + (i % 4)}`,
+      provinceName,
+      wardCode: `${1000 + i}`,
+      wardName,
+      fullAddress: `${i} Seed Street, ${wardName}, ${provinceName}`,
+      createdByUserId: demoOwner.id,
+    };
+
+    const existingWarehouse = await prisma.propertyWarehouse.findFirst({
+      where: {
+        workspaceId: demoWorkspace.id,
+        code,
+      },
+      select: { id: true },
+    });
+
+    const warehouse = existingWarehouse
+      ? await prisma.propertyWarehouse.update({
+          where: { id: existingWarehouse.id },
+          data: payload,
+        })
+      : await prisma.propertyWarehouse.create({
+          data: payload,
+        });
+
+    seededWarehouses.push({ id: warehouse.id, code: warehouse.code, name: warehouse.name });
+  }
+
+  const propertyTypePool = ['APARTMENT', 'TOWNHOUSE', 'SHOPHOUSE', 'VILLA'];
+  const directionPool = ['NORTH', 'SOUTH', 'EAST', 'WEST', 'NORTH_EAST', 'SOUTH_WEST'];
+
+  for (let i = 1; i <= 48; i++) {
+    const unitCode = `SP-${String(i).padStart(4, '0')}`;
+    const warehouse = seededWarehouses[(i - 1) % seededWarehouses.length];
+    const area = 48 + i * 1.75;
+    const priceWithoutVat = 1500000000 + i * 45000000;
+    const priceWithVat = Math.round(priceWithoutVat * 1.1);
+
+    const payload = {
+      workspaceId: demoWorkspace.id,
+      warehouseId: warehouse.id,
+      name: `Sản phẩm mẫu ${i}`,
+      unitCode,
+      tags: ['seed', `warehouse:${warehouse.code}`, i % 2 === 0 ? 'hot' : 'standard'],
+      propertyType: propertyTypePool[(i - 1) % propertyTypePool.length],
+      zone: `Zone ${((i - 1) % 6) + 1}`,
+      block: `Block ${String.fromCharCode(65 + ((i - 1) % 6))}`,
+      direction: directionPool[(i - 1) % directionPool.length],
+      area: area.toFixed(2),
+      priceWithoutVat: priceWithoutVat.toString(),
+      priceWithVat: priceWithVat.toString(),
+      isContactForPrice: i % 9 === 0,
+      isHidden: i % 11 === 0,
+      promotionProgram: i % 3 === 0 ? 'Ưu đãi nội bộ quý này' : null,
+      policyImageUrls: [
+        `https://picsum.photos/seed/policy-${i}-1/1200/700`,
+        `https://picsum.photos/seed/policy-${i}-2/1200/700`,
+      ],
+      productDocuments: [
+        {
+          documentType: 'BROCHURE',
+          fileName: `brochure-${unitCode}.pdf`,
+          fileUrl: `https://example.com/docs/${unitCode}.pdf`,
+        },
+      ],
+      callPhone: '0900000001',
+      zaloPhone: '0900000001',
+      contactMemberIds: [demoOwner.id],
+      transactionStatus: i % 5 === 0 ? 'BOOKED' : 'AVAILABLE',
+      note: `Ghi chú mẫu cho ${unitCode}`,
+      createdByUserId: demoOwner.id,
+    };
+
+    const existingProduct = await prisma.propertyProduct.findFirst({
+      where: {
+        workspaceId: demoWorkspace.id,
+        unitCode,
+      },
+      select: { id: true },
+    });
+
+    if (existingProduct) {
+      await prisma.propertyProduct.update({
+        where: { id: existingProduct.id },
+        data: payload,
+      });
+    } else {
+      await prisma.propertyProduct.create({ data: payload });
+    }
+  }
+
+  console.log(`✅ Seeded 24 warehouses in workspace: ${demoWorkspace.name}`);
+  console.log(`✅ Seeded 48 products linked to those warehouses`);
+
+  // ============================================================
+  // Seed target workspace data for real user phone
+  // ============================================================
+  const targetUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ phone: '+84905211851' }, { phone: '84905211851' }, { phone: '0905211851' }],
+    },
+    select: { id: true, phone: true },
+  });
+
+  if (targetUser) {
+    const targetWorkspace = await prisma.workspace.findFirst({
+      where: {
+        ownerUserId: targetUser.id,
+        status: 1,
+      },
+      select: { id: true, name: true },
+    });
+
+    if (targetWorkspace) {
+      const targetSeededWarehouses: Array<{ id: string; code: string; name: string }> = [];
+
+      for (let i = 1; i <= 24; i++) {
+        const code = `UWH-${String(i).padStart(3, '0')}`;
+        const type = warehouseTypePool[(i - 1) % warehouseTypePool.length];
+        const provinceName = provincePool[(i - 1) % provincePool.length];
+        const wardName = wardPool[(i - 1) % wardPool.length];
+
+        const payload = {
+          workspaceId: targetWorkspace.id,
+          name: `Kho BDS mẫu ${i}`,
+          code,
+          type,
+          description: `Kho mẫu auto-seed ${i} cho workspace người dùng`,
+          status: i % 7 === 0 ? 0 : 1,
+          latitude: (10.65 + i * 0.001).toFixed(8),
+          longitude: (106.75 + i * 0.001).toFixed(8),
+          provinceCode: `${79 + (i % 4)}`,
+          provinceName,
+          wardCode: `${2000 + i}`,
+          wardName,
+          fullAddress: `${i} Seed User Street, ${wardName}, ${provinceName}`,
+          createdByUserId: targetUser.id,
+        };
+
+        const existingWarehouse = await prisma.propertyWarehouse.findFirst({
+          where: {
+            workspaceId: targetWorkspace.id,
+            code,
+          },
+          select: { id: true },
+        });
+
+        const warehouse = existingWarehouse
+          ? await prisma.propertyWarehouse.update({
+              where: { id: existingWarehouse.id },
+              data: payload,
+            })
+          : await prisma.propertyWarehouse.create({
+              data: payload,
+            });
+
+        targetSeededWarehouses.push({ id: warehouse.id, code: warehouse.code, name: warehouse.name });
+      }
+
+      for (let i = 1; i <= 48; i++) {
+        const unitCode = `USP-${String(i).padStart(4, '0')}`;
+        const warehouse = targetSeededWarehouses[(i - 1) % targetSeededWarehouses.length];
+        const area = 50 + i * 1.65;
+        const priceWithoutVat = 1800000000 + i * 42000000;
+        const priceWithVat = Math.round(priceWithoutVat * 1.1);
+
+        const payload = {
+          workspaceId: targetWorkspace.id,
+          warehouseId: warehouse.id,
+          name: `Sản phẩm mẫu user ${i}`,
+          unitCode,
+          tags: ['seed', 'user-workspace', `warehouse:${warehouse.code}`],
+          propertyType: propertyTypePool[(i - 1) % propertyTypePool.length],
+          zone: `Zone ${((i - 1) % 6) + 1}`,
+          block: `Block ${String.fromCharCode(65 + ((i - 1) % 6))}`,
+          direction: directionPool[(i - 1) % directionPool.length],
+          area: area.toFixed(2),
+          priceWithoutVat: priceWithoutVat.toString(),
+          priceWithVat: priceWithVat.toString(),
+          isContactForPrice: i % 9 === 0,
+          isHidden: i % 11 === 0,
+          promotionProgram: i % 3 === 0 ? 'Ưu đãi seed cho workspace người dùng' : null,
+          policyImageUrls: [
+            `https://picsum.photos/seed/user-policy-${i}-1/1200/700`,
+            `https://picsum.photos/seed/user-policy-${i}-2/1200/700`,
+          ],
+          productDocuments: [
+            {
+              documentType: 'BROCHURE',
+              fileName: `brochure-${unitCode}.pdf`,
+              fileUrl: `https://example.com/docs/${unitCode}.pdf`,
+            },
+          ],
+          callPhone: targetUser.phone || '+84905211851',
+          zaloPhone: targetUser.phone || '+84905211851',
+          contactMemberIds: [targetUser.id],
+          transactionStatus: i % 5 === 0 ? 'BOOKED' : 'AVAILABLE',
+          note: `Ghi chú mẫu cho ${unitCode}`,
+          createdByUserId: targetUser.id,
+        };
+
+        const existingProduct = await prisma.propertyProduct.findFirst({
+          where: {
+            workspaceId: targetWorkspace.id,
+            unitCode,
+          },
+          select: { id: true },
+        });
+
+        if (existingProduct) {
+          await prisma.propertyProduct.update({
+            where: { id: existingProduct.id },
+            data: payload,
+          });
+        } else {
+          await prisma.propertyProduct.create({ data: payload });
+        }
+      }
+
+      console.log(`✅ Seeded 24 warehouses in workspace: ${targetWorkspace.name}`);
+      console.log(`✅ Seeded 48 products linked to those warehouses for ${targetUser.phone}`);
+    } else {
+      console.log('⚠️ Target user found but no active workspace to seed');
+    }
+  } else {
+    console.log('⚠️ User +84905211851 not found, skipped user-workspace seeding');
+  }
+
   console.log('✅ Seeding complete!');
 }
 

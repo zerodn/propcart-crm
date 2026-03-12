@@ -189,7 +189,11 @@ export function IconPicker({ value, onChange, className, buttonClassName }: Icon
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(0);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -220,10 +224,9 @@ export function IconPicker({ value, onChange, className, buttonClassName }: Icon
     const viewportPadding = 8;
     const gap = 6;
 
-    const fitsBelow = rect.bottom + gap + dropdownRect.height <= window.innerHeight - viewportPadding;
-    const preferredTop = fitsBelow
-      ? rect.bottom + gap
-      : rect.top - dropdownRect.height - gap;
+    const fitsBelow =
+      rect.bottom + gap + dropdownRect.height <= window.innerHeight - viewportPadding;
+    const preferredTop = fitsBelow ? rect.bottom + gap : rect.top - dropdownRect.height - gap;
 
     const clampedTop = Math.min(
       Math.max(preferredTop, viewportPadding),
@@ -236,7 +239,10 @@ export function IconPicker({ value, onChange, className, buttonClassName }: Icon
       window.innerWidth - width - viewportPadding,
     );
 
-    if (Math.abs(dropdownPos.top - clampedTop) > 1 || Math.abs(dropdownPos.left - clampedLeft) > 1) {
+    if (
+      Math.abs(dropdownPos.top - clampedTop) > 1 ||
+      Math.abs(dropdownPos.left - clampedLeft) > 1
+    ) {
       setDropdownPos({ top: clampedTop, left: clampedLeft, width });
     }
   }, [open, dropdownPos]);
@@ -254,80 +260,97 @@ export function IconPicker({ value, onChange, className, buttonClassName }: Icon
 
   const displayIcons = filtered ?? EMOJI_CATEGORIES[activeCategory]?.icons ?? [];
 
-  const dropdown = open && dropdownPos ? createPortal(
-    <div
-      ref={dropdownRef}
-      style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999, width: dropdownPos.width }}
-      className="bg-white border border-gray-200 rounded-xl shadow-xl flex flex-col"
-    >
-      {/* Search */}
-      <div className="flex items-center gap-1.5 px-2 py-2 border-b border-gray-100">
-        <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-        <input
-          autoFocus
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm biểu tượng..."
-          className="flex-1 text-xs outline-none bg-transparent"
-        />
-        {(search || value) && (
-          <button
-            type="button"
-            onClick={() => {
-              if (search) { setSearch(''); }
-              else { onChange(''); setOpen(false); }
+  const dropdown =
+    open && dropdownPos
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: 'fixed',
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              zIndex: 9999,
+              width: dropdownPos.width,
             }}
-            className="text-gray-400 hover:text-gray-600"
-            aria-label="Xóa"
+            className="bg-white border border-gray-200 rounded-xl shadow-xl flex flex-col"
           >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+            {/* Search */}
+            <div className="flex items-center gap-1.5 px-2 py-2 border-b border-gray-100">
+              <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm biểu tượng..."
+                className="flex-1 text-xs outline-none bg-transparent"
+              />
+              {(search || value) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (search) {
+                      setSearch('');
+                    } else {
+                      onChange('');
+                      setOpen(false);
+                    }
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Xóa"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
-      {/* Category tabs */}
-      {!search && (
-        <div className="flex gap-0.5 px-2 pt-1.5 pb-1 overflow-x-auto border-b border-gray-100">
-          {EMOJI_CATEGORIES.map((cat, i) => (
-            <button
-              key={cat.label}
-              type="button"
-              onClick={() => setActiveCategory(i)}
-              className={`flex-shrink-0 px-2 py-0.5 text-[10px] rounded-full whitespace-nowrap transition-colors ${
-                activeCategory === i
-                  ? 'bg-amber-500 text-white font-medium'
-                  : 'text-gray-500 hover:bg-gray-100'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      )}
+            {/* Category tabs */}
+            {!search && (
+              <div className="flex gap-0.5 px-2 pt-1.5 pb-1 overflow-x-auto border-b border-gray-100">
+                {EMOJI_CATEGORIES.map((cat, i) => (
+                  <button
+                    key={cat.label}
+                    type="button"
+                    onClick={() => setActiveCategory(i)}
+                    className={`flex-shrink-0 px-2 py-0.5 text-[10px] rounded-full whitespace-nowrap transition-colors ${
+                      activeCategory === i
+                        ? 'bg-amber-500 text-white font-medium'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
-      {/* Emoji grid */}
-      <div className="p-2 grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
-        {displayIcons.map(({ emoji, name }) => (
-          <button
-            key={emoji}
-            type="button"
-            title={name}
-            onClick={() => { onChange(emoji); setOpen(false); setSearch(''); }}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg text-lg transition-colors hover:bg-amber-50 ${
-              value === emoji ? 'bg-amber-100 ring-1 ring-amber-400' : ''
-            }`}
-          >
-            {emoji}
-          </button>
-        ))}
-        {displayIcons.length === 0 && (
-          <p className="col-span-8 text-center text-xs text-gray-400 py-3">Không tìm thấy</p>
-        )}
-      </div>
-    </div>,
-    document.body,
-  ) : null;
+            {/* Emoji grid */}
+            <div className="p-2 grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+              {displayIcons.map(({ emoji, name }) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  title={name}
+                  onClick={() => {
+                    onChange(emoji);
+                    setOpen(false);
+                    setSearch('');
+                  }}
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg text-lg transition-colors hover:bg-amber-50 ${
+                    value === emoji ? 'bg-amber-100 ring-1 ring-amber-400' : ''
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+              {displayIcons.length === 0 && (
+                <p className="col-span-8 text-center text-xs text-gray-400 py-3">Không tìm thấy</p>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className={`relative ${className ?? ''}`}>

@@ -1,15 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
-  X,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, RotateCw, ZoomIn, ZoomOut, X } from 'lucide-react';
 
 export interface BaseImagePreviewItem {
   src: string;

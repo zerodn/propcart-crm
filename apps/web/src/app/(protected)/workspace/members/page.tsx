@@ -1,7 +1,19 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Users, UserPlus, Trash2, Clock, XCircle, ChevronLeft, ChevronRight, Search, Edit2, UserX, MoreVertical, UserCog } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Users,
+  UserPlus,
+  Trash2,
+  Clock,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Edit2,
+  MoreVertical,
+  UserCog,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { InviteModal } from '@/components/workspace/invite-modal';
@@ -28,14 +40,21 @@ export default function MembersPage() {
   const [declinedPage, setDeclinedPage] = useState(1);
   const [memberSearch, setMemberSearch] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [invitationToCancel, setInvitationToCancel] = useState<{ id: string; phone: string } | null>(null);
+  const [invitationToCancel, setInvitationToCancel] = useState<{
+    id: string;
+    phone: string;
+  } | null>(null);
   const [isCanceling, setIsCanceling] = useState(false);
   const {
     invitations: declinedInvitations,
     isLoading: declinedLoading,
     meta: declinedMeta,
   } = useDeclinedInvitations(workspace?.id, declinedPage, 10);
-  const { members, isLoading: membersLoading, refetch: refetchMembers } = useWorkspaceMembers(workspace?.id, memberSearch);
+  const {
+    members,
+    isLoading: membersLoading,
+    refetch: refetchMembers,
+  } = useWorkspaceMembers(workspace?.id, memberSearch);
   const { roles } = useWorkspaceRoles(workspace?.id);
 
   const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
@@ -89,7 +108,9 @@ export default function MembersPage() {
   const handleToggleStatus = async (member: WorkspaceMember) => {
     try {
       const newStatus = member.status === 1 ? 0 : 1;
-      await apiClient.patch(`/workspaces/${workspace?.id}/members/${member.id}`, { status: newStatus });
+      await apiClient.patch(`/workspaces/${workspace?.id}/members/${member.id}`, {
+        status: newStatus,
+      });
       toast.success(newStatus === 1 ? 'Đã kích hoạt nhân sự' : 'Đã vô hiệu hóa nhân sự');
       refetchMembers();
       setOpenMenuId(null);
@@ -170,13 +191,17 @@ export default function MembersPage() {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-center py-3 px-4 font-semibold text-gray-700 w-12">STT</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Thông tin liên hệ</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Thông tin liên hệ
+                  </th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Tên</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Vai trò</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Trạng thái</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Tham gia</th>
                   {isAdminOrOwner && (
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700 whitespace-nowrap w-20">Thao tác</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700 whitespace-nowrap w-20">
+                      Thao tác
+                    </th>
                   )}
                 </tr>
               </thead>
@@ -187,7 +212,6 @@ export default function MembersPage() {
                   const fullName = member.displayName || member.user.fullName || '---';
                   const email = member.workspaceEmail || member.user.email || '';
                   const phone = member.workspacePhone || member.user.phone || '';
-                  const contactInfo = phone || email || 'N/A';
                   const initials = fullName.slice(0, 2).toUpperCase();
                   const isCurrentUser = member.userId === user?.id;
                   return (
@@ -214,16 +238,18 @@ export default function MembersPage() {
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0 w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-semibold overflow-hidden">
                             {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+                              <img
+                                src={member.avatarUrl}
+                                alt={fullName}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               <span>{initials}</span>
                             )}
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{fullName}</p>
-                            {isCurrentUser && (
-                              <span className="text-xs text-blue-600">(Bạn)</span>
-                            )}
+                            {isCurrentUser && <span className="text-xs text-blue-600">(Bạn)</span>}
                           </div>
                         </div>
                       </td>
@@ -256,9 +282,7 @@ export default function MembersPage() {
                       </td>
 
                       {/* Join date */}
-                      <td className="py-3 px-4 text-gray-600">
-                        {joinedDate}
-                      </td>
+                      <td className="py-3 px-4 text-gray-600">{joinedDate}</td>
 
                       {/* Actions */}
                       {isAdminOrOwner && (
@@ -332,7 +356,7 @@ export default function MembersPage() {
                   <div className="flex-shrink-0 w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                     <Clock className="h-5 w-5 text-orange-600" />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 break-words">
                       {inv.invitedPhone}
@@ -346,9 +370,7 @@ export default function MembersPage() {
                       >
                         {ROLE_LABELS[inv.role.code] ?? inv.role.name}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        • Còn {daysLeft} ngày
-                      </span>
+                      <span className="text-xs text-gray-500">• Còn {daysLeft} ngày</span>
                     </div>
                   </div>
 
@@ -398,7 +420,7 @@ export default function MembersPage() {
                   <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                     <XCircle className="h-5 w-5 text-red-600" />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 break-words">
                       {inv.invitedPhone}
@@ -412,9 +434,7 @@ export default function MembersPage() {
                       >
                         {ROLE_LABELS[inv.role.code] ?? inv.role.name}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        • Từ chối ngày {declinedDate}
-                      </span>
+                      <span className="text-xs text-gray-500">• Từ chối ngày {declinedDate}</span>
                     </div>
                     {inv.declineReason && (
                       <div className="mt-2 p-2 bg-white border border-gray-200 rounded text-xs text-gray-600">
@@ -457,7 +477,11 @@ export default function MembersPage() {
       )}
 
       {showInviteModal && (
-        <InviteModal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} onSuccess={refetch} />
+        <InviteModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          onSuccess={refetch}
+        />
       )}
 
       {showEditDialog && editingMember && (
@@ -504,29 +528,29 @@ export default function MembersPage() {
             .map((member) => {
               const isCurrentUser = member.userId === user?.id;
               return (
-              <div key={member.id}>
-                <button
-                  onClick={() => {
-                    handleEditMember(member);
-                    setOpenMenuId(null);
-                    setMenuPosition(null);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  Chỉnh sửa thông tin
-                </button>
-                {!isCurrentUser && (
+                <div key={member.id}>
                   <button
-                    onClick={() => handleToggleStatus(member)}
+                    onClick={() => {
+                      handleEditMember(member);
+                      setOpenMenuId(null);
+                      setMenuPosition(null);
+                    }}
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                   >
-                    <UserCog className="h-4 w-4" />
-                    {member.status === 1 ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                    <Edit2 className="h-4 w-4" />
+                    Chỉnh sửa thông tin
                   </button>
-                )}
-              </div>
-            );
+                  {!isCurrentUser && (
+                    <button
+                      onClick={() => handleToggleStatus(member)}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <UserCog className="h-4 w-4" />
+                      {member.status === 1 ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                    </button>
+                  )}
+                </div>
+              );
             })}
         </div>
       )}

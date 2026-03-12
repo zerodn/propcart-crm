@@ -13,6 +13,10 @@ import { BaseDataGrid, DataGridColumn, DataGridAction } from '@/components/commo
 import { ProductForm } from '@/components/product/product-form';
 import { cn } from '@/lib/utils';
 
+interface ProductFormPayload {
+  [key: string]: unknown;
+}
+
 function formatMoney(value?: number) {
   if (value === undefined || value === null) return '—';
   return new Intl.NumberFormat('vi-VN').format(value);
@@ -74,11 +78,13 @@ export default function ProductPage() {
       const code = (c.code || '').toLowerCase();
       const type = (c.type || '').toLowerCase();
       const name = (c.name || '').toLowerCase();
-      return normalized.some((key) => code.includes(key) || type.includes(key) || name.includes(key));
+      return normalized.some(
+        (key) => code.includes(key) || type.includes(key) || name.includes(key),
+      );
     });
 
     const values = target?.values || [];
-    return values.map((v: any) => ({ value: v.value, label: v.label, color: v.color }));
+    return values.map((v) => ({ value: v.value, label: v.label, color: v.color }));
   };
 
   const directionOptions = useMemo(
@@ -87,7 +93,13 @@ export default function ProductPage() {
   );
 
   const propertyTypeOptions = useMemo(
-    () => findCatalogValues(['property_type', 'loai_hinh_bds', 'loai hinh bds', 'loai hinh bat dong san']),
+    () =>
+      findCatalogValues([
+        'property_type',
+        'loai_hinh_bds',
+        'loai hinh bds',
+        'loai hinh bat dong san',
+      ]),
     [catalogs],
   );
 
@@ -118,7 +130,7 @@ export default function ProductPage() {
     [catalogs],
   );
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: ProductFormPayload) => {
     setIsSubmitting(true);
     try {
       if (editingId) {
@@ -169,7 +181,9 @@ export default function ProductPage() {
       label: 'Tên sản phẩm',
       render: (value, row) => (
         <div>
-          <div className="font-medium text-gray-900">{value || '—'}</div>
+          <div className="font-medium text-gray-900">
+            {typeof value === 'string' && value.trim() ? value : '—'}
+          </div>
           <div className="text-xs text-gray-500">Mã: {row.unitCode}</div>
         </div>
       ),
@@ -177,46 +191,60 @@ export default function ProductPage() {
     {
       key: 'propertyType',
       label: 'Loại hình',
-      render: (value) => <span className="text-sm text-gray-700">{value}</span>,
+      render: (value) => (
+        <span className="text-sm text-gray-700">{typeof value === 'string' ? value : '—'}</span>
+      ),
     },
     {
       key: 'warehouse',
       label: 'Kho hàng',
-      render: (value) => <span>{value?.name || '—'}</span>,
+      render: (value) => {
+        const warehouse = value as { name?: string } | null | undefined;
+        return <span>{warehouse?.name || '—'}</span>;
+      },
     },
     {
       key: 'area',
       label: 'Diện tích',
-      render: (value) => <span>{value ? `${value} m2` : '—'}</span>,
+      render: (value) => {
+        const area = typeof value === 'number' ? value : undefined;
+        return <span>{area ? `${area} m2` : '—'}</span>;
+      },
     },
     {
       key: 'priceWithoutVat',
       label: 'Giá chưa VAT',
-      render: (value) => <span>{formatMoney(value)}</span>,
+      render: (value) => <span>{formatMoney(typeof value === 'number' ? value : undefined)}</span>,
     },
     {
       key: 'priceWithVat',
       label: 'Giá gồm VAT',
-      render: (value) => <span>{formatMoney(value)}</span>,
+      render: (value) => <span>{formatMoney(typeof value === 'number' ? value : undefined)}</span>,
     },
     {
       key: 'transactionStatus',
       label: 'Giao dịch',
-      render: (value) => (
-        <span
-          className={cn(
-            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-            value === 'BOOKED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700',
-          )}
-        >
-          {transactionStatusOptions.find((s) => s.value === value)?.label || value}
-        </span>
-      ),
+      render: (value) => {
+        const status = typeof value === 'string' ? value : '';
+        return (
+          <span
+            className={cn(
+              'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+              status === 'BOOKED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700',
+            )}
+          >
+            {transactionStatusOptions.find((s) => s.value === status)?.label || status || '—'}
+          </span>
+        );
+      },
     },
     {
       key: 'createdBy',
       label: 'Người tạo',
-      render: (value) => <span>{value?.fullName || value?.phone || 'N/A'}</span>,
+      render: (value) => {
+        const createdBy = value as { fullName?: string; phone?: string } | null | undefined;
+        return <span>{createdBy?.fullName || createdBy?.phone || 'N/A'}</span>;
+      },
     },
   ];
 

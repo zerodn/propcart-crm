@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, CheckCircle, Mail, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { Bell, CheckCircle, Mail, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/providers/i18n-provider';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 export interface NotificationItem {
   id: string;
   type: string;
-  payload: any;
+  payload: Record<string, unknown> | null;
   read: boolean;
   createdAt: string;
 }
@@ -50,7 +50,7 @@ export default function NotificationsPage() {
     try {
       await apiClient.patch(`/me/notifications/${id}/read`);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    } catch (err) {
+    } catch {
       toast.error(t('notifications.markError'));
     }
   };
@@ -69,7 +69,7 @@ export default function NotificationsPage() {
       toast.success(t('notifications.deleteSuccess'));
       setShowDeleteConfirm(false);
       setNotificationToDelete(null);
-    } catch (err) {
+    } catch {
       toast.error(t('notifications.deleteError'));
     } finally {
       setIsDeletingNotification(false);
@@ -87,12 +87,19 @@ export default function NotificationsPage() {
     }
   };
 
-  const getNotificationMessage = (type: string, payload: any) => {
+  const getNotificationMessage = (type: string, payload: Record<string, unknown> | null) => {
     switch (type) {
       case 'INVITATION':
-        return t('notifications.invitationMessage', { workspaceName: payload.workspaceName || 'N/A' });
+        return t('notifications.invitationMessage', {
+          workspaceName: typeof payload?.workspaceName === 'string' ? payload.workspaceName : 'N/A',
+        });
       case 'PAYMENT':
-        return t('notifications.paymentMessage', { amount: payload.amount || 'N/A' });
+        return t('notifications.paymentMessage', {
+          amount:
+            typeof payload?.amount === 'string' || typeof payload?.amount === 'number'
+              ? payload.amount
+              : 'N/A',
+        });
       default:
         return t('notifications.defaultMessage');
     }
@@ -140,9 +147,7 @@ export default function NotificationsPage() {
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
           <p className="font-medium text-gray-900">{t('notifications.emptyState')}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            {t('notifications.emptyDesc')}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{t('notifications.emptyDesc')}</p>
         </div>
       )}
 

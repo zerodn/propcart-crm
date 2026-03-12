@@ -60,8 +60,7 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
     } catch (err: unknown) {
       const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
       if (code === 'OTP_INVALID') toast.error(t('auth.errors.invalidOtp'));
-      else if (code === 'OTP_MAX_ATTEMPTS')
-        toast.error(t('auth.errors.invalidOtp'));
+      else if (code === 'OTP_MAX_ATTEMPTS') toast.error(t('auth.errors.invalidOtp'));
       else toast.error(t('auth.errors.loginFailed'));
     } finally {
       setIsLoading(false);

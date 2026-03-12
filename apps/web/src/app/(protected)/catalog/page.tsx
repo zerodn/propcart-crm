@@ -10,7 +10,6 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { GridSkeleton } from '@/components/common/skeleton';
 import { CATALOG_TYPES } from '@/types';
-import type { CatalogItem } from '@/hooks/use-catalog';
 
 export default function CatalogPage() {
   const { t } = useI18n();
@@ -26,8 +25,16 @@ export default function CatalogPage() {
 
   const filteredItems = selectedType ? items.filter((item) => item.type === selectedType) : items;
   const editingItem = items.find((item) => item.id === editingId);
-  const parentOptions = items.filter((i) => i.id !== editingId).map((i) => ({ id: i.id, name: i.name }));
-  const editingItemValues = (editingItem as any)?.values ?? [];
+  const parentOptions = items
+    .filter((i) => i.id !== editingId)
+    .map((i) => ({ id: i.id, name: i.name }));
+  const editingItemValues = editingItem?.values ?? [];
+
+  const getParentId = (item: unknown): string | null => {
+    if (!item || typeof item !== 'object') return null;
+    const record = item as Record<string, unknown>;
+    return typeof record.parentId === 'string' ? record.parentId : null;
+  };
 
   const handleSubmit = async (
     type: string,
@@ -50,7 +57,9 @@ export default function CatalogPage() {
     }
   };
 
-  const handleSaveValues = async (values: Array<{ value: string; label: string; color?: string }>) => {
+  const handleSaveValues = async (
+    values: Array<{ value: string; label: string; color?: string }>,
+  ) => {
     if (!editingId) return;
     await handleSubmit('', '', '', undefined, values);
     setShowValuesDialog(false);
@@ -91,9 +100,7 @@ export default function CatalogPage() {
             </div>
             <h1 className="text-xl font-bold text-gray-900">{t('catalog.title')}</h1>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            {t('catalog.subtitle')}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{t('catalog.subtitle')}</p>
         </div>
         <button
           onClick={() => {
@@ -151,8 +158,8 @@ export default function CatalogPage() {
                   type: editingItem.type,
                   code: editingItem.code,
                   name: editingItem.name,
-                  parentId: (editingItem as any).parentId ?? null,
-                  values: (editingItem as any).values ?? [],
+                  parentId: getParentId(editingItem),
+                  values: editingItem.values ?? [],
                 }
               : undefined
           }
@@ -249,9 +256,9 @@ export default function CatalogPage() {
                   </span>
                   <span className="text-xs text-gray-400">({item.code})</span>
                 </div>
-                {(item as any)?.values?.length > 0 && (
+                {(item.values?.length ?? 0) > 0 && (
                   <div className="mt-3 text-xs text-gray-500">
-                    {(item as any).values.length} giá trị
+                    {item.values?.length ?? 0} giá trị
                   </div>
                 )}
               </div>

@@ -8,6 +8,14 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
 
+function toNullableJsonInput(
+  value: unknown,
+): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.DbNull;
+  return toJsonValue(value);
+}
+
 @Injectable()
 export class ProjectService {
   constructor(private readonly prisma: PrismaService) {}
@@ -25,7 +33,7 @@ export class ProjectService {
         displayStatus: dto.displayStatus ?? 'DRAFT',
         saleStatus: dto.saleStatus ?? 'COMING_SOON',
         bannerUrl: bannerItems[0]?.originalUrl ?? null,
-        bannerUrls: bannerItems.length > 0 ? toJsonValue(bannerItems) : null,
+        bannerUrls: toNullableJsonInput(bannerItems.length > 0 ? bannerItems : null),
         overviewHtml: dto.overviewHtml ?? null,
         address: dto.address ?? null,
         province: dto.province ?? null,
@@ -36,18 +44,18 @@ export class ProjectService {
         googleMapUrl: dto.googleMapUrl ?? null,
         locationDescriptionHtml: dto.locationDescriptionHtml ?? null,
         zoneImageUrl: dto.zoneImages?.[0]?.originalUrl ?? dto.zoneImageUrl ?? null,
-        zoneImages: dto.zoneImages ? toJsonValue(dto.zoneImages) : null,
+        zoneImages: toNullableJsonInput(dto.zoneImages ?? null),
         productImageUrl: dto.productImages?.[0]?.originalUrl ?? dto.productImageUrl ?? null,
-        productImages: dto.productImages ? toJsonValue(dto.productImages) : null,
+        productImages: toNullableJsonInput(dto.productImages ?? null),
         amenityImageUrl: dto.amenityImages?.[0]?.originalUrl ?? dto.amenityImageUrl ?? null,
-        amenityImages: dto.amenityImages ? toJsonValue(dto.amenityImages) : null,
+        amenityImages: toNullableJsonInput(dto.amenityImages ?? null),
         videoUrl: dto.videoUrl ?? null,
         videoDescription: dto.videoDescription ?? null,
-        contacts: dto.contacts ? toJsonValue(dto.contacts) : null,
-        planningStats: dto.planningStats ? toJsonValue(dto.planningStats) : null,
-        progressUpdates: dto.progressUpdates ? toJsonValue(dto.progressUpdates) : null,
-        documentItems: dto.documentItems ? toJsonValue(dto.documentItems) : null,
-        subdivisions: dto.subdivisions ? toJsonValue(dto.subdivisions) : null,
+        contacts: toNullableJsonInput(dto.contacts ?? null),
+        planningStats: toNullableJsonInput(dto.planningStats ?? null),
+        progressUpdates: toNullableJsonInput(dto.progressUpdates ?? null),
+        documentItems: toNullableJsonInput(dto.documentItems ?? null),
+        subdivisions: toNullableJsonInput(dto.subdivisions ?? null),
         createdByUserId: user.sub,
       },
       include: { createdBy: { select: { id: true, fullName: true, phone: true } } },
@@ -116,8 +124,9 @@ export class ProjectService {
         ...(hasBannerUpdate && {
           bannerUrl:
             nextBannerItems && nextBannerItems.length > 0 ? nextBannerItems[0].originalUrl : null,
-          bannerUrls:
-            nextBannerItems && nextBannerItems.length > 0 ? toJsonValue(nextBannerItems) : null,
+          bannerUrls: toNullableJsonInput(
+            nextBannerItems && nextBannerItems.length > 0 ? nextBannerItems : null,
+          ),
         }),
         ...(dto.overviewHtml !== undefined && { overviewHtml: dto.overviewHtml }),
         ...(dto.address !== undefined && { address: dto.address }),
@@ -132,31 +141,41 @@ export class ProjectService {
         }),
         ...(dto.zoneImages !== undefined && {
           zoneImageUrl: dto.zoneImages.length > 0 ? dto.zoneImages[0].originalUrl : null,
-          zoneImages: dto.zoneImages.length > 0 ? toJsonValue(dto.zoneImages) : null,
+          zoneImages: toNullableJsonInput(dto.zoneImages.length > 0 ? dto.zoneImages : null),
         }),
         ...(dto.zoneImages === undefined &&
           dto.zoneImageUrl !== undefined && { zoneImageUrl: dto.zoneImageUrl }),
         ...(dto.productImages !== undefined && {
           productImageUrl: dto.productImages.length > 0 ? dto.productImages[0].originalUrl : null,
-          productImages: dto.productImages.length > 0 ? toJsonValue(dto.productImages) : null,
+          productImages: toNullableJsonInput(
+            dto.productImages.length > 0 ? dto.productImages : null,
+          ),
         }),
         ...(dto.productImages === undefined &&
           dto.productImageUrl !== undefined && { productImageUrl: dto.productImageUrl }),
         ...(dto.amenityImages !== undefined && {
           amenityImageUrl: dto.amenityImages.length > 0 ? dto.amenityImages[0].originalUrl : null,
-          amenityImages: dto.amenityImages.length > 0 ? toJsonValue(dto.amenityImages) : null,
+          amenityImages: toNullableJsonInput(
+            dto.amenityImages.length > 0 ? dto.amenityImages : null,
+          ),
         }),
         ...(dto.amenityImages === undefined &&
           dto.amenityImageUrl !== undefined && { amenityImageUrl: dto.amenityImageUrl }),
         ...(dto.videoUrl !== undefined && { videoUrl: dto.videoUrl }),
         ...(dto.videoDescription !== undefined && { videoDescription: dto.videoDescription }),
-        ...(dto.contacts !== undefined && { contacts: toJsonValue(dto.contacts) }),
-        ...(dto.planningStats !== undefined && { planningStats: toJsonValue(dto.planningStats) }),
-        ...(dto.progressUpdates !== undefined && {
-          progressUpdates: toJsonValue(dto.progressUpdates),
+        ...(dto.contacts !== undefined && { contacts: toNullableJsonInput(dto.contacts) }),
+        ...(dto.planningStats !== undefined && {
+          planningStats: toNullableJsonInput(dto.planningStats),
         }),
-        ...(dto.documentItems !== undefined && { documentItems: toJsonValue(dto.documentItems) }),
-        ...(dto.subdivisions !== undefined && { subdivisions: toJsonValue(dto.subdivisions) }),
+        ...(dto.progressUpdates !== undefined && {
+          progressUpdates: toNullableJsonInput(dto.progressUpdates),
+        }),
+        ...(dto.documentItems !== undefined && {
+          documentItems: toNullableJsonInput(dto.documentItems),
+        }),
+        ...(dto.subdivisions !== undefined && {
+          subdivisions: toNullableJsonInput(dto.subdivisions),
+        }),
       },
     });
   }

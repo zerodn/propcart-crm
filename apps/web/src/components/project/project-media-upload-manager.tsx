@@ -55,10 +55,7 @@ function MediaEditPanel({
   const content = (
     <div className="fixed inset-0 z-[10020]">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
       <div className="absolute top-0 right-0 h-full w-96 bg-white shadow-2xl flex flex-col z-10">
@@ -78,7 +75,6 @@ function MediaEditPanel({
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Preview */}
           <div className="rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={item.thumbnailUrl || item.originalUrl}
               alt="Preview"
@@ -88,9 +84,7 @@ function MediaEditPanel({
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Tên tệp
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên tệp</label>
             <input
               type="text"
               value={name}
@@ -102,9 +96,7 @@ function MediaEditPanel({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Mô tả
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -173,7 +165,7 @@ export function ProjectMediaUploadManager({
       // Upload files sequentially
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // Check file type
         if (!file.type.startsWith('image/')) {
           console.warn(`Bỏ qua file không phải hình ảnh: ${file.name}`);
@@ -261,9 +253,7 @@ export function ProjectMediaUploadManager({
   };
 
   const handleSaveItem = (updated: MediaItem) => {
-    onItemsChange(items.map((item) =>
-      item.originalUrl === updated.originalUrl ? updated : item,
-    ));
+    onItemsChange(items.map((item) => (item.originalUrl === updated.originalUrl ? updated : item)));
     setEditingItem(null);
   };
 
@@ -272,9 +262,7 @@ export function ProjectMediaUploadManager({
   return (
     <>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          {label}
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-3">{label}</label>
 
         {/* Upload area - ALWAYS show when can add more */}
         {canAddMore && (
@@ -323,7 +311,6 @@ export function ProjectMediaUploadManager({
               >
                 {/* Thumbnail */}
                 <div className="relative rounded-xl border border-gray-200 overflow-hidden bg-gray-50 h-32">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.thumbnailUrl || item.originalUrl}
                     alt={item.fileName}
@@ -377,18 +364,14 @@ export function ProjectMediaUploadManager({
                 </div>
 
                 {/* Label */}
-                <p className="text-xs text-gray-700 font-medium mt-1.5 truncate">
-                  {item.fileName}
-                </p>
+                <p className="text-xs text-gray-700 font-medium mt-1.5 truncate">{item.fileName}</p>
                 {showPrimaryLabel && idx === 0 && (
                   <span className="inline-flex mt-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800">
                     Ảnh đại diện
                   </span>
                 )}
                 {item.description && (
-                  <p className="text-xs text-gray-500 truncate italic">
-                    {item.description}
-                  </p>
+                  <p className="text-xs text-gray-500 truncate italic">{item.description}</p>
                 )}
               </div>
             ))}
@@ -416,7 +399,7 @@ export function ProjectMediaUploadManager({
         ref={inputRef}
         type="file"
         accept="image/*"
-        multiple
+        multiple={showMultiple}
         className="hidden"
         onChange={handleFileChange}
       />

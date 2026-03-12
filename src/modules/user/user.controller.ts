@@ -55,10 +55,7 @@ export class UserController {
   @Post('me/profile/upload-avatar')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
-  uploadMyAvatar(
-    @CurrentUser() user: JwtPayload,
-    @UploadedFile() file: UploadedDocumentFile,
-  ) {
+  uploadMyAvatar(@CurrentUser() user: JwtPayload, @UploadedFile() file: UploadedDocumentFile) {
     return this.userService.uploadProfileAvatar(user.sub, user.workspaceId, file);
   }
 
@@ -111,6 +108,11 @@ export class UserController {
     @Param('documentId') documentId: string,
     @Body() dto: UpdateDocumentTypeDto,
   ) {
-    return this.userService.updateDocumentType(user.sub, user.workspaceId, documentId, dto.documentType);
+    return this.userService.updateDocumentType(
+      user.sub,
+      user.workspaceId,
+      documentId,
+      dto.documentType,
+    );
   }
 }

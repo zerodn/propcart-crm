@@ -4,15 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-export interface DataGridColumn<T = any> {
+export interface DataGridColumn<T = object> {
   key: string;
   label: string;
-  render?: (value: any, row: T, index: number) => React.ReactNode;
+  render?: (value: unknown, row: T, index: number) => React.ReactNode;
   className?: string;
   headerClassName?: string;
 }
 
-export interface DataGridAction<T = any> {
+export interface DataGridAction<T = object> {
   icon?: React.ReactNode;
   label: string;
   onClick: (row: T, index: number) => void;
@@ -21,7 +21,7 @@ export interface DataGridAction<T = any> {
   show?: (row: T) => boolean;
 }
 
-export interface BaseDataGridProps<T = any> {
+export interface BaseDataGridProps<T = object> {
   data: T[];
   columns: DataGridColumn<T>[];
   actions?: DataGridAction<T>[];
@@ -36,7 +36,7 @@ export interface BaseDataGridProps<T = any> {
   rowClassName?: (row: T, index: number) => string;
 }
 
-export function BaseDataGrid<T extends Record<string, any>>({
+export function BaseDataGrid<T extends object>({
   data = [],
   columns = [],
   actions = [],
@@ -51,6 +51,13 @@ export function BaseDataGrid<T extends Record<string, any>>({
   rowClassName,
 }: BaseDataGridProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
+
+  const renderDefaultCell = (value: unknown): React.ReactNode => {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'string' || typeof value === 'number') return value;
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    return '—';
+  };
 
   // Pagination calculation
   const totalPages = Math.ceil(data.length / pageSize);
@@ -154,9 +161,7 @@ export function BaseDataGrid<T extends Record<string, any>>({
                     key={globalIndex}
                     className={`hover:bg-gray-50 transition-colors ${
                       onRowClick ? 'cursor-pointer' : ''
-                    } ${
-                      rowClassName ? rowClassName(row, globalIndex) : ''
-                    }`}
+                    } ${rowClassName ? rowClassName(row, globalIndex) : ''}`}
                     onClick={() => onRowClick?.(row, globalIndex)}
                   >
                     {/* STT Cell */}
@@ -170,9 +175,12 @@ export function BaseDataGrid<T extends Record<string, any>>({
                         key={column.key}
                         className={`px-4 py-3 text-sm text-gray-700 ${column.className || ''}`}
                       >
-                        {column.render
-                          ? column.render(row[column.key], row, globalIndex)
-                          : row[column.key] || '—'}
+                        {(() => {
+                          const cellValue = (row as Record<string, unknown>)[column.key];
+                          return column.render
+                            ? column.render(cellValue, row, globalIndex)
+                            : renderDefaultCell(cellValue);
+                        })()}
                       </td>
                     ))}
 
@@ -213,11 +221,23 @@ export function BaseDataGrid<T extends Record<string, any>>({
                                       }}
                                     >
                                       {action.icon && (
-                                        <span className={action.variant === 'danger' ? 'text-red-600' : action.variant === 'primary' ? 'text-blue-600' : 'text-gray-600'}>
+                                        <span
+                                          className={
+                                            action.variant === 'danger'
+                                              ? 'text-red-600'
+                                              : action.variant === 'primary'
+                                                ? 'text-blue-600'
+                                                : 'text-gray-600'
+                                          }
+                                        >
                                           {action.icon}
                                         </span>
                                       )}
-                                      <span className={action.variant === 'danger' ? 'text-red-600' : ''}>
+                                      <span
+                                        className={
+                                          action.variant === 'danger' ? 'text-red-600' : ''
+                                        }
+                                      >
                                         {action.label}
                                       </span>
                                     </DropdownMenu.Item>

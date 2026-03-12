@@ -16,12 +16,12 @@ export class CreateWarehouseDto {
   description?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' || value === null ? undefined : Number(value))
+  @Transform(({ value }) => (value === '' || value === null ? undefined : Number(value)))
   @IsNumber({}, { message: 'Vĩ độ phải là số' })
   latitude?: number;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' || value === null ? undefined : Number(value))
+  @Transform(({ value }) => (value === '' || value === null ? undefined : Number(value)))
   @IsNumber({}, { message: 'Kinh độ phải là số' })
   longitude?: number;
 

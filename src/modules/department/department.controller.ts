@@ -26,16 +26,8 @@ export class DepartmentController {
   @Post()
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('DEPARTMENT_CREATE')
-  create(
-    @Param('workspaceId') workspaceId: string,
-    @Body() dto: CreateDepartmentDto,
-  ) {
-    return this.departmentService.create(
-      workspaceId,
-      dto.name,
-      dto.code,
-      dto.description,
-    );
+  create(@Param('workspaceId') workspaceId: string, @Body() dto: CreateDepartmentDto) {
+    return this.departmentService.create(workspaceId, dto.name, dto.code, dto.description);
   }
 
   @Get()
@@ -65,20 +57,14 @@ export class DepartmentController {
   @Post(':departmentId/members')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('DEPARTMENT_UPDATE')
-  addMember(
-    @Param('departmentId') departmentId: string,
-    @Body() dto: AddDepartmentMemberDto,
-  ) {
+  addMember(@Param('departmentId') departmentId: string, @Body() dto: AddDepartmentMemberDto) {
     return this.departmentService.addMember(departmentId, dto.userId, dto.roleId);
   }
 
   @Delete(':departmentId/members/:userId')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('DEPARTMENT_UPDATE')
-  removeMember(
-    @Param('departmentId') departmentId: string,
-    @Param('userId') userId: string,
-  ) {
+  removeMember(@Param('departmentId') departmentId: string, @Param('userId') userId: string) {
     return this.departmentService.removeMember(departmentId, userId);
   }
 

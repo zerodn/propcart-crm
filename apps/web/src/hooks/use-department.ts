@@ -3,6 +3,14 @@ import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 import { useAuth } from './use-auth';
 
+type DepartmentMemberOptionApi = {
+  userId: string;
+  user?: {
+    phone?: string;
+    email?: string;
+  };
+};
+
 export interface DepartmentMember {
   departmentId: string;
   userId: string;
@@ -47,7 +55,10 @@ export interface UseDepartmentReturn {
   isLoading: boolean;
   error: string | null;
   create: (name: string, code: string, description?: string) => Promise<void>;
-  update: (id: string, data: { name?: string; code?: string; description?: string }) => Promise<void>;
+  update: (
+    id: string,
+    data: { name?: string; code?: string; description?: string },
+  ) => Promise<void>;
   delete: (id: string) => Promise<void>;
   addMember: (departmentId: string, userId: string, roleId: string) => Promise<void>;
   removeMember: (departmentId: string, userId: string) => Promise<void>;
@@ -71,7 +82,9 @@ export function useDepartment(): UseDepartmentReturn {
     try {
       const [departmentRes, memberRes, roleRes] = await Promise.all([
         apiClient.get<{ data: Department[] }>(`/workspaces/${workspace.id}/departments`),
-        apiClient.get<{ data: any[] }>(`/workspaces/${workspace.id}/departments/member-options`),
+        apiClient.get<{ data: DepartmentMemberOptionApi[] }>(
+          `/workspaces/${workspace.id}/departments/member-options`,
+        ),
         apiClient.get<{ data: DepartmentRoleOption[] }>(
           `/workspaces/${workspace.id}/departments/role-options`,
         ),
@@ -86,7 +99,7 @@ export function useDepartment(): UseDepartmentReturn {
       const roles = Array.isArray(roleRes?.data) ? roleRes.data : (roleRes?.data?.data ?? []);
 
       setMemberOptions(
-        (members || []).map((member: any) => ({
+        (members || []).map((member: DepartmentMemberOptionApi) => ({
           userId: member.userId,
           phone: member.user?.phone,
           email: member.user?.email,
@@ -124,7 +137,10 @@ export function useDepartment(): UseDepartmentReturn {
     }
   };
 
-  const update = async (id: string, data: { name?: string; code?: string; description?: string }) => {
+  const update = async (
+    id: string,
+    data: { name?: string; code?: string; description?: string },
+  ) => {
     if (!workspace) return;
     try {
       await apiClient.patch(`/workspaces/${workspace.id}/departments/${id}`, data);
@@ -205,11 +221,11 @@ export function useDepartment(): UseDepartmentReturn {
   const searchMembers = async (query: string): Promise<DepartmentMemberOption[]> => {
     if (!workspace || !query.trim()) return [];
     try {
-      const res = await apiClient.get<{ data: any[] }>(
+      const res = await apiClient.get<{ data: DepartmentMemberOption[] }>(
         `/workspaces/${workspace.id}/departments/member-search?q=${encodeURIComponent(query)}`,
       );
       const results = Array.isArray(res?.data) ? res.data : (res?.data?.data ?? []);
-      return results.map((member: any) => ({
+      return results.map((member: DepartmentMemberOption) => ({
         userId: member.userId,
         phone: member.phone,
         email: member.email,

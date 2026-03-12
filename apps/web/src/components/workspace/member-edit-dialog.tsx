@@ -60,8 +60,12 @@ export function MemberEditDialog({
   const [roleId, setRoleId] = useState(member.roleId);
   const [status, setStatus] = useState(member.status);
   const [displayName, setDisplayName] = useState(member.displayName || member.user.fullName || '');
-  const [workspaceEmail, setWorkspaceEmail] = useState(member.workspaceEmail || member.user.email || '');
-  const [workspacePhone, setWorkspacePhone] = useState(member.workspacePhone || member.user.phone || '');
+  const [workspaceEmail, setWorkspaceEmail] = useState(
+    member.workspaceEmail || member.user.email || '',
+  );
+  const [workspacePhone, setWorkspacePhone] = useState(
+    member.workspacePhone || member.user.phone || '',
+  );
   const [locationData, setLocationData] = useState<LocationFormData>({
     provinceCode: member.workspaceCity || '',
     provinceName: member.workspaceCity || '',
@@ -71,13 +75,17 @@ export function MemberEditDialog({
     dateOfBirth: member.dateOfBirth ? member.dateOfBirth.split('T')[0] : '',
   });
   const [attachmentUrl, setAttachmentUrl] = useState(member.attachmentUrl || '');
-  const [attachmentType, setAttachmentType] = useState<'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER'>('OTHER');
+  const [attachmentType, setAttachmentType] = useState<'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER'>(
+    'OTHER',
+  );
   const [attachmentDocuments, setAttachmentDocuments] = useState<AttachmentDocument[]>([]);
   const [avatarUrl, setAvatarUrl] = useState(member.avatarUrl || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingAttachmentDocuments, setIsLoadingAttachmentDocuments] = useState(false);
-  const [updatingAttachmentTypes, setUpdatingAttachmentTypes] = useState<Record<string, boolean>>({});
+  const [updatingAttachmentTypes, setUpdatingAttachmentTypes] = useState<Record<string, boolean>>(
+    {},
+  );
   const [deletingAttachmentIds, setDeletingAttachmentIds] = useState<Set<string>>(new Set());
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,14 +139,15 @@ export function MemberEditDialog({
               ? response.data
               : [];
           const normalizedDocs: AttachmentDocument[] = docs
-            .filter((doc: any) => doc?.id && doc?.downloadUrl)
-            .map((doc: any) => ({
-              id: doc.id,
-              fileName: doc.fileName || 'Tep dinh kem',
-              documentType: (doc.documentType || 'OTHER') as AttachmentDocument['documentType'],
-              downloadUrl: doc.downloadUrl,
-              createdAt: doc.createdAt,
-              fileSize: doc.fileSize,
+            .filter((doc: Record<string, unknown>) => doc?.id && doc?.downloadUrl)
+            .map((doc: Record<string, unknown>) => ({
+              id: doc.id as string,
+              fileName: (doc.fileName as string | undefined) || 'Tep dinh kem',
+              documentType: ((doc.documentType as string | undefined) ||
+                'OTHER') as AttachmentDocument['documentType'],
+              downloadUrl: doc.downloadUrl as string,
+              createdAt: doc.createdAt as string,
+              fileSize: doc.fileSize as number | undefined,
             }));
           setAttachmentDocuments(normalizedDocs);
         } catch {
@@ -177,19 +186,24 @@ export function MemberEditDialog({
           const newDocument: AttachmentDocument = {
             id: uploaded.id,
             fileName,
-            documentType: (uploaded.documentType || attachmentType) as AttachmentDocument['documentType'],
+            documentType: (uploaded.documentType ||
+              attachmentType) as AttachmentDocument['documentType'],
             downloadUrl,
             createdAt: uploaded.createdAt,
             fileSize: uploaded.fileSize,
           };
-          setAttachmentDocuments((prev) => [newDocument, ...prev.filter((doc) => doc.id !== uploaded.id)]);
+          setAttachmentDocuments((prev) => [
+            newDocument,
+            ...prev.filter((doc) => doc.id !== uploaded.id),
+          ]);
         }
         toast.success('Đã tải lên tệp đính kèm');
       } else {
         toast.error('Tải lên thành công nhưng không nhận được URL tệp');
       }
-    } catch (error: any) {
-      const code = error?.response?.data?.code;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { code?: string } } };
+      const code = apiError.response?.data?.code;
       if (code === 'FILE_TOO_LARGE') {
         toast.error('File quá lớn (tối đa 20MB)');
       } else if (code === 'FILE_TYPE_INVALID') {
@@ -243,7 +257,7 @@ export function MemberEditDialog({
       setIsLoadingPreview(true);
       setPreviewingDocId(doc.id);
       setPreviewFileName(doc.fileName);
-      
+
       // Use apiClient with blob response to properly route to backend API (port 3000)
       const response = await apiClient.get(doc.downloadUrl, { responseType: 'blob' });
       const blob = response.data;
@@ -270,11 +284,11 @@ export function MemberEditDialog({
   const handleDownloadDocument = async (doc: AttachmentDocument) => {
     try {
       setDownloadingDocIds((prev) => new Set([...prev, doc.id]));
-      
+
       // Use apiClient with blob response to properly route to backend API (port 3000)
       const response = await apiClient.get(doc.downloadUrl, { responseType: 'blob' });
       const blob = response.data;
-      
+
       // Create download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -282,11 +296,11 @@ export function MemberEditDialog({
       link.download = doc.fileName;
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       toast.success('Đã tải xuống tệp');
     } catch (error) {
       console.error('Download error:', error);
@@ -346,7 +360,7 @@ export function MemberEditDialog({
           const { data } = await apiClient.post(
             `/workspaces/${workspaceId}/members/${member.id}/upload-avatar`,
             formData,
-            { headers: { 'Content-Type': 'multipart/form-data' } }
+            { headers: { 'Content-Type': 'multipart/form-data' } },
           );
           uploadedAvatarUrl = data?.data?.avatarUrl || avatarUrl;
           toast.success('Đã tải lên avatar');
@@ -369,7 +383,9 @@ export function MemberEditDialog({
         workspacePhone: workspacePhone || null,
         avatarUrl: uploadedAvatarUrl || null,
         gender: locationData.gender || null,
-        dateOfBirth: locationData.dateOfBirth ? new Date(locationData.dateOfBirth).toISOString() : null,
+        dateOfBirth: locationData.dateOfBirth
+          ? new Date(locationData.dateOfBirth).toISOString()
+          : null,
         workspaceCity: locationData.provinceName || null,
         workspaceAddress: locationData.wardName || null,
         attachmentUrl: attachmentUrl || null,
@@ -377,9 +393,11 @@ export function MemberEditDialog({
       toast.success('Cập nhật thông tin nhân sự thành công');
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { message?: string } } };
       console.error('Update member error:', err);
-      const errorMessage = err?.response?.data?.message || 'Không thể cập nhật thông tin nhân sự';
+      const errorMessage =
+        apiError.response?.data?.message || 'Không thể cập nhật thông tin nhân sự';
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -418,9 +436,15 @@ export function MemberEditDialog({
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs font-medium text-blue-700 mb-1">Thông tin gốc từ tài khoản</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600">
-            <p><span className="font-medium">Tên:</span> {member.user.fullName || 'Chưa có'}</p>
-            <p><span className="font-medium">Email:</span> {member.user.email || 'Chưa có'}</p>
-            <p><span className="font-medium">SĐT:</span> {member.user.phone || 'Chưa có'}</p>
+            <p>
+              <span className="font-medium">Tên:</span> {member.user.fullName || 'Chưa có'}
+            </p>
+            <p>
+              <span className="font-medium">Email:</span> {member.user.email || 'Chưa có'}
+            </p>
+            <p>
+              <span className="font-medium">SĐT:</span> {member.user.phone || 'Chưa có'}
+            </p>
           </div>
         </div>
 
@@ -433,257 +457,289 @@ export function MemberEditDialog({
               </p>
             </div>
 
-              {/* Avatar Upload */}
-              <div className="flex items-center gap-4 pb-6 border-b border-gray-200">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-12 h-12 text-gray-400" />
-                    )}
-                  </div>
-                  {isUploadingAvatar && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 text-white animate-spin" />
-                    </div>
+            {/* Avatar Upload */}
+            <div className="flex items-center gap-4 pb-6 border-b border-gray-200">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-12 h-12 text-gray-400" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Avatar trong workspace</label>
-                  <div className="flex gap-2">
-                    <label
-                      htmlFor="avatar-upload"
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
-                    >
-                      <Camera className="w-4 h-4" />
-                      {avatarUrl ? 'Thay đổi' : 'Tải lên'}
-                    </label>
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Avatar trong workspace
+                </label>
+                <div className="flex gap-2">
+                  <label
+                    htmlFor="avatar-upload"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    <Camera className="w-4 h-4" />
+                    {avatarUrl ? 'Thay đổi' : 'Tải lên'}
+                  </label>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    disabled={isSubmitting || isUploadingAvatar}
+                    className="hidden"
+                  />
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
                       disabled={isSubmitting || isUploadingAvatar}
-                      className="hidden"
-                    />
-                    {avatarUrl && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveAvatar}
-                        disabled={isSubmitting || isUploadingAvatar}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-red-300 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Xóa
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF. Tối đa 5MB</p>
-                </div>
-              </div>
-
-              {/* Thông tin cơ bản */}
-              <div className="space-y-4 pb-6 border-b border-gray-200">
-                <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Thông tin cơ bản</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên hiển thị</label>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder={member.user.fullName || 'Nhập tên hiển thị'}
-                      disabled={isSubmitting}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email trong workspace</label>
-                    <input
-                      type="email"
-                      value={workspaceEmail}
-                      onChange={(e) => setWorkspaceEmail(e.target.value)}
-                      placeholder={member.user.email || 'Nhập email'}
-                      disabled={isSubmitting}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại trong workspace</label>
-                    <input
-                      type="tel"
-                      value={workspacePhone}
-                      onChange={(e) => setWorkspacePhone(e.target.value)}
-                      placeholder={member.user.phone || 'Nhập số điện thoại'}
-                      disabled={isSubmitting}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Vai trò trong workspace</label>
-                    <select
-                      value={roleId}
-                      onChange={(e) => setRoleId(e.target.value)}
-                      disabled={isSubmitting}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-red-300 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
                     >
-                      {rolesArray.length === 0 && (
-                        <option value="">Đang tải vai trò...</option>
-                      )}
-                      {rolesArray.map((role) => (
-                        <option key={role.id} value={role.id}>
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(Number(e.target.value))}
-                      disabled={isSubmitting}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
-                    >
-                      <option value={1}>Hoạt động</option>
-                      <option value={0}>Vô hiệu hóa</option>
-                    </select>
-                  </div>
+                      <Trash2 className="w-4 h-4" />
+                      Xóa
+                    </button>
+                  )}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF. Tối đa 5MB</p>
               </div>
+            </div>
 
-              {/* Thông tin cá nhân */}
-              <div className="space-y-4 pb-6 border-b border-gray-200">
-                <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Thông tin cá nhân</h5>
-                <PersonalInfoForm
-                  data={locationData}
-                  onChange={setLocationData}
-                  isDisabled={isSubmitting}
-                  showGenderAndDOB={true}
-                  hideHeader={true}
-                  genderDobInline={true}
-                />
-              </div>
-
-              {/* Tài liệu liên quan */}
-              <div className="space-y-4">
+            {/* Thông tin cơ bản */}
+            <div className="space-y-4 pb-6 border-b border-gray-200">
+              <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Thông tin cơ bản
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Tài liệu liên quan</h5>
-                  <p className="text-xs text-gray-500 mt-1">Hỗ trợ PDF, DOC, DOCX, PNG, JPG (tối đa 20MB)</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Tên hiển thị
+                  </label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder={member.user.fullName || 'Nhập tên hiển thị'}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <select
-                      value={attachmentType}
-                      onChange={(e) => setAttachmentType(e.target.value as 'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER')}
-                      disabled={isSubmitting || isUploadingAttachment}
-                      className="px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
-                    >
-                      <option value="CCCD">Loại: CCCD</option>
-                      <option value="HDLD">Loại: HDLD</option>
-                      <option value="CHUNG_CHI">Loại: Chứng chỉ</option>
-                      <option value="OTHER">Loại: Khác</option>
-                    </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email trong workspace
+                  </label>
+                  <input
+                    type="email"
+                    value={workspaceEmail}
+                    onChange={(e) => setWorkspaceEmail(e.target.value)}
+                    placeholder={member.user.email || 'Nhập email'}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                </div>
 
-                    <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer disabled:opacity-50">
-                      {isUploadingAttachment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      Tải lên
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                        onChange={handleUploadAttachment}
-                        disabled={isSubmitting || isUploadingAttachment}
-                      />
-                    </label>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Số điện thoại trong workspace
+                  </label>
+                  <input
+                    type="tel"
+                    value={workspacePhone}
+                    onChange={(e) => setWorkspacePhone(e.target.value)}
+                    placeholder={member.user.phone || 'Nhập số điện thoại'}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    {isLoadingAttachmentDocuments ? (
-                      <div className="flex items-center gap-2 text-sm text-gray-500 border border-gray-200 rounded-lg p-3">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Dang tai danh sach tai lieu...
-                      </div>
-                    ) : attachmentDocuments.length > 0 ? (
-                      attachmentDocuments.map((doc) => {
-                        const isUpdatingType = !!updatingAttachmentTypes[doc.id];
-                        const isDeleting = deletingAttachmentIds.has(doc.id);
-                        return (
-                          <div key={doc.id} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                            <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-800 truncate">
-                                {doc.fileName} <span className="text-xs text-gray-500">({formatFileSize(doc.fileSize)})</span>
-                              </p>
-                            </div>
-                            <select
-                              value={doc.documentType}
-                              onChange={(e) =>
-                                handleUpdateAttachmentType(
-                                  doc.id,
-                                  e.target.value as AttachmentDocument['documentType'],
-                                )
-                              }
-                              disabled={isSubmitting || isUpdatingType || isDeleting}
-                              className="px-2.5 py-1.5 rounded-md border border-gray-300 bg-white text-xs disabled:opacity-60"
-                            >
-                              <option value="CCCD">CCCD</option>
-                              <option value="HDLD">HDLD</option>
-                              <option value="CHUNG_CHI">Chung chi</option>
-                              <option value="OTHER">Khac</option>
-                            </select>
-                            {isUpdatingType && <Loader2 className="h-4 w-4 animate-spin text-blue-600 flex-shrink-0" />}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenPreview(doc)}
-                              disabled={isSubmitting || isDeleting}
-                              className="flex-shrink-0 p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 disabled:opacity-50"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadDocument(doc)}
-                              disabled={isSubmitting || isDeleting || downloadingDocIds.has(doc.id)}
-                              className="flex-shrink-0 p-1 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-50"
-                            >
-                              {downloadingDocIds.has(doc.id) ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteDocument(doc.id)}
-                              disabled={isSubmitting || isDeleting}
-                              className="flex-shrink-0 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 disabled:opacity-50"
-                            >
-                              {isDeleting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Vai trò trong workspace
+                  </label>
+                  <select
+                    value={roleId}
+                    onChange={(e) => setRoleId(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                  >
+                    {rolesArray.length === 0 && <option value="">Đang tải vai trò...</option>}
+                    {rolesArray.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Trạng thái
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(Number(e.target.value))}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                  >
+                    <option value={1}>Hoạt động</option>
+                    <option value={0}>Vô hiệu hóa</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Thông tin cá nhân */}
+            <div className="space-y-4 pb-6 border-b border-gray-200">
+              <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Thông tin cá nhân
+              </h5>
+              <PersonalInfoForm
+                data={locationData}
+                onChange={setLocationData}
+                isDisabled={isSubmitting}
+                showGenderAndDOB={true}
+                hideHeader={true}
+                genderDobInline={true}
+              />
+            </div>
+
+            {/* Tài liệu liên quan */}
+            <div className="space-y-4">
+              <div>
+                <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Tài liệu liên quan
+                </h5>
+                <p className="text-xs text-gray-500 mt-1">
+                  Hỗ trợ PDF, DOC, DOCX, PNG, JPG (tối đa 20MB)
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <select
+                    value={attachmentType}
+                    onChange={(e) =>
+                      setAttachmentType(e.target.value as 'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER')
+                    }
+                    disabled={isSubmitting || isUploadingAttachment}
+                    className="px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
+                  >
+                    <option value="CCCD">Loại: CCCD</option>
+                    <option value="HDLD">Loại: HDLD</option>
+                    <option value="CHUNG_CHI">Loại: Chứng chỉ</option>
+                    <option value="OTHER">Loại: Khác</option>
+                  </select>
+
+                  <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer disabled:opacity-50">
+                    {isUploadingAttachment ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-3">
-                        Chua co tep dinh kem nao.
-                      </div>
+                      <Upload className="h-4 w-4" />
                     )}
-                  </div>
+                    Tải lên
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      onChange={handleUploadAttachment}
+                      disabled={isSubmitting || isUploadingAttachment}
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  {isLoadingAttachmentDocuments ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 border border-gray-200 rounded-lg p-3">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Dang tai danh sach tai lieu...
+                    </div>
+                  ) : attachmentDocuments.length > 0 ? (
+                    attachmentDocuments.map((doc) => {
+                      const isUpdatingType = !!updatingAttachmentTypes[doc.id];
+                      const isDeleting = deletingAttachmentIds.has(doc.id);
+                      return (
+                        <div
+                          key={doc.id}
+                          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+                        >
+                          <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {doc.fileName}{' '}
+                              <span className="text-xs text-gray-500">
+                                ({formatFileSize(doc.fileSize)})
+                              </span>
+                            </p>
+                          </div>
+                          <select
+                            value={doc.documentType}
+                            onChange={(e) =>
+                              handleUpdateAttachmentType(
+                                doc.id,
+                                e.target.value as AttachmentDocument['documentType'],
+                              )
+                            }
+                            disabled={isSubmitting || isUpdatingType || isDeleting}
+                            className="px-2.5 py-1.5 rounded-md border border-gray-300 bg-white text-xs disabled:opacity-60"
+                          >
+                            <option value="CCCD">CCCD</option>
+                            <option value="HDLD">HDLD</option>
+                            <option value="CHUNG_CHI">Chung chi</option>
+                            <option value="OTHER">Khac</option>
+                          </select>
+                          {isUpdatingType && (
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-600 flex-shrink-0" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPreview(doc)}
+                            disabled={isSubmitting || isDeleting}
+                            className="flex-shrink-0 p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 disabled:opacity-50"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadDocument(doc)}
+                            disabled={isSubmitting || isDeleting || downloadingDocIds.has(doc.id)}
+                            className="flex-shrink-0 p-1 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-50"
+                          >
+                            {downloadingDocIds.has(doc.id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            disabled={isSubmitting || isDeleting}
+                            className="flex-shrink-0 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-3">
+                      Chua co tep dinh kem nao.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
+        </div>
       </form>
 
       {previewingDocId && (

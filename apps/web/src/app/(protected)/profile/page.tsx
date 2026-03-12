@@ -1,7 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, MailCheck, Save, Upload, Trash2, FileText, Download, Camera, X } from 'lucide-react';
+import {
+  CheckCircle2,
+  Loader2,
+  MailCheck,
+  Save,
+  Upload,
+  Trash2,
+  FileText,
+  Download,
+  Camera,
+  X,
+} from 'lucide-react';
 import { DocumentTypeOption, DocumentTypeValue, useProfile } from '@/hooks/use-profile';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
@@ -55,11 +66,11 @@ export default function ProfilePage() {
     dateOfBirth: '',
   });
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [sendingVerify, setSendingVerify] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
-  const [uploadDocumentType, setUploadDocumentType] = useState<Exclude<DocumentTypeOption, 'ALL'>>('OTHER');
+  const [uploadDocumentType, setUploadDocumentType] =
+    useState<Exclude<DocumentTypeOption, 'ALL'>>('OTHER');
   const [updatingTypeDocumentId, setUpdatingTypeDocumentId] = useState<string | null>(null);
   const [previewingDocument, setPreviewingDocument] = useState<UserDocument | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -115,7 +126,6 @@ export default function ProfilePage() {
     // Create preview
     const previewUrl = URL.createObjectURL(file);
     setAvatarUrl(previewUrl);
-    setAvatarFile(file);
 
     // Upload immediately
     setIsUploadingAvatar(true);
@@ -134,8 +144,9 @@ export default function ProfilePage() {
         setAvatarUrl(uploadedUrl);
         toast.success('Đã cập nhật ảnh đại diện');
       }
-    } catch (error: any) {
-      const code = error?.response?.data?.code;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { code?: string } } };
+      const code = apiError.response?.data?.code;
       if (code === 'FILE_TOO_LARGE') {
         toast.error('Ảnh quá lớn (tối đa 5MB)');
       } else {
@@ -143,7 +154,6 @@ export default function ProfilePage() {
       }
       URL.revokeObjectURL(previewUrl);
       setAvatarUrl(profile?.avatarUrl ?? '');
-      setAvatarFile(null);
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -154,7 +164,6 @@ export default function ProfilePage() {
       URL.revokeObjectURL(avatarUrl);
     }
     setAvatarUrl('');
-    setAvatarFile(null);
   };
 
   const handleDeleteDocument = (doc: UserDocument) => {
@@ -284,7 +293,8 @@ export default function ProfilePage() {
     return <ProfileSkeleton />;
   }
 
-  const isPreviewImage = !previewLoading && previewMimeType.startsWith('image/') && Boolean(previewUrl);
+  const isPreviewImage =
+    !previewLoading && previewMimeType.startsWith('image/') && Boolean(previewUrl);
 
   return (
     <div className="max-w-7xl space-y-6">
@@ -295,7 +305,10 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Cột trái: Form thông tin cá nhân */}
-        <form onSubmit={handleSave} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <form
+          onSubmit={handleSave}
+          className="bg-white border border-gray-200 rounded-xl p-6 space-y-4"
+        >
           {/* Avatar Upload Section */}
           <div className="pb-4 border-b border-gray-200">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Ảnh đại diện</h3>
@@ -418,7 +431,11 @@ export default function ProfilePage() {
               disabled={isSaving}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               Lưu thông tin
             </button>
           </div>
@@ -429,14 +446,18 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Tài liệu liên quan</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Hỗ trợ PDF, DOC, DOCX, PNG, JPG (tối đa 20MB)</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Hỗ trợ PDF, DOC, DOCX, PNG, JPG (tối đa 20MB)
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <select
               value={uploadDocumentType}
-              onChange={(e) => setUploadDocumentType(e.target.value as Exclude<DocumentTypeOption, 'ALL'>)}
+              onChange={(e) =>
+                setUploadDocumentType(e.target.value as Exclude<DocumentTypeOption, 'ALL'>)
+              }
               className="flex-1 px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
             >
               <option value="CCCD">Loại: CCCD</option>
@@ -446,7 +467,11 @@ export default function ProfilePage() {
             </select>
 
             <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer whitespace-nowrap">
-              {uploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploadingDocument ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
               Tải lên
               <input
                 type="file"
@@ -480,7 +505,10 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto pr-1">
               {documents.map((doc) => (
-                <div key={doc.id} className="flex items-start justify-between gap-3 border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                <div
+                  key={doc.id}
+                  className="flex items-start justify-between gap-3 border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                >
                   <div className="flex items-start gap-2 min-w-0 flex-1">
                     <FileText className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
@@ -509,7 +537,10 @@ export default function ProfilePage() {
                           <option value="OTHER">Khác</option>
                         </select>
                         {updatingTypeDocumentId === doc.id && (
-                          <Loader2 className="h-3 w-3 animate-spin text-gray-500" aria-label="document-type-updating" />
+                          <Loader2
+                            className="h-3 w-3 animate-spin text-gray-500"
+                            aria-label="document-type-updating"
+                          />
                         )}
                       </div>
                     </div>

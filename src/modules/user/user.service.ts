@@ -40,19 +40,11 @@ export class UserService {
     return this.prisma.user.findFirst({ where: { email } });
   }
 
-  async createUser(data: {
-    phone?: string;
-    email?: string;
-    googleId?: string;
-  }): Promise<User> {
+  async createUser(data: { phone?: string; email?: string; googleId?: string }): Promise<User> {
     return this.prisma.user.create({ data });
   }
 
-  async upsertDevice(
-    userId: string,
-    deviceHash: string,
-    platform?: string,
-  ): Promise<UserDevice> {
+  async upsertDevice(userId: string, deviceHash: string, platform?: string): Promise<UserDevice> {
     return this.prisma.userDevice.upsert({
       where: { userId_deviceHash: { userId, deviceHash } },
       create: { userId, deviceHash, platform, lastActive: new Date() },
@@ -179,11 +171,7 @@ export class UserService {
     return { data: updatedUser };
   }
 
-  async uploadProfileAvatar(
-    userId: string,
-    workspaceId: string,
-    file: UploadedDocumentFile,
-  ) {
+  async uploadProfileAvatar(userId: string, workspaceId: string, file: UploadedDocumentFile) {
     if (!file) {
       throw new HttpException(
         { code: 'FILE_REQUIRED', message: 'Avatar file is required' },
@@ -466,7 +454,12 @@ export class UserService {
     return { data: { message: 'Document deleted' } };
   }
 
-  async updateDocumentType(userId: string, workspaceId: string, documentId: string, documentType: DocumentTypeValue) {
+  async updateDocumentType(
+    userId: string,
+    workspaceId: string,
+    documentId: string,
+    documentType: DocumentTypeValue,
+  ) {
     const document = await this.prisma.userDocument.findFirst({
       where: { id: documentId, userId, workspaceId },
       select: { id: true },

@@ -36,19 +36,13 @@ export class WarehouseController {
 
   @Get()
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  list(
-    @Param('workspaceId') workspaceId: string,
-    @Query() query: ListWarehouseDto,
-  ) {
+  list(@Param('workspaceId') workspaceId: string, @Query() query: ListWarehouseDto) {
     return this.warehouseService.list(workspaceId, query);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  findOne(
-    @Param('workspaceId') workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  findOne(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.warehouseService.findById(id, workspaceId);
   }
 
@@ -66,10 +60,7 @@ export class WarehouseController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('WAREHOUSE_DELETE')
-  delete(
-    @Param('workspaceId') workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  delete(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.warehouseService.delete(id, workspaceId);
   }
 }

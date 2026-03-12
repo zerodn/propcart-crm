@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+  Query,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InvitationService } from './invitation.service';
 import { WorkspaceService } from './workspace.service';

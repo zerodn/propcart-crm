@@ -24,10 +24,7 @@ export class UploadController {
   @Post('temp')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
   @UseInterceptors(FileInterceptor('file'))
-  async uploadToTemp(
-    @UploadedFile() file: Express.Multer.File,
-    @Request() req: any,
-  ) {
+  async uploadToTemp(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -47,9 +44,7 @@ export class UploadController {
 
     // Validate file type (images only)
     if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException(
-        `Invalid file type: ${file.mimetype}. Only images are allowed`,
-      );
+      throw new BadRequestException(`Invalid file type: ${file.mimetype}. Only images are allowed`);
     }
 
     return this.uploadService.uploadToTemp(workspaceId, file);

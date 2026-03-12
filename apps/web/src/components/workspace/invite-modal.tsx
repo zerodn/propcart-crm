@@ -25,6 +25,11 @@ const DEFAULT_INVITABLE_ROLES = [
   { code: 'VIEWER', label: 'Người xem' },
 ];
 
+interface RoleResponseItem {
+  code: string;
+  name: string;
+}
+
 interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,7 +38,9 @@ interface InviteModalProps {
 
 export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
   const { workspace } = useAuth();
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0] as (typeof COUNTRIES)[number]);
+  const [selectedCountry, setSelectedCountry] = useState(
+    COUNTRIES[0] as (typeof COUNTRIES)[number],
+  );
   const [phone, setPhone] = useState('');
   const [roleCode, setRoleCode] = useState('SALES');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +54,13 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
       try {
         const res = await apiClient.get(`/workspaces/${workspace.id}/roles`);
         console.log('[InviteModal] Response from /roles:', res);
-        const list = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         console.log('[InviteModal] Extracted list:', list);
         if (!mounted) return;
-        const mappedRoles = list.map((r: any) => ({ code: r.code, label: r.name }));
+        const mappedRoles = (list as RoleResponseItem[]).map((r) => ({
+          code: r.code,
+          label: r.name,
+        }));
         console.log('[InviteModal] Mapped roles:', mappedRoles);
         setRoles(mappedRoles.length > 0 ? mappedRoles : DEFAULT_INVITABLE_ROLES);
         if (list.length > 0) setRoleCode(list[0].code);

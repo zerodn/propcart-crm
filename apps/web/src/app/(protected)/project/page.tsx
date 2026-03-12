@@ -1,10 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FolderOpen, Loader2, MoreHorizontal, Plus, Filter, Eye, Pencil, Trash2, Building2 } from 'lucide-react';
+import {
+  FolderOpen,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Filter,
+  Eye,
+  Pencil,
+  Trash2,
+  Building2,
+} from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { getAccessToken } from '@/lib/auth';
-import { useProject, Project } from '@/hooks/use-project';
+import { useProject, Project, CreateProjectPayload } from '@/hooks/use-project';
 import { useCatalog } from '@/hooks/use-catalog';
 import { ProjectTypeDialog } from '@/components/project/project-type-dialog';
 import { ProjectForm } from '@/components/project/project-form';
@@ -29,7 +39,9 @@ const PROJECT_TYPE_LABEL: Record<string, string> = {
 
 function SaleStatusBadge({ status }: { status: string }) {
   return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${SALE_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'}`}>
+    <span
+      className={`text-xs font-medium px-2 py-0.5 rounded-full ${SALE_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'}`}
+    >
       {SALE_STATUS_LABEL[status] ?? status}
     </span>
   );
@@ -144,11 +156,18 @@ function Pagination({
         className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         aria-label="Trang trước"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
       </button>
       {getPages().map((p, i) =>
         p === '...' ? (
-          <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-sm text-gray-400">...</span>
+          <span
+            key={`ellipsis-${i}`}
+            className="w-8 h-8 flex items-center justify-center text-sm text-gray-400"
+          >
+            ...
+          </span>
         ) : (
           <button
             key={p}
@@ -169,7 +188,9 @@ function Pagination({
         className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         aria-label="Trang sau"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </button>
     </div>
   );
@@ -181,7 +202,8 @@ export default function ProjectPage() {
   const { workspace } = useAuth();
   const workspaceId = workspace?.id ?? '';
 
-  const { projects, total, isLoading, list, create, update, remove, uploadImage } = useProject(workspaceId);
+  const { projects, total, isLoading, list, create, update, remove, uploadImage } =
+    useProject(workspaceId);
   const { items: ownerCatalogItems } = useCatalog('PROJECT_OWNER');
   const { items: saleStatusCatalogItems } = useCatalog('PROJECT_SALE_STATUS');
 
@@ -190,26 +212,25 @@ export default function ProjectPage() {
   const [selectedType, setSelectedType] = useState<'LOW_RISE' | 'HIGH_RISE' | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [draftByType, setDraftByType] = useState<Partial<Record<'LOW_RISE' | 'HIGH_RISE', Project>>>({});
+  const [draftByType, setDraftByType] = useState<
+    Partial<Record<'LOW_RISE' | 'HIGH_RISE', Project>>
+  >({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const ownerOptions = useMemo(
-    () => {
-      const catalog = ownerCatalogItems.find((c) => c.type === 'PROJECT_OWNER') ?? ownerCatalogItems[0];
-      return catalog?.values?.map((v) => ({ value: v.value, label: v.label })) ?? [];
-    },
-    [ownerCatalogItems],
-  );
+  const ownerOptions = useMemo(() => {
+    const catalog =
+      ownerCatalogItems.find((c) => c.type === 'PROJECT_OWNER') ?? ownerCatalogItems[0];
+    return catalog?.values?.map((v) => ({ value: v.value, label: v.label })) ?? [];
+  }, [ownerCatalogItems]);
 
-  const saleStatusOptions = useMemo(
-    () => {
-      const catalog = saleStatusCatalogItems.find((c) => c.type === 'PROJECT_SALE_STATUS') ?? saleStatusCatalogItems[0];
-      return catalog?.values?.map((v) => ({ value: v.value, label: v.label })) ?? [];
-    },
-    [saleStatusCatalogItems],
-  );
+  const saleStatusOptions = useMemo(() => {
+    const catalog =
+      saleStatusCatalogItems.find((c) => c.type === 'PROJECT_SALE_STATUS') ??
+      saleStatusCatalogItems[0];
+    return catalog?.values?.map((v) => ({ value: v.value, label: v.label })) ?? [];
+  }, [saleStatusCatalogItems]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -236,7 +257,7 @@ export default function ProjectPage() {
   };
 
   const handleFormSubmit = async (
-    payload: any,
+    payload: Partial<CreateProjectPayload>,
     options?: { closeAfterSave?: boolean; projectId?: string; silent?: boolean },
   ): Promise<Project | null> => {
     setIsSubmitting(true);
@@ -248,7 +269,7 @@ export default function ProjectPage() {
     if (targetId) {
       saved = await update(targetId, payload, { silent: options?.silent });
     } else {
-      saved = await create(payload, { silent: options?.silent });
+      saved = await create(payload as CreateProjectPayload, { silent: options?.silent });
     }
 
     setIsSubmitting(false);
@@ -329,7 +350,6 @@ export default function ProjectPage() {
               >
                 <div className="relative h-44 bg-gray-100">
                   {project.bannerUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={project.bannerUrl}
                       alt={project.name}
@@ -359,7 +379,9 @@ export default function ProjectPage() {
                   <h3 className="font-semibold text-gray-900 text-sm truncate">{project.name}</h3>
                   {(project.ward || project.district || project.province) && (
                     <p className="text-xs text-gray-500 mt-0.5 truncate">
-                      {[project.ward, project.district, project.province].filter(Boolean).join(', ')}
+                      {[project.ward, project.district, project.province]
+                        .filter(Boolean)
+                        .join(', ')}
                     </p>
                   )}
                 </div>

@@ -9,18 +9,67 @@ describe('InvitationService', () => {
   let prisma: any;
   let userService: jest.Mocked<UserService>;
 
-  const mockUser = { id: 'user-id-1', phone: '+84901234567', email: null, googleId: null, passwordHash: null, status: 1, createdAt: new Date(), updatedAt: new Date() };
-  const mockSender = { sub: 'sender-id-1', workspaceId: 'ws-id-1', role: 'OWNER', workspaceType: 'COMPANY', deviceId: 'device-id-1' };
-  const mockRole = { id: 'role-id-1', code: 'SALES', name: 'Sales', description: null, createdAt: new Date() };
-  const mockWorkspace = { id: 'ws-id-1', type: 'COMPANY', name: 'ABC Corp', ownerUserId: 'sender-id-1', status: 1, createdAt: new Date() };
+  const mockUser = {
+    id: 'user-id-1',
+    phone: '+84901234567',
+    email: null,
+    fullName: null,
+    addressLine: null,
+    provinceCode: null,
+    provinceName: null,
+    districtCode: null,
+    districtName: null,
+    wardCode: null,
+    wardName: null,
+    emailVerifiedAt: null,
+    emailVerifyToken: null,
+    emailVerifyExpiresAt: null,
+    googleId: null,
+    passwordHash: null,
+    status: 1,
+    avatarUrl: null,
+    gender: null,
+    dateOfBirth: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const mockSender = {
+    sub: 'sender-id-1',
+    workspaceId: 'ws-id-1',
+    role: 'OWNER',
+    workspaceType: 'COMPANY',
+    deviceId: 'device-id-1',
+  };
+  const mockRole = {
+    id: 'role-id-1',
+    code: 'SALES',
+    name: 'Sales',
+    description: null,
+    createdAt: new Date(),
+  };
+  const mockWorkspace = {
+    id: 'ws-id-1',
+    type: 'COMPANY',
+    name: 'ABC Corp',
+    ownerUserId: 'sender-id-1',
+    status: 1,
+    createdAt: new Date(),
+  };
   const mockInvitation = {
-    id: 'inv-id-1', workspaceId: 'ws-id-1', invitedByUserId: 'sender-id-1',
-    invitedPhone: '+84901234567', invitedUserId: null, roleId: 'role-id-1',
-    token: 'invite-token-uuid', status: 0,
+    id: 'inv-id-1',
+    workspaceId: 'ws-id-1',
+    invitedByUserId: 'sender-id-1',
+    invitedPhone: '+84901234567',
+    invitedUserId: null,
+    roleId: 'role-id-1',
+    token: 'invite-token-uuid',
+    status: 0,
     declineReason: null,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    respondedAt: null, createdAt: new Date(),
-    workspace: mockWorkspace, role: mockRole,
+    respondedAt: null,
+    createdAt: new Date(),
+    workspace: mockWorkspace,
+    role: mockRole,
   };
 
   beforeEach(async () => {
@@ -120,7 +169,11 @@ describe('InvitationService', () => {
       prisma.role.findUnique.mockResolvedValue(null); // role not found
 
       await expect(
-        service.sendInvitation('ws-id-1', { phone: '+84901234567', role_code: 'INVALID' }, mockSender),
+        service.sendInvitation(
+          'ws-id-1',
+          { phone: '+84901234567', role_code: 'INVALID' },
+          mockSender,
+        ),
       ).rejects.toThrow(
         expect.objectContaining({
           response: expect.objectContaining({ code: 'ROLE_NOT_FOUND' }),
@@ -133,7 +186,13 @@ describe('InvitationService', () => {
   // ─── acceptInvitation ──────────────────────────────────────
 
   describe('acceptInvitation', () => {
-    const currentUser = { sub: mockUser.id, workspaceId: 'ws-id-1', role: 'SALES', workspaceType: 'COMPANY', deviceId: 'device-id-1' };
+    const currentUser = {
+      sub: mockUser.id,
+      workspaceId: 'ws-id-1',
+      role: 'SALES',
+      workspaceType: 'COMPANY',
+      deviceId: 'device-id-1',
+    };
 
     it('should create workspace member and update invitation to accepted', async () => {
       prisma.workspaceInvitation.findUnique.mockResolvedValue(mockInvitation);
@@ -189,7 +248,13 @@ describe('InvitationService', () => {
   // ─── declineInvitation ─────────────────────────────────────
 
   describe('declineInvitation', () => {
-    const currentUser = { sub: mockUser.id, workspaceId: 'ws-id-1', role: 'SALES', workspaceType: 'COMPANY', deviceId: 'device-id-1' };
+    const currentUser = {
+      sub: mockUser.id,
+      workspaceId: 'ws-id-1',
+      role: 'SALES',
+      workspaceType: 'COMPANY',
+      deviceId: 'device-id-1',
+    };
 
     it('should update invitation to declined', async () => {
       prisma.workspaceInvitation.findUnique.mockResolvedValue(mockInvitation);
@@ -198,7 +263,9 @@ describe('InvitationService', () => {
       const result = await service.declineInvitation('invite-token-uuid', currentUser, 'busy');
 
       expect(prisma.workspaceInvitation.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: 2, declineReason: 'busy' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 2, declineReason: 'busy' }),
+        }),
       );
       expect(result.data.message).toBe('Invitation declined');
     });
@@ -246,8 +313,54 @@ describe('InvitationService', () => {
   describe('workflow scenarios', () => {
     const inviterPhone = '+84969622224';
     const inviteePhone = '+84905211851';
-    const inviterUser = { id: 'inviter-id', phone: inviterPhone, email: null, googleId: null, passwordHash: null, status: 1, createdAt: new Date(), updatedAt: new Date() };
-    const inviteeUser = { id: 'invitee-id', phone: inviteePhone, email: null, googleId: null, passwordHash: null, status: 1, createdAt: new Date(), updatedAt: new Date() };
+    const inviterUser = {
+      id: 'inviter-id',
+      phone: inviterPhone,
+      email: null,
+      fullName: null,
+      addressLine: null,
+      provinceCode: null,
+      provinceName: null,
+      districtCode: null,
+      districtName: null,
+      wardCode: null,
+      wardName: null,
+      emailVerifiedAt: null,
+      emailVerifyToken: null,
+      emailVerifyExpiresAt: null,
+      googleId: null,
+      passwordHash: null,
+      status: 1,
+      avatarUrl: null,
+      gender: null,
+      dateOfBirth: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const inviteeUser = {
+      id: 'invitee-id',
+      phone: inviteePhone,
+      email: null,
+      fullName: null,
+      addressLine: null,
+      provinceCode: null,
+      provinceName: null,
+      districtCode: null,
+      districtName: null,
+      wardCode: null,
+      wardName: null,
+      emailVerifiedAt: null,
+      emailVerifyToken: null,
+      emailVerifyExpiresAt: null,
+      googleId: null,
+      passwordHash: null,
+      status: 1,
+      avatarUrl: null,
+      gender: null,
+      dateOfBirth: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     let invites: any[];
 
     beforeEach(() => {
@@ -263,7 +376,10 @@ describe('InvitationService', () => {
       prisma.workspaceInvitation.findFirst.mockImplementation(async ({ where }) => {
         // handle lookup by id (cancel flow) or by phone + status
         if (where.id) {
-          return invites.find((inv) => inv.id === where.id && inv.workspaceId === where.workspaceId) || null;
+          return (
+            invites.find((inv) => inv.id === where.id && inv.workspaceId === where.workspaceId) ||
+            null
+          );
         }
         if (where.invitedPhone) {
           return (
@@ -281,7 +397,20 @@ describe('InvitationService', () => {
       prisma.workspaceInvitation.findMany = jest.fn(async ({ where }) =>
         invites.filter((inv) => {
           if (where.invitedPhone && inv.invitedPhone !== where.invitedPhone) return false;
-          if (typeof where.status !== 'undefined' && inv.status !== where.status) return false;
+          if (
+            typeof where.status === 'number' &&
+            inv.status !== where.status
+          ) {
+            return false;
+          }
+          if (
+            typeof where.status === 'object' &&
+            where.status !== null &&
+            'not' in where.status &&
+            inv.status === where.status.not
+          ) {
+            return false;
+          }
           if (where.expiresAt?.gt && !(inv.expiresAt > where.expiresAt.gt)) return false;
           return true;
         }),
@@ -298,8 +427,8 @@ describe('InvitationService', () => {
         invites.push(inv);
         return inv;
       });
-      prisma.workspaceInvitation.findUnique.mockImplementation(async ({ where }) =>
-        invites.find((inv) => inv.token === where.token) || null,
+      prisma.workspaceInvitation.findUnique.mockImplementation(
+        async ({ where }) => invites.find((inv) => inv.token === where.token) || null,
       );
       prisma.workspaceInvitation.update.mockImplementation(async ({ where, data }) => {
         const inv = invites.find((i) => i.id === where.id);
@@ -333,7 +462,9 @@ describe('InvitationService', () => {
       expect(invites[0].status).toBe(4);
 
       const listRes2 = await service.listPendingInvitations(inviteeUser.id);
-      const pendingAfter = listRes2.data.filter((d) => d.status === 0 && new Date(d.expiresAt) > new Date());
+      const pendingAfter = listRes2.data.filter(
+        (d) => d.status === 0 && new Date(d.expiresAt) > new Date(),
+      );
       expect(pendingAfter).toHaveLength(0);
     });
 
@@ -350,20 +481,26 @@ describe('InvitationService', () => {
       expect(listRes3.data[0].status).toBe(0);
       const token = invites[invites.length - 1].token;
 
-      const result = await service.declineInvitation(token, {
-        sub: inviteeUser.id,
-        workspaceId: 'ws-id-1',
-        role: 'SALES',
-        workspaceType: 'COMPANY',
-        deviceId: 'device-id',
-      } as any, 'not interested');
+      const result = await service.declineInvitation(
+        token,
+        {
+          sub: inviteeUser.id,
+          workspaceId: 'ws-id-1',
+          role: 'SALES',
+          workspaceType: 'COMPANY',
+          deviceId: 'device-id',
+        } as any,
+        'not interested',
+      );
       expect(result.data.message).toBe('Invitation declined');
 
       expect(invites[invites.length - 1].status).toBe(2);
       expect(invites[invites.length - 1].declineReason).toBe('not interested');
 
       const listAfterDecline = await service.listPendingInvitations(inviteeUser.id);
-      const pendingAfterDecline = listAfterDecline.data.filter((d) => d.status === 0 && new Date(d.expiresAt) > new Date());
+      const pendingAfterDecline = listAfterDecline.data.filter(
+        (d) => d.status === 0 && new Date(d.expiresAt) > new Date(),
+      );
       expect(pendingAfterDecline).toHaveLength(0);
       expect(invites.some((i) => i.status === 2)).toBe(true);
     });

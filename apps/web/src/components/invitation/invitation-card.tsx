@@ -62,7 +62,9 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-900">{invitation.workspace.name}</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            {invitation.workspace.type === 'COMPANY' ? t('header.workspaceCompany') : t('header.workspacePersonal')}
+            {invitation.workspace.type === 'COMPANY'
+              ? t('header.workspaceCompany')
+              : t('header.workspacePersonal')}
           </p>
 
           <div className="flex items-center gap-2 mt-2">

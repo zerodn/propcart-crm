@@ -10,15 +10,15 @@ export interface WorkspaceMember {
   roleId: string;
   status: number;
   joinedAt: string;
-  displayName?: string | null;  // Workspace-scoped display name
-  workspaceEmail?: string | null;  // Workspace-scoped email
-  workspacePhone?: string | null;  // Workspace-scoped phone
-  avatarUrl?: string | null;  // Workspace-scoped avatar
-  gender?: string | null;  // Giới tính
-  dateOfBirth?: string | null;  // Ngày sinh
-  workspaceCity?: string | null;  // Thành phố/Tỉnh
-  workspaceAddress?: string | null;  // Địa chỉ đầy đủ
-  attachmentUrl?: string | null;  // Tệp đính kèm
+  displayName?: string | null; // Workspace-scoped display name
+  workspaceEmail?: string | null; // Workspace-scoped email
+  workspacePhone?: string | null; // Workspace-scoped phone
+  avatarUrl?: string | null; // Workspace-scoped avatar
+  gender?: string | null; // Giới tính
+  dateOfBirth?: string | null; // Ngày sinh
+  workspaceCity?: string | null; // Thành phố/Tỉnh
+  workspaceAddress?: string | null; // Địa chỉ đầy đủ
+  attachmentUrl?: string | null; // Tệp đính kèm
   user: {
     id: string;
     phone: string | null;

@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 
-export default function EmailVerifyPage() {
+function EmailVerifyContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -22,12 +22,17 @@ export default function EmailVerifyPage() {
       }
 
       try {
-        const { data } = await apiClient.get(`/auth/email/verify?token=${encodeURIComponent(token)}`);
+        const { data } = await apiClient.get(
+          `/auth/email/verify?token=${encodeURIComponent(token)}`,
+        );
         setStatus('success');
         setMessage(data?.data?.message ?? 'Xac thuc email thanh cong');
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const apiError = error as { response?: { data?: { message?: string } } };
         setStatus('error');
-        setMessage(error?.response?.data?.message ?? 'Link xac thuc khong hop le hoac da het han');
+        setMessage(
+          apiError.response?.data?.message ?? 'Link xac thuc khong hop le hoac da het han',
+        );
       }
     };
 
@@ -58,5 +63,19 @@ export default function EmailVerifyPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EmailVerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="h-10 w-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <EmailVerifyContent />
+    </Suspense>
   );
 }

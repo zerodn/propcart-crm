@@ -20,14 +20,12 @@ export class ElasticsearchService {
   async indexMember(workspaceId: string, member: MemberDocument) {
     try {
       const documentId = `${workspaceId}-${member.userId}`;
-      
+
       // Generate searchText from phone, email, name
-      const searchParts = [
-        member.phone || '',
-        member.email || '',
-        member.name || '',
-      ].filter(part => part.length > 0);
-      
+      const searchParts = [member.phone || '', member.email || '', member.name || ''].filter(
+        (part) => part.length > 0,
+      );
+
       const searchText = searchParts.join(' ').trim();
 
       await this.baseService.index({
@@ -184,14 +182,12 @@ export class ElasticsearchService {
 
       members.forEach((member) => {
         const documentId = `${workspaceId}-${member.userId}`;
-        
+
         // Generate searchText from phone, email, name
-        const searchParts = [
-          member.phone || '',
-          member.email || '',
-          member.name || '',
-        ].filter(part => part.length > 0);
-        
+        const searchParts = [member.phone || '', member.email || '', member.name || ''].filter(
+          (part) => part.length > 0,
+        );
+
         const searchText = searchParts.join(' ').trim();
 
         operations.push({

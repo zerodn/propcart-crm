@@ -13,8 +13,8 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType>({
   locale: 'vi',
-  t: (path: string, vars?: Record<string, string | number>) => '',
-  setLocale: (l: Locale) => {},
+  t: (_path: string, _vars?: Record<string, string | number>) => '',
+  setLocale: (_l: Locale) => {},
 });
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
@@ -41,20 +41,21 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const t = (path: string, vars?: Record<string, string | number>) => {
     const parts = path.split('.');
-    let cur: any = translations[locale];
+    let cur: unknown = translations[locale];
     for (const p of parts) {
       if (!cur) return '';
-      cur = cur[p];
+      if (typeof cur !== 'object' || cur === null || !(p in cur)) return '';
+      cur = (cur as Record<string, unknown>)[p];
     }
     let result = typeof cur === 'string' ? cur : '';
-    
+
     // Replace variables like {name}, {days}, etc.
     if (vars) {
       Object.keys(vars).forEach((key) => {
         result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(vars[key]));
       });
     }
-    
+
     return result;
   };
 

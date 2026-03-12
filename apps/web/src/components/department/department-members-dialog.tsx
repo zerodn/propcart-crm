@@ -4,7 +4,11 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { Loader2, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDialog } from '@/components/common/base-dialog';
-import type { Department, DepartmentMemberOption, DepartmentRoleOption } from '@/hooks/use-department';
+import type {
+  Department,
+  DepartmentMemberOption,
+  DepartmentRoleOption,
+} from '@/hooks/use-department';
 
 interface DepartmentMembersDialogProps {
   isOpen: boolean;
@@ -40,7 +44,10 @@ export function DepartmentMembersDialog({
   const [searchResults, setSearchResults] = useState<DepartmentMemberOption[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [memberToRemove, setMemberToRemove] = useState<{ userId: string; memberName: string } | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<{
+    userId: string;
+    memberName: string;
+  } | null>(null);
   const userInputRef = useRef<HTMLInputElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -172,7 +179,9 @@ export function DepartmentMembersDialog({
         disableClose={submitting || isLoading}
         headerContent={
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-gray-900">Nhân sự phòng: {department.name}</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Nhân sự phòng: {department.name}
+            </h2>
             <p className="text-sm text-gray-500 mt-0.5">Mã phòng: {department.code}</p>
           </div>
         }
@@ -233,7 +242,9 @@ export function DepartmentMembersDialog({
                           }}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors"
                         >
-                          <div className="font-medium text-gray-900">{member.phone || member.email}</div>
+                          <div className="font-medium text-gray-900">
+                            {member.phone || member.email}
+                          </div>
                         </button>
                       ))
                     )}
@@ -259,7 +270,11 @@ export function DepartmentMembersDialog({
                 disabled={!selectedUserId || !selectedRoleId || submitting}
                 className="flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
                 Thêm nhân sự
               </button>
             </div>
@@ -267,7 +282,9 @@ export function DepartmentMembersDialog({
 
           {/* Members List Section */}
           <div className="px-6 py-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Danh sách nhân sự ({department.members?.length || 0})</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Danh sách nhân sự ({department.members?.length || 0})
+            </h3>
             {(!department.members || department.members.length === 0) && (
               <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
                 Chưa có nhân sự trong phòng ban này.
@@ -309,7 +326,11 @@ export function DepartmentMembersDialog({
                       disabled={isRowLoading}
                       className="flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
                     >
-                      {isRowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      {isRowLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                       Xóa
                     </button>
                   </div>

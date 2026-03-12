@@ -38,9 +38,7 @@ export function useProfile() {
   const refetch = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [profileRes] = await Promise.all([
-        apiClient.get('/me/profile'),
-      ]);
+      const [profileRes] = await Promise.all([apiClient.get('/me/profile')]);
       setProfile(profileRes.data?.data ?? null);
       await fetchDocuments(activeDocumentType);
     } catch {
@@ -61,18 +59,21 @@ export function useProfile() {
       setProfile(data?.data ?? null);
       toast.success('Da cap nhat thong tin ca nhan');
       return data?.data ?? null;
-    } catch (error: any) {
-      const code = error?.response?.data?.code;
-      const message = error?.response?.data?.message;
-      
+    } catch (error: unknown) {
+      const apiError = error as {
+        response?: { status?: number; data?: { code?: string; message?: string | string[] } };
+      };
+      const code = apiError.response?.data?.code;
+      const message = apiError.response?.data?.message;
+
       console.error('Update profile error:', {
         code,
         message,
-        status: error?.response?.status,
-        data: error?.response?.data,
+        status: apiError.response?.status,
+        data: apiError.response?.data,
         payload,
       });
-      
+
       if (code === 'EMAIL_ALREADY_EXISTS') {
         toast.error('Email nay da duoc su dung');
       } else if (message && Array.isArray(message)) {
@@ -97,33 +98,37 @@ export function useProfile() {
     }
   }, []);
 
-  const uploadDocument = useCallback(async (file: File, documentType: DocumentTypeValue) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('documentType', documentType);
+  const uploadDocument = useCallback(
+    async (file: File, documentType: DocumentTypeValue) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('documentType', documentType);
 
-    try {
-      const { data } = await apiClient.post('/me/profile/documents', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const document = data?.data as UserDocument;
-      await fetchDocuments(activeDocumentType);
-      toast.success('Tai lieu da duoc tai len');
-      return document;
-    } catch (error: any) {
-      const code = error?.response?.data?.code;
-      if (code === 'FILE_TOO_LARGE') {
-        toast.error('File qua lon (toi da 20MB)');
-      } else if (code === 'FILE_TYPE_INVALID') {
-        toast.error('Chi ho tro PDF, DOC, DOCX, PNG, JPG');
-      } else if (code === 'DOCUMENT_UPLOAD_FAILED') {
-        toast.error('Khong the ket noi MinIO de tai file len. Vui long kiem tra cau hinh MinIO');
-      } else {
-        toast.error('Khong the tai tai lieu len');
+      try {
+        const { data } = await apiClient.post('/me/profile/documents', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        const document = data?.data as UserDocument;
+        await fetchDocuments(activeDocumentType);
+        toast.success('Tai lieu da duoc tai len');
+        return document;
+      } catch (error: unknown) {
+        const apiError = error as { response?: { data?: { code?: string } } };
+        const code = apiError.response?.data?.code;
+        if (code === 'FILE_TOO_LARGE') {
+          toast.error('File qua lon (toi da 20MB)');
+        } else if (code === 'FILE_TYPE_INVALID') {
+          toast.error('Chi ho tro PDF, DOC, DOCX, PNG, JPG');
+        } else if (code === 'DOCUMENT_UPLOAD_FAILED') {
+          toast.error('Khong the ket noi MinIO de tai file len. Vui long kiem tra cau hinh MinIO');
+        } else {
+          toast.error('Khong the tai tai lieu len');
+        }
+        throw error;
       }
-      throw error;
-    }
-  }, [activeDocumentType, fetchDocuments]);
+    },
+    [activeDocumentType, fetchDocuments],
+  );
 
   const updateDocumentType = useCallback(
     async (documentId: string, documentType: DocumentTypeValue) => {
@@ -139,16 +144,19 @@ export function useProfile() {
     [activeDocumentType, fetchDocuments],
   );
 
-  const deleteDocument = useCallback(async (documentId: string) => {
-    try {
-      await apiClient.delete(`/me/profile/documents/${documentId}`);
-      await fetchDocuments(activeDocumentType);
-      toast.success('Da xoa tai lieu');
-    } catch {
-      toast.error('Khong the xoa tai lieu');
-      throw new Error('delete-document-failed');
-    }
-  }, [activeDocumentType, fetchDocuments]);
+  const deleteDocument = useCallback(
+    async (documentId: string) => {
+      try {
+        await apiClient.delete(`/me/profile/documents/${documentId}`);
+        await fetchDocuments(activeDocumentType);
+        toast.success('Da xoa tai lieu');
+      } catch {
+        toast.error('Khong the xoa tai lieu');
+        throw new Error('delete-document-failed');
+      }
+    },
+    [activeDocumentType, fetchDocuments],
+  );
 
   const setDocumentTypeFilter = useCallback(
     async (documentType: DocumentTypeOption) => {

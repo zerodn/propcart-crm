@@ -9,11 +9,11 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 
 export function Header() {
-  const { user, workspace, role } = useAuth();
+  const { workspace, role } = useAuth();
 
   // TODO: wire language switcher + notifications
-  const { notifications, unreadCount } = useNotifications();
-  const { locale, setLocale, t } = useI18n();
+  const { unreadCount } = useNotifications();
+  const { t } = useI18n();
 
   return (
     <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6">

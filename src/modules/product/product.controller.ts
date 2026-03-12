@@ -80,10 +80,7 @@ export class ProductController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('PRODUCT_DELETE')
-  delete(
-    @Param('workspaceId') workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  delete(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.productService.delete(id, workspaceId);
   }
 }

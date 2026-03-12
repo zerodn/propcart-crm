@@ -42,13 +42,7 @@ export function TowerCamera360Viewer({ items }: TowerCamera360ViewerProps) {
           src={activeItem.originalUrl}
           height={'420px'}
           width={'100%'}
-          navbar={[
-            'zoom',
-            'move',
-            'download',
-            'caption',
-            'fullscreen',
-          ]}
+          navbar={['zoom', 'move', 'download', 'caption', 'fullscreen']}
           caption={activeItem.fileName || 'Ảnh toàn cảnh 360'}
           defaultZoomLvl={0}
           moveInertia
@@ -66,10 +60,11 @@ export function TowerCamera360Viewer({ items }: TowerCamera360ViewerProps) {
                 type="button"
                 onClick={() => setActiveIndex(index)}
                 className={`overflow-hidden rounded-lg border bg-white text-left transition ${
-                  isActive ? 'border-amber-500 ring-2 ring-amber-200' : 'border-gray-200 hover:border-gray-300'
+                  isActive
+                    ? 'border-amber-500 ring-2 ring-amber-200'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.thumbnailUrl || item.originalUrl}
                   alt={item.fileName || `Ảnh 360 ${index + 1}`}

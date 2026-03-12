@@ -67,11 +67,7 @@ export class WorkspaceService {
     return { data };
   }
 
-  async updateMember(
-    workspaceId: string,
-    memberId: string,
-    dto: any,
-  ) {
+  async updateMember(workspaceId: string, memberId: string, dto: any) {
     // Check if member exists in this workspace
     const member = await this.prisma.workspaceMember.findFirst({
       where: { id: memberId, workspaceId },
@@ -102,7 +98,9 @@ export class WorkspaceService {
         ...(dto.workspacePhone !== undefined && { workspacePhone: dto.workspacePhone }),
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
         ...(dto.gender !== undefined && { gender: dto.gender }),
-        ...(dto.dateOfBirth !== undefined && { dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null }),
+        ...(dto.dateOfBirth !== undefined && {
+          dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+        }),
         ...(dto.workspaceCity !== undefined && { workspaceCity: dto.workspaceCity }),
         ...(dto.workspaceAddress !== undefined && { workspaceAddress: dto.workspaceAddress }),
         ...(dto.attachmentUrl !== undefined && { attachmentUrl: dto.attachmentUrl }),

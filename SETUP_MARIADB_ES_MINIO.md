@@ -152,7 +152,7 @@ curl -X PUT "localhost:9200/_index_template/propcart_crm_template" \
 # Terminal 1: Backend (Dev Mode)
 npm run start:dev
 
-# Terminal 2: Frontend (Dev Mode)  
+# Terminal 2: Frontend (Dev Mode)
 cd apps/web
 npm run dev
 
@@ -166,23 +166,27 @@ npm run dev
 ## 📊 Kiểm Tra Kết Nối Tất Cả Services
 
 ### MariaDB
+
 ```bash
 docker exec -it propcart_mariadb mysql -u propcart -ppropcart_local propcart_crm \
   -e "SELECT VERSION(); SHOW TABLES LIMIT 5;"
 ```
 
 ### Redis
+
 ```bash
 docker exec -it propcart_redis redis-cli PING
 # Output: PONG
 ```
 
 ### Elasticsearch
+
 ```bash
 curl -s http://localhost:9200/_cluster/health | jq .
 ```
 
 ### MinIO
+
 ```bash
 docker exec propcart_minio mc ls minio/
 ```
@@ -192,6 +196,7 @@ docker exec propcart_minio mc ls minio/
 ## 🗂️ Cấu Trúc Dữ Liệu
 
 ### MariaDB Database Structure
+
 ```
 propcart_crm/
 ├── users                    ← Users
@@ -212,6 +217,7 @@ propcart_crm/
 ```
 
 ### Elasticsearch Indexes
+
 ```
 propcart_crm_members        ← Member search index
 propcart_crm_properties     ← Property search index
@@ -219,6 +225,7 @@ propcart_crm_leads          ← Lead search index
 ```
 
 ### MinIO Buckets
+
 ```
 propcart-crm/
 ├── avatars/               ← User avatars
@@ -255,6 +262,7 @@ npx prisma db push
 ## ⚠️ Troubleshooting
 
 ### "ECONNREFUSED" - Port Already in Use
+
 ```bash
 # Find and kill existing processes
 lsof -i :3306 -i :6379 -i :9200 -i :9000 | grep LISTEN
@@ -265,6 +273,7 @@ docker-compose down
 ```
 
 ### MariaDB Connection Error
+
 ```bash
 # Check MariaDB logs
 docker logs propcart_mariadb
@@ -276,6 +285,7 @@ docker-compose restart mariadb
 ```
 
 ### Elasticsearch Not Ready
+
 ```bash
 # Check healthy status
 curl -s http://localhost:9200/_cluster/health
@@ -283,6 +293,7 @@ docker logs propcart_elasticsearch
 ```
 
 ### MinIO Can't Create Bucket
+
 ```bash
 # Ensure MinIO is running
 docker logs propcart_minio
@@ -311,4 +322,3 @@ docker-compose up -d minio
 3. **Use environment variables** cho all secrets
 4. **Monitor logs** - `docker-compose logs -f service_name`
 5. **Regular backup** - Set up automated backups cho MariaDB
-

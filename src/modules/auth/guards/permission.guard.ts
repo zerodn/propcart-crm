@@ -75,7 +75,10 @@ export class PermissionGuard implements CanActivate {
     if (scope === 'SELF') {
       const requestUserId = request.params.userId || request.body?.userId || request.query?.userId;
       if (!requestUserId || requestUserId !== user.sub) {
-        throw new HttpException({ code: 'FORBIDDEN', message: 'Resource scoped to self' }, HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          { code: 'FORBIDDEN', message: 'Resource scoped to self' },
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
 
@@ -83,7 +86,10 @@ export class PermissionGuard implements CanActivate {
     if (scope === 'TEAM') {
       const targetUserId = request.params.userId || request.body?.userId || request.query?.userId;
       if (!targetUserId) {
-        throw new HttpException({ code: 'FORBIDDEN', message: 'Target user required for team scope' }, HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          { code: 'FORBIDDEN', message: 'Target user required for team scope' },
+          HttpStatus.FORBIDDEN,
+        );
       }
       // find department shared by both
       const shared = await this.prisma.departmentMember.findFirst({
@@ -95,7 +101,10 @@ export class PermissionGuard implements CanActivate {
         },
       });
       if (!shared) {
-        throw new HttpException({ code: 'FORBIDDEN', message: 'Target user not in your team' }, HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          { code: 'FORBIDDEN', message: 'Target user not in your team' },
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
 

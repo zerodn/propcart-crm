@@ -76,7 +76,9 @@ export class InvitationService {
 
     // TODO: Send SMS/push notification to invited phone
     // fetch workspace name for notifications / email
-    const workspace = await this.prisma.workspace.findUnique({ where: { id: invitation.workspaceId } });
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: invitation.workspaceId },
+    });
 
     // Create notification record for existing user
     if (invitedUser) {
@@ -96,7 +98,12 @@ export class InvitationService {
     // Send email if invited phone maps to a user with email
     if (invitedUser?.email) {
       const acceptUrl = `${process.env.FRONTEND_URL || ''}/invitations/${invitation.token}/accept`;
-      await this.mailService.sendInvitationEmail(invitedUser.email, workspace?.name || '', sender.sub, acceptUrl);
+      await this.mailService.sendInvitationEmail(
+        invitedUser.email,
+        workspace?.name || '',
+        sender.sub,
+        acceptUrl,
+      );
     }
     return {
       data: {

@@ -39,7 +39,9 @@ export function WorkspaceSwitcher() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
             <div className="p-1">
-              <p className="text-xs font-medium text-gray-500 px-2 py-1.5">{t('workspace.title')}</p>
+              <p className="text-xs font-medium text-gray-500 px-2 py-1.5">
+                {t('workspace.title')}
+              </p>
               {workspaces.map((ws) => (
                 <button
                   key={ws.id}
@@ -61,7 +63,9 @@ export function WorkspaceSwitcher() {
                     <p className="text-xs text-gray-400">{ws.role}</p>
                   </div>
                   {ws.id === workspace?.id && (
-                    <span className="text-xs text-blue-600 flex-shrink-0">{t('common.current')}</span>
+                    <span className="text-xs text-blue-600 flex-shrink-0">
+                      {t('common.current')}
+                    </span>
                   )}
                 </button>
               ))}

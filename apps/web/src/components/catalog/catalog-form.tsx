@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, X, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { CATALOG_TYPES } from '@/types';
 
 interface CatalogFormProps {
@@ -28,7 +28,7 @@ interface CatalogFormProps {
 export function CatalogForm({
   onSubmit,
   isLoading = false,
-  onCancel,
+  onCancel: _onCancel,
   initialData,
   parentOptions = [],
   formId = 'catalog-form',
@@ -39,12 +39,15 @@ export function CatalogForm({
     return /^#[0-9A-Fa-f]{6}$/.test(withHash) ? withHash : null;
   };
 
-  const isEditing = Boolean(initialData);
   const [type, setType] = useState(initialData?.type || '');
   const [code, setCode] = useState(initialData?.code || '');
   const [name, setName] = useState(initialData?.name || '');
-  const [parentId, setParentId] = useState<string | null | undefined>(initialData?.parentId ?? null);
-  const [values, setValues] = useState<Array<{ value: string; label: string; color?: string }>>(initialData?.values || []);
+  const [parentId, setParentId] = useState<string | null | undefined>(
+    initialData?.parentId ?? null,
+  );
+  const [values, setValues] = useState<Array<{ value: string; label: string; color?: string }>>(
+    initialData?.values || [],
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -75,9 +78,7 @@ export function CatalogForm({
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-900">
-          Loại danh mục *
-        </label>
+        <label className="block text-sm font-medium text-gray-900">Loại danh mục *</label>
         <select
           value={type}
           onChange={(e) => {
@@ -130,9 +131,7 @@ export function CatalogForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-900">
-          Danh mục cha (tùy chọn)
-        </label>
+        <label className="block text-sm font-medium text-gray-900">Danh mục cha (tùy chọn)</label>
         <select
           value={parentId ?? ''}
           onChange={(e) => setParentId(e.target.value || null)}
@@ -197,7 +196,11 @@ export function CatalogForm({
               </button>
             </div>
           ))}
-          <button type="button" onClick={addValue} className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600">
+          <button
+            type="button"
+            onClick={addValue}
+            className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600"
+          >
             <Plus className="h-4 w-4" /> Thêm giá trị
           </button>
         </div>

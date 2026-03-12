@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWarehouseDto, UpdateWarehouseDto, ListWarehouseDto } from './dto';
@@ -12,8 +17,10 @@ export class WarehouseService {
   async create(workspaceId: string, userId: string, dto: CreateWarehouseDto) {
     try {
       this.logger.debug(`[Warehouse Create] DTO received:`, JSON.stringify(dto));
-      this.logger.log(`[Warehouse Create] Creating warehouse: name=${dto.name}, code=${dto.code}, type=${dto.type}`);
-      
+      this.logger.log(
+        `[Warehouse Create] Creating warehouse: name=${dto.name}, code=${dto.code}, type=${dto.type}`,
+      );
+
       // Build data object carefully, only including provided fields
       const data: any = {
         workspaceId,
@@ -23,35 +30,35 @@ export class WarehouseService {
         type: String(dto.type).trim(),
         status: 1, // Always set to active
       };
-      
+
       // Add optional fields only if provided and convert numbers properly
       if (dto.description) data.description = String(dto.description).trim() || null;
       else data.description = null;
-      
+
       if (typeof dto.latitude === 'number' && !isNaN(dto.latitude)) {
         data.latitude = new Decimal(String(dto.latitude));
       } else {
         data.latitude = null;
       }
-      
+
       if (typeof dto.longitude === 'number' && !isNaN(dto.longitude)) {
         data.longitude = new Decimal(String(dto.longitude));
       } else {
         data.longitude = null;
       }
-      
+
       if (dto.provinceCode) data.provinceCode = String(dto.provinceCode).trim() || null;
       else data.provinceCode = null;
-      
+
       if (dto.provinceName) data.provinceName = String(dto.provinceName).trim() || null;
       else data.provinceName = null;
-      
+
       if (dto.wardCode) data.wardCode = String(dto.wardCode).trim() || null;
       else data.wardCode = null;
-      
+
       if (dto.wardName) data.wardName = String(dto.wardName).trim() || null;
       else data.wardName = null;
-      
+
       if (dto.fullAddress) data.fullAddress = String(dto.fullAddress).trim() || null;
       else data.fullAddress = null;
 
@@ -80,7 +87,7 @@ export class WarehouseService {
         meta: error.meta,
         stack: error.stack,
       });
-      
+
       if (error.code === 'P2002') {
         const target = error.meta?.target?.[0] || 'unknown';
         throw new BadRequestException(`Mã kho hàng đã tồn tại trong workspace này (${target})`);
@@ -91,7 +98,7 @@ export class WarehouseService {
       if (error.code === 'P2014') {
         throw new BadRequestException('Foreign key constraint failed');
       }
-      
+
       throw new InternalServerErrorException(`Failed to create warehouse: ${error.message}`);
     }
   }
@@ -150,14 +157,16 @@ export class WarehouseService {
   async update(id: string, workspaceId: string, dto: UpdateWarehouseDto) {
     try {
       const updateData: any = {};
-      
+
       if (dto.name !== undefined) updateData.name = dto.name;
       if (dto.code !== undefined) updateData.code = dto.code;
       if (dto.type !== undefined) updateData.type = dto.type;
       if (dto.description !== undefined) updateData.description = dto.description || null;
       if (dto.status !== undefined) updateData.status = dto.status;
-      if (dto.latitude !== undefined) updateData.latitude = dto.latitude ? new Decimal(dto.latitude.toString()) : null;
-      if (dto.longitude !== undefined) updateData.longitude = dto.longitude ? new Decimal(dto.longitude.toString()) : null;
+      if (dto.latitude !== undefined)
+        updateData.latitude = dto.latitude ? new Decimal(dto.latitude.toString()) : null;
+      if (dto.longitude !== undefined)
+        updateData.longitude = dto.longitude ? new Decimal(dto.longitude.toString()) : null;
       if (dto.provinceCode !== undefined) updateData.provinceCode = dto.provinceCode || null;
       if (dto.provinceName !== undefined) updateData.provinceName = dto.provinceName || null;
       if (dto.wardCode !== undefined) updateData.wardCode = dto.wardCode || null;
@@ -185,14 +194,14 @@ export class WarehouseService {
       return result;
     } catch (error: any) {
       this.logger.error(`Error updating warehouse:`, error);
-      
+
       if (error.code === 'P2002') {
         throw new BadRequestException('Mã kho hàng đã tồn tại trong workspace này');
       }
       if (error.code === 'P2025') {
         throw new BadRequestException('Kho hàng không tồn tại');
       }
-      
+
       throw new InternalServerErrorException(`Failed to update warehouse: ${error.message}`);
     }
   }

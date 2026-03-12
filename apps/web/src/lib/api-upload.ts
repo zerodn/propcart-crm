@@ -31,7 +31,7 @@ export async function uploadFileToTemp(file: File, accessToken?: string): Promis
       },
     });
 
-    const payload: any = res.data;
+    const payload = res.data as { data?: { url?: string }; url?: string };
     const url = payload?.data?.url ?? payload?.url ?? null;
     return typeof url === 'string' ? url : null;
   } catch (err) {

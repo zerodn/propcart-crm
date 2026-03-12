@@ -16,9 +16,16 @@ export class NotificationService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map((r) => ({ ...r, payload: (() => {
-      try { return JSON.parse(r.payload as unknown as string); } catch { return r.payload; }
-    })() }));
+    return rows.map((r) => ({
+      ...r,
+      payload: (() => {
+        try {
+          return JSON.parse(r.payload as unknown as string);
+        } catch {
+          return r.payload;
+        }
+      })(),
+    }));
   }
 
   async markRead(id: string) {

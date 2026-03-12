@@ -71,21 +71,27 @@ export function TowerFloorPlanEditor({
     img.src = image.originalUrl;
   }, [isOpen, image.originalUrl]);
 
-  const markerToLatLng = useCallback((marker: FloorPlanMarker) => {
-    if (!imageSize) return { lat: 0, lng: 0 };
-    return {
-      lat: (marker.y / 100) * imageSize.height,
-      lng: (marker.x / 100) * imageSize.width,
-    };
-  }, [imageSize]);
+  const markerToLatLng = useCallback(
+    (marker: FloorPlanMarker) => {
+      if (!imageSize) return { lat: 0, lng: 0 };
+      return {
+        lat: (marker.y / 100) * imageSize.height,
+        lng: (marker.x / 100) * imageSize.width,
+      };
+    },
+    [imageSize],
+  );
 
-  const latLngToMarkerPct = useCallback((lat: number, lng: number) => {
-    if (!imageSize) return { x: 0, y: 0 };
-    return {
-      x: clamp((lng / imageSize.width) * 100, 0, 100),
-      y: clamp((lat / imageSize.height) * 100, 0, 100),
-    };
-  }, [imageSize]);
+  const latLngToMarkerPct = useCallback(
+    (lat: number, lng: number) => {
+      if (!imageSize) return { x: 0, y: 0 };
+      return {
+        x: clamp((lng / imageSize.width) * 100, 0, 100),
+        y: clamp((lat / imageSize.height) * 100, 0, 100),
+      };
+    },
+    [imageSize],
+  );
 
   // Init Leaflet map (CRS.Simple) and mount image overlay at origin [0, 0]
   useEffect(() => {
@@ -120,10 +126,7 @@ export function TowerFloorPlanEditor({
       mapRef.current = map;
       markersLayerRef.current = L.layerGroup().addTo(map);
 
-      const bounds = L.latLngBounds(
-        L.latLng(0, 0),
-        L.latLng(imageSize.height, imageSize.width),
-      );
+      const bounds = L.latLngBounds(L.latLng(0, 0), L.latLng(imageSize.height, imageSize.width));
       const viewBounds = bounds.pad(VIEW_PADDING_RATIO);
 
       overlayRef.current = L.imageOverlay(image.originalUrl, bounds).addTo(map);
@@ -193,11 +196,7 @@ export function TowerFloorPlanEditor({
     markers.forEach((marker, index) => {
       const latLng = markerToLatLng(marker);
       const isSelected = selectedMarkerId === marker.id;
-      const markerColor = marker.productId
-        ? '#16a34a'
-        : isSelected
-          ? '#d97706'
-          : '#3b82f6';
+      const markerColor = marker.productId ? '#16a34a' : isSelected ? '#d97706' : '#3b82f6';
 
       const icon = L.divIcon({
         className: 'floor-plan-marker-icon',
@@ -362,7 +361,9 @@ export function TowerFloorPlanEditor({
                                 <p className="truncate text-xs font-medium text-gray-800">
                                   {marker.productUnitCode}
                                 </p>
-                                <p className="truncate text-xs text-gray-500">{marker.productName}</p>
+                                <p className="truncate text-xs text-gray-500">
+                                  {marker.productName}
+                                </p>
                               </>
                             ) : (
                               <p className="text-xs italic text-gray-400">Chưa gán sản phẩm</p>

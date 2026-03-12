@@ -22,6 +22,8 @@ export class PermissionService {
   }
 
   async removeFromRole(roleId: string, permissionId: string) {
-    return this.prisma.rolePermission.delete({ where: { roleId_permissionId: { roleId, permissionId } } });
+    return this.prisma.rolePermission.delete({
+      where: { roleId_permissionId: { roleId, permissionId } },
+    });
   }
 }

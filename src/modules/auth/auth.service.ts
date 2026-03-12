@@ -32,9 +32,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {
-    this.googleClient = new OAuth2Client(
-      this.configService.get<string>('google.clientId'),
-    );
+    this.googleClient = new OAuth2Client(this.configService.get<string>('google.clientId'));
   }
 
   // ============================================================

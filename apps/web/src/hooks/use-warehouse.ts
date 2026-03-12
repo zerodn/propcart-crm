@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 
+type UnknownRecord = Record<string, unknown>;
+
 export interface PropertyWarehouse {
   id: string;
   workspaceId: string;
@@ -28,18 +30,28 @@ export interface PropertyWarehouse {
   updatedAt: string;
 }
 
-function normalizeWarehouse(raw: any): PropertyWarehouse {
-  const createdBy = raw?.createdBy ?? raw?.created_by ?? null;
+function normalizeWarehouse(raw: UnknownRecord): PropertyWarehouse {
+  const createdBy =
+    (raw.createdBy as UnknownRecord | undefined) ??
+    (raw.created_by as UnknownRecord | undefined) ??
+    null;
 
   return {
     ...raw,
-    createdByUserId: raw?.createdByUserId ?? raw?.created_by_user_id ?? '',
+    createdByUserId:
+      (raw.createdByUserId as string | undefined) ??
+      (raw.created_by_user_id as string | undefined) ??
+      '',
     createdBy: createdBy
       ? {
-          id: createdBy.id,
-          fullName: createdBy.fullName ?? createdBy.full_name,
-          phone: createdBy.phone ?? createdBy.phone_number,
-          email: createdBy.email,
+          id: (createdBy.id as string) ?? '',
+          fullName:
+            (createdBy.fullName as string | undefined) ??
+            (createdBy.full_name as string | undefined),
+          phone:
+            (createdBy.phone as string | undefined) ??
+            (createdBy.phone_number as string | undefined),
+          email: createdBy.email as string | undefined,
         }
       : null,
   } as PropertyWarehouse;
@@ -59,8 +71,10 @@ export function useWarehouse(workspaceId: string) {
           `/workspaces/${workspaceId}/warehouses`,
           { params: opts },
         );
-        const rawItems = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
-        const items = rawItems.map(normalizeWarehouse);
+        const rawItems = (
+          Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+        ) as unknown[];
+        const items = rawItems.map((item) => normalizeWarehouse(item as UnknownRecord));
         setWarehouses(items);
         return items;
       } catch (err) {
@@ -76,7 +90,7 @@ export function useWarehouse(workspaceId: string) {
   );
 
   const create = useCallback(
-    async (data: any) => {
+    async (data: Record<string, unknown>) => {
       try {
         console.log('Creating warehouse with data:', data);
         const response = await apiClient.post<PropertyWarehouse>(
@@ -97,7 +111,7 @@ export function useWarehouse(workspaceId: string) {
   );
 
   const update = useCallback(
-    async (id: string, data: any) => {
+    async (id: string, data: Record<string, unknown>) => {
       try {
         const response = await apiClient.patch<PropertyWarehouse>(
           `/workspaces/${workspaceId}/warehouses/${id}`,

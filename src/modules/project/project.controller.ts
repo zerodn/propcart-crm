@@ -35,19 +35,13 @@ export class ProjectController {
 
   @Get()
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  list(
-    @Param('workspaceId') workspaceId: string,
-    @Query() dto: ListProjectDto,
-  ) {
+  list(@Param('workspaceId') workspaceId: string, @Query() dto: ListProjectDto) {
     return this.projectService.list(workspaceId, dto);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  findOne(
-    @Param('workspaceId') workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  findOne(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.projectService.findById(workspaceId, id);
   }
 
@@ -66,10 +60,7 @@ export class ProjectController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('PROJECT_DELETE')
-  remove(
-    @Param('workspaceId') workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  remove(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.projectService.delete(workspaceId, id);
   }
 }

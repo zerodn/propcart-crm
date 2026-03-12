@@ -44,7 +44,7 @@ export function getWorkspaceName(): string | null {
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   // primary source is localStorage (populated after login)
-  let token = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) return token;
 
   // quick dev helper: if a token is provided via the query string we store

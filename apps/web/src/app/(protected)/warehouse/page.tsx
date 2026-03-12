@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2, Plus, Edit2, Trash2, MapPin, MapPinOff, Eye, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Building2, Plus, MapPin, MapPinOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { useI18n } from '@/providers/i18n-provider';
 import { useWarehouse, PropertyWarehouse } from '@/hooks/use-warehouse';
 import { useCatalog } from '@/hooks/use-catalog';
 import { WarehouseForm } from '@/components/warehouse/warehouse-form';
@@ -14,11 +12,15 @@ import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid
 import { cn } from '@/lib/utils';
 
 export default function WarehousePage() {
-  const { t } = useI18n();
   const { workspace } = useAuth();
-  const { warehouses, isLoading, list, create, update, delete: deleteWarehouse } = useWarehouse(
-    workspace?.id || '',
-  );
+  const {
+    warehouses,
+    isLoading,
+    list,
+    create,
+    update,
+    delete: deleteWarehouse,
+  } = useWarehouse(workspace?.id || '');
   const { items: catalogs } = useCatalog();
 
   const [showForm, setShowForm] = useState(false);
@@ -30,7 +32,7 @@ export default function WarehousePage() {
 
   const warehouseTypeCatalog = catalogs.find((c) => c.type === 'WAREHOUSE_TYPE');
   const warehouseTypes = warehouseTypeCatalog?.values
-    ? warehouseTypeCatalog.values.map((v: any) => ({ value: v.value, label: v.label }))
+    ? warehouseTypeCatalog.values.map((v) => ({ value: v.value, label: v.label }))
     : [];
 
   const editingWarehouse = warehouses.find((w) => w.id === editingId);
@@ -41,7 +43,7 @@ export default function WarehousePage() {
     }
   }, [workspace?.id, list]);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
     setIsSubmitting(true);
     try {
       if (editingId) {
@@ -87,7 +89,9 @@ export default function WarehousePage() {
       label: 'Tên kho',
       render: (value, row) => (
         <div>
-          <div className="font-semibold text-gray-900">{value}</div>
+          <div className="font-semibold text-gray-900">
+            {typeof value === 'string' ? value : '—'}
+          </div>
           <div className="text-xs text-gray-500 mt-0.5">Mã: {row.code}</div>
         </div>
       ),
@@ -97,7 +101,8 @@ export default function WarehousePage() {
       label: 'Loại kho',
       render: (value) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {warehouseTypes.find((t) => t.value === value)?.label || value}
+          {warehouseTypes.find((t) => t.value === value)?.label ||
+            (typeof value === 'string' ? value : '—')}
         </span>
       ),
     },
@@ -118,16 +123,21 @@ export default function WarehousePage() {
     {
       key: 'provinceName',
       label: 'Địa điểm',
-      render: (value, row) => (
-        <div className="text-sm">
-          {value && <div>{value}</div>}
-          {row.wardName && <div className="text-xs text-gray-500">{row.wardName}</div>}
-          {row.fullAddress && (
-            <div className="text-xs text-gray-500 mt-0.5">{row.fullAddress}</div>
-          )}
-          {!value && !row.wardName && !row.fullAddress && <span className="text-gray-400">—</span>}
-        </div>
-      ),
+      render: (value, row) => {
+        const province = typeof value === 'string' ? value : '';
+        return (
+          <div className="text-sm">
+            {province && <div>{province}</div>}
+            {row.wardName && <div className="text-xs text-gray-500">{row.wardName}</div>}
+            {row.fullAddress && (
+              <div className="text-xs text-gray-500 mt-0.5">{row.fullAddress}</div>
+            )}
+            {!province && !row.wardName && !row.fullAddress && (
+              <span className="text-gray-400">—</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'latitude',
@@ -154,9 +164,11 @@ export default function WarehousePage() {
     {
       key: 'createdBy',
       label: 'Người tạo',
-      render: (value, row) => (
+      render: (value) => (
         <span className="text-sm text-gray-700">
-          {value?.fullName || value?.phone || 'N/A'}
+          {(value as { fullName?: string; phone?: string } | null | undefined)?.fullName ||
+            (value as { fullName?: string; phone?: string } | null | undefined)?.phone ||
+            'N/A'}
         </span>
       ),
     },

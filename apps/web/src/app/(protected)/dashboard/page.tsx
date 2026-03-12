@@ -18,7 +18,12 @@ export default function DashboardPage() {
       icon: Building2,
       desc: t('dashboard.workspacesListDesc'),
     },
-    { label: t('dashboard.invitationsLabel'), href: '/invitations', icon: Mail, desc: t('dashboard.invitationsDesc') },
+    {
+      label: t('dashboard.invitationsLabel'),
+      href: '/invitations',
+      icon: Mail,
+      desc: t('dashboard.invitationsDesc'),
+    },
     {
       label: t('dashboard.membersLabel'),
       href: '/workspace/members',
@@ -54,7 +59,9 @@ export default function DashboardPage() {
                       : 'bg-gray-100 text-gray-600',
                   )}
                 >
-                  {workspaceType === 'COMPANY' ? t('workspace.companyType') : t('workspace.personalType')}
+                  {workspaceType === 'COMPANY'
+                    ? t('workspace.companyType')
+                    : t('workspace.personalType')}
                 </span>
                 {role && (
                   <span
@@ -79,7 +86,9 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">{t('dashboard.quickActionsTitle')}</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          {t('dashboard.quickActionsTitle')}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map(({ label, href, icon: Icon, desc }) => (
             <Link

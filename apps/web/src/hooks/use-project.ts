@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 
+type UnknownRecord = Record<string, unknown>;
+
 export interface MediaItem {
   originalUrl: string;
   fileName?: string;
@@ -162,55 +164,76 @@ export interface CreateProjectPayload {
   subdivisions?: ProjectSubdivision[];
 }
 
-function normalizeProject(raw: any): Project {
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  const apiError = error as { response?: { data?: { message?: string } } };
+  return apiError.response?.data?.message ?? fallback;
+}
+
+function normalizeProject(raw: UnknownRecord): Project {
+  const displayStatusRaw = raw.displayStatus as string | undefined;
+  const displayStatus: Project['displayStatus'] =
+    displayStatusRaw === 'PUBLISHED' || displayStatusRaw === 'HIDDEN' ? displayStatusRaw : 'DRAFT';
+
+  const saleStatusRaw = raw.saleStatus as string | undefined;
+  const saleStatus: Project['saleStatus'] =
+    saleStatusRaw === 'ON_SALE' || saleStatusRaw === 'SOLD_OUT' ? saleStatusRaw : 'COMING_SOON';
+
   return {
-    id: raw.id,
-    workspaceId: raw.workspaceId,
-    name: raw.name,
-    projectType: raw.projectType,
-    ownerId: raw.ownerId ?? null,
-    displayStatus: raw.displayStatus ?? 'DRAFT',
-    saleStatus: raw.saleStatus ?? 'COMING_SOON',
-    bannerUrl: raw.bannerUrl ?? null,
+    id: raw.id as string,
+    workspaceId: raw.workspaceId as string,
+    name: raw.name as string,
+    projectType: raw.projectType as 'LOW_RISE' | 'HIGH_RISE',
+    ownerId: (raw.ownerId as string | null | undefined) ?? null,
+    displayStatus,
+    saleStatus,
+    bannerUrl: (raw.bannerUrl as string | null | undefined) ?? null,
     bannerUrls: (() => {
       const raw_urls = raw.bannerUrls;
       if (!raw_urls) return null;
       if (Array.isArray(raw_urls)) {
         // Support both old string[] format and new MediaItem[] format
-        return raw_urls.map((item: any) =>
+        return raw_urls.map((item: unknown) =>
           typeof item === 'string'
             ? { originalUrl: item, fileName: 'Banner', thumbnailUrl: item }
-            : item,
+            : (item as MediaItem),
         );
       }
       return null;
     })(),
-    overviewHtml: raw.overviewHtml ?? null,
-    address: raw.address ?? null,
-    province: raw.province ?? null,
-    district: raw.district ?? null,
-    ward: raw.ward ?? null,
-    latitude: raw.latitude ?? null,
-    longitude: raw.longitude ?? null,
-    googleMapUrl: raw.googleMapUrl ?? null,
-    locationDescriptionHtml: raw.locationDescriptionHtml ?? null,
-    zoneImageUrl: raw.zoneImageUrl ?? null,
-    zoneImages: Array.isArray(raw.zoneImages) ? raw.zoneImages : null,
-    productImageUrl: raw.productImageUrl ?? null,
-    productImages: Array.isArray(raw.productImages) ? raw.productImages : null,
-    amenityImageUrl: raw.amenityImageUrl ?? null,
-    amenityImages: Array.isArray(raw.amenityImages) ? raw.amenityImages : null,
-    videoUrl: raw.videoUrl ?? null,
-    videoDescription: raw.videoDescription ?? null,
-    contacts: Array.isArray(raw.contacts) ? raw.contacts : null,
-    planningStats: Array.isArray(raw.planningStats) ? raw.planningStats : null,
-    progressUpdates: Array.isArray(raw.progressUpdates) ? raw.progressUpdates : null,
-    documentItems: Array.isArray(raw.documentItems) ? raw.documentItems : null,
-    subdivisions: Array.isArray(raw.subdivisions) ? raw.subdivisions : null,
-    createdByUserId: raw.createdByUserId,
-    createdBy: raw.createdBy ?? null,
-    createdAt: raw.createdAt,
-    updatedAt: raw.updatedAt,
+    overviewHtml: (raw.overviewHtml as string | null | undefined) ?? null,
+    address: (raw.address as string | null | undefined) ?? null,
+    province: (raw.province as string | null | undefined) ?? null,
+    district: (raw.district as string | null | undefined) ?? null,
+    ward: (raw.ward as string | null | undefined) ?? null,
+    latitude: (raw.latitude as string | null | undefined) ?? null,
+    longitude: (raw.longitude as string | null | undefined) ?? null,
+    googleMapUrl: (raw.googleMapUrl as string | null | undefined) ?? null,
+    locationDescriptionHtml: (raw.locationDescriptionHtml as string | null | undefined) ?? null,
+    zoneImageUrl: (raw.zoneImageUrl as string | null | undefined) ?? null,
+    zoneImages: Array.isArray(raw.zoneImages) ? (raw.zoneImages as MediaItem[]) : null,
+    productImageUrl: (raw.productImageUrl as string | null | undefined) ?? null,
+    productImages: Array.isArray(raw.productImages) ? (raw.productImages as MediaItem[]) : null,
+    amenityImageUrl: (raw.amenityImageUrl as string | null | undefined) ?? null,
+    amenityImages: Array.isArray(raw.amenityImages) ? (raw.amenityImages as MediaItem[]) : null,
+    videoUrl: (raw.videoUrl as string | null | undefined) ?? null,
+    videoDescription: (raw.videoDescription as string | null | undefined) ?? null,
+    contacts: Array.isArray(raw.contacts) ? (raw.contacts as ProjectContact[]) : null,
+    planningStats: Array.isArray(raw.planningStats) ? (raw.planningStats as PlanningStat[]) : null,
+    progressUpdates: Array.isArray(raw.progressUpdates)
+      ? (raw.progressUpdates as ProjectProgressUpdate[])
+      : null,
+    documentItems: Array.isArray(raw.documentItems)
+      ? (raw.documentItems as ProjectDocumentItem[])
+      : null,
+    subdivisions: Array.isArray(raw.subdivisions)
+      ? (raw.subdivisions as ProjectSubdivision[])
+      : null,
+    createdByUserId: raw.createdByUserId as string,
+    createdBy:
+      (raw.createdBy as { id: string; fullName?: string; phone?: string } | null | undefined) ??
+      null,
+    createdAt: raw.createdAt as string,
+    updatedAt: raw.updatedAt as string,
   };
 }
 
@@ -258,8 +281,8 @@ export function useProject(workspaceId: string) {
           toast.success('Tạo dự án thành công');
         }
         return created;
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Không thể tạo dự án');
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, 'Không thể tạo dự án'));
         return null;
       }
     },
@@ -280,8 +303,8 @@ export function useProject(workspaceId: string) {
           toast.success('Cập nhật dự án thành công');
         }
         return updated;
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Không thể cập nhật dự án');
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, 'Không thể cập nhật dự án'));
         return null;
       }
     },
@@ -296,8 +319,8 @@ export function useProject(workspaceId: string) {
         setTotal((t) => Math.max(0, t - 1));
         toast.success('Xóa dự án thành công');
         return true;
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Không thể xóa dự án');
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, 'Không thể xóa dự án'));
         return false;
       }
     },

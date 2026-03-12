@@ -68,11 +68,21 @@ export function PersonalInfoForm({
     const loadWards = async () => {
       setWardLoading(true);
       try {
-        const response = await fetch(`https://provinces.open-api.vn/api/v2/p/${data.provinceCode}?depth=2`);
+        const response = await fetch(
+          `https://provinces.open-api.vn/api/v2/p/${data.provinceCode}?depth=2`,
+        );
         const payload = (await response.json()) as ProvinceV2Detail;
-        const wardList = (payload.wards || []).map((item) => ({ code: item.code, name: item.name }));
+        const wardList = (payload.wards || []).map((item) => ({
+          code: item.code,
+          name: item.name,
+        }));
         setWards(wardList);
-        console.log('[PersonalInfoForm] Loaded wards for province', data.provinceCode, ':', wardList.length);
+        console.log(
+          '[PersonalInfoForm] Loaded wards for province',
+          data.provinceCode,
+          ':',
+          wardList.length,
+        );
       } catch (err) {
         console.error('Failed to load wards:', err);
       } finally {
@@ -145,7 +155,9 @@ export function PersonalInfoForm({
       {showGenderAndDOB && (
         <div>
           {!hideHeader && <div className="border-t border-gray-200 mb-3 pt-3" />}
-          {!hideHeader && <h4 className="text-sm font-semibold text-gray-900 mb-3">Thông tin cá nhân</h4>}
+          {!hideHeader && (
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Thông tin cá nhân</h4>
+          )}
           <div className={genderDobInline ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Giới tính</label>

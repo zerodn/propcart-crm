@@ -10,7 +10,9 @@ export default function InvitationsPage() {
   const { t } = useI18n();
   const { invitations, isLoading, error, refetch } = useInvitations();
   const pending = invitations.filter((i) => i.status === 0 && new Date(i.expiresAt) > new Date());
-  const history = invitations.filter((i) => !(i.status === 0 && new Date(i.expiresAt) > new Date()));
+  const history = invitations.filter(
+    (i) => !(i.status === 0 && new Date(i.expiresAt) > new Date()),
+  );
 
   return (
     <div className="space-y-6">
@@ -60,7 +62,9 @@ export default function InvitationsPage() {
         <>
           {pending.length > 0 && (
             <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">{t('invitations.pendingTitle')}</div>
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                {t('invitations.pendingTitle')}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {pending.map((inv) => (
                   <InvitationCard key={inv.id} invitation={inv} onUpdate={refetch} />
@@ -71,7 +75,9 @@ export default function InvitationsPage() {
 
           {history.length > 0 && (
             <div>
-              <div className="text-sm font-medium text-gray-700 mt-6 mb-2">{t('invitations.historyTitle')}</div>
+              <div className="text-sm font-medium text-gray-700 mt-6 mb-2">
+                {t('invitations.historyTitle')}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {history.map((inv) => (
                   <InvitationCard key={inv.id} invitation={inv} onUpdate={refetch} />
