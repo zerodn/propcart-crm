@@ -357,9 +357,9 @@ export default function ProjectPage() {
 
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 text-sm truncate">{project.name}</h3>
-                  {(project.district || project.province) && (
+                  {(project.ward || project.district || project.province) && (
                     <p className="text-xs text-gray-500 mt-0.5 truncate">
-                      {[project.district, project.province].filter(Boolean).join(', ')}
+                      {[project.ward, project.district, project.province].filter(Boolean).join(', ')}
                     </p>
                   )}
                 </div>

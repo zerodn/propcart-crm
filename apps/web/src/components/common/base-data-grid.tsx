@@ -29,6 +29,8 @@ export interface BaseDataGridProps<T = any> {
   isLoading?: boolean;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
+  showTableWhenEmpty?: boolean;
+  onRowClick?: (row: T, index: number) => void;
   onEdit?: (row: T, index: number) => void;
   onDelete?: (row: T, index: number) => void;
   rowClassName?: (row: T, index: number) => string;
@@ -42,6 +44,8 @@ export function BaseDataGrid<T extends Record<string, any>>({
   isLoading = false,
   emptyMessage = 'Không có dữ liệu',
   emptyIcon,
+  showTableWhenEmpty = false,
+  onRowClick,
   onEdit,
   onDelete,
   rowClassName,
@@ -102,7 +106,7 @@ export function BaseDataGrid<T extends Record<string, any>>({
     );
   }
 
-  if (data.length === 0) {
+  if (data.length === 0 && !showTableWhenEmpty) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
         {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
@@ -149,8 +153,11 @@ export function BaseDataGrid<T extends Record<string, any>>({
                   <tr
                     key={globalIndex}
                     className={`hover:bg-gray-50 transition-colors ${
+                      onRowClick ? 'cursor-pointer' : ''
+                    } ${
                       rowClassName ? rowClassName(row, globalIndex) : ''
                     }`}
+                    onClick={() => onRowClick?.(row, globalIndex)}
                   >
                     {/* STT Cell */}
                     <td className="px-4 py-3 text-sm text-gray-900 font-medium">
@@ -176,6 +183,7 @@ export function BaseDataGrid<T extends Record<string, any>>({
                           <DropdownMenu.Root>
                             <DropdownMenu.Trigger asChild>
                               <button
+                                onClick={(e) => e.stopPropagation()}
                                 className="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                 title="Thao tác"
                               >
@@ -185,7 +193,7 @@ export function BaseDataGrid<T extends Record<string, any>>({
 
                             <DropdownMenu.Portal>
                               <DropdownMenu.Content
-                                className="min-w-[180px] bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50"
+                                className="min-w-[180px] bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-[11000]"
                                 align="end"
                                 sideOffset={5}
                               >
@@ -199,7 +207,10 @@ export function BaseDataGrid<T extends Record<string, any>>({
                                     <DropdownMenu.Item
                                       key={actionIndex}
                                       className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer outline-none transition-colors"
-                                      onClick={() => action.onClick(row, globalIndex)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        action.onClick(row, globalIndex);
+                                      }}
                                     >
                                       {action.icon && (
                                         <span className={action.variant === 'danger' ? 'text-red-600' : action.variant === 'primary' ? 'text-blue-600' : 'text-gray-600'}>
@@ -221,6 +232,17 @@ export function BaseDataGrid<T extends Record<string, any>>({
                   </tr>
                 );
               })}
+
+              {currentData.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={1 + columns.length + (allActions.length > 0 ? 1 : 0)}
+                    className="px-4 py-10 text-center text-sm text-gray-400"
+                  >
+                    {emptyMessage}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

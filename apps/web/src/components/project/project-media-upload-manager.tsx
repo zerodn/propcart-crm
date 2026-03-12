@@ -53,7 +53,7 @@ function MediaEditPanel({
   };
 
   const content = (
-    <div className="fixed inset-0 z-[10000]">
+    <div className="fixed inset-0 z-[10020]">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40"

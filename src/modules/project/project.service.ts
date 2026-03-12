@@ -1,14 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, ListProjectDto } from './dto';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
 
 @Injectable()
 export class ProjectService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(workspaceId: string, dto: CreateProjectDto, user: JwtPayload) {
-    const bannerItems = dto.bannerUrls ?? (dto.bannerUrl ? [{ originalUrl: dto.bannerUrl, fileName: 'Banner 1' }] : []);
+    const bannerItems =
+      dto.bannerUrls ??
+      (dto.bannerUrl ? [{ originalUrl: dto.bannerUrl, fileName: 'Banner 1' }] : []);
     return this.prisma.project.create({
       data: {
         workspaceId,
@@ -18,21 +25,29 @@ export class ProjectService {
         displayStatus: dto.displayStatus ?? 'DRAFT',
         saleStatus: dto.saleStatus ?? 'COMING_SOON',
         bannerUrl: bannerItems[0]?.originalUrl ?? null,
-        bannerUrls: bannerItems.length > 0 ? (bannerItems as any) : null,
+        bannerUrls: bannerItems.length > 0 ? toJsonValue(bannerItems) : null,
         overviewHtml: dto.overviewHtml ?? null,
         address: dto.address ?? null,
         province: dto.province ?? null,
         district: dto.district ?? null,
+        ward: dto.ward ?? null,
+        latitude: dto.latitude ?? null,
+        longitude: dto.longitude ?? null,
+        googleMapUrl: dto.googleMapUrl ?? null,
+        locationDescriptionHtml: dto.locationDescriptionHtml ?? null,
         zoneImageUrl: dto.zoneImages?.[0]?.originalUrl ?? dto.zoneImageUrl ?? null,
-        zoneImages: dto.zoneImages ? (dto.zoneImages as any) : null,
+        zoneImages: dto.zoneImages ? toJsonValue(dto.zoneImages) : null,
         productImageUrl: dto.productImages?.[0]?.originalUrl ?? dto.productImageUrl ?? null,
-        productImages: dto.productImages ? (dto.productImages as any) : null,
+        productImages: dto.productImages ? toJsonValue(dto.productImages) : null,
         amenityImageUrl: dto.amenityImages?.[0]?.originalUrl ?? dto.amenityImageUrl ?? null,
-        amenityImages: dto.amenityImages ? (dto.amenityImages as any) : null,
+        amenityImages: dto.amenityImages ? toJsonValue(dto.amenityImages) : null,
         videoUrl: dto.videoUrl ?? null,
         videoDescription: dto.videoDescription ?? null,
-        contacts: dto.contacts ? (dto.contacts as any) : null,
-        planningStats: dto.planningStats ? (dto.planningStats as any) : null,
+        contacts: dto.contacts ? toJsonValue(dto.contacts) : null,
+        planningStats: dto.planningStats ? toJsonValue(dto.planningStats) : null,
+        progressUpdates: dto.progressUpdates ? toJsonValue(dto.progressUpdates) : null,
+        documentItems: dto.documentItems ? toJsonValue(dto.documentItems) : null,
+        subdivisions: dto.subdivisions ? toJsonValue(dto.subdivisions) : null,
         createdByUserId: user.sub,
       },
       include: { createdBy: { select: { id: true, fullName: true, phone: true } } },
@@ -44,7 +59,7 @@ export class ProjectService {
     const limit = Math.min(Number(dto.limit) || 20, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { workspaceId };
+    const where: Prisma.ProjectWhereInput = { workspaceId };
     if (dto.search) {
       where.name = { contains: dto.search };
     }
@@ -82,7 +97,13 @@ export class ProjectService {
   async update(workspaceId: string, id: string, dto: UpdateProjectDto) {
     await this.findById(workspaceId, id);
     const hasBannerUpdate = dto.bannerUrls !== undefined || dto.bannerUrl !== undefined;
-    const nextBannerItems = dto.bannerUrls ?? (dto.bannerUrl !== undefined ? (dto.bannerUrl ? [{ originalUrl: dto.bannerUrl, fileName: 'Banner 1' }] : []) : undefined);
+    const nextBannerItems =
+      dto.bannerUrls ??
+      (dto.bannerUrl !== undefined
+        ? dto.bannerUrl
+          ? [{ originalUrl: dto.bannerUrl, fileName: 'Banner 1' }]
+          : []
+        : undefined);
 
     return this.prisma.project.update({
       where: { id },
@@ -93,32 +114,49 @@ export class ProjectService {
         ...(dto.displayStatus !== undefined && { displayStatus: dto.displayStatus }),
         ...(dto.saleStatus !== undefined && { saleStatus: dto.saleStatus }),
         ...(hasBannerUpdate && {
-          bannerUrl: nextBannerItems && nextBannerItems.length > 0 ? nextBannerItems[0].originalUrl : null,
-          bannerUrls: nextBannerItems && nextBannerItems.length > 0 ? (nextBannerItems as any) : null,
+          bannerUrl:
+            nextBannerItems && nextBannerItems.length > 0 ? nextBannerItems[0].originalUrl : null,
+          bannerUrls:
+            nextBannerItems && nextBannerItems.length > 0 ? toJsonValue(nextBannerItems) : null,
         }),
         ...(dto.overviewHtml !== undefined && { overviewHtml: dto.overviewHtml }),
         ...(dto.address !== undefined && { address: dto.address }),
         ...(dto.province !== undefined && { province: dto.province }),
         ...(dto.district !== undefined && { district: dto.district }),
+        ...(dto.ward !== undefined && { ward: dto.ward }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.googleMapUrl !== undefined && { googleMapUrl: dto.googleMapUrl }),
+        ...(dto.locationDescriptionHtml !== undefined && {
+          locationDescriptionHtml: dto.locationDescriptionHtml,
+        }),
         ...(dto.zoneImages !== undefined && {
           zoneImageUrl: dto.zoneImages.length > 0 ? dto.zoneImages[0].originalUrl : null,
-          zoneImages: dto.zoneImages.length > 0 ? (dto.zoneImages as any) : null,
+          zoneImages: dto.zoneImages.length > 0 ? toJsonValue(dto.zoneImages) : null,
         }),
-        ...(dto.zoneImages === undefined && dto.zoneImageUrl !== undefined && { zoneImageUrl: dto.zoneImageUrl }),
+        ...(dto.zoneImages === undefined &&
+          dto.zoneImageUrl !== undefined && { zoneImageUrl: dto.zoneImageUrl }),
         ...(dto.productImages !== undefined && {
           productImageUrl: dto.productImages.length > 0 ? dto.productImages[0].originalUrl : null,
-          productImages: dto.productImages.length > 0 ? (dto.productImages as any) : null,
+          productImages: dto.productImages.length > 0 ? toJsonValue(dto.productImages) : null,
         }),
-        ...(dto.productImages === undefined && dto.productImageUrl !== undefined && { productImageUrl: dto.productImageUrl }),
+        ...(dto.productImages === undefined &&
+          dto.productImageUrl !== undefined && { productImageUrl: dto.productImageUrl }),
         ...(dto.amenityImages !== undefined && {
           amenityImageUrl: dto.amenityImages.length > 0 ? dto.amenityImages[0].originalUrl : null,
-          amenityImages: dto.amenityImages.length > 0 ? (dto.amenityImages as any) : null,
+          amenityImages: dto.amenityImages.length > 0 ? toJsonValue(dto.amenityImages) : null,
         }),
-        ...(dto.amenityImages === undefined && dto.amenityImageUrl !== undefined && { amenityImageUrl: dto.amenityImageUrl }),
+        ...(dto.amenityImages === undefined &&
+          dto.amenityImageUrl !== undefined && { amenityImageUrl: dto.amenityImageUrl }),
         ...(dto.videoUrl !== undefined && { videoUrl: dto.videoUrl }),
         ...(dto.videoDescription !== undefined && { videoDescription: dto.videoDescription }),
-        ...(dto.contacts !== undefined && { contacts: dto.contacts as any }),
-        ...(dto.planningStats !== undefined && { planningStats: dto.planningStats as any }),
+        ...(dto.contacts !== undefined && { contacts: toJsonValue(dto.contacts) }),
+        ...(dto.planningStats !== undefined && { planningStats: toJsonValue(dto.planningStats) }),
+        ...(dto.progressUpdates !== undefined && {
+          progressUpdates: toJsonValue(dto.progressUpdates),
+        }),
+        ...(dto.documentItems !== undefined && { documentItems: toJsonValue(dto.documentItems) }),
+        ...(dto.subdivisions !== undefined && { subdivisions: toJsonValue(dto.subdivisions) }),
       },
     });
   }

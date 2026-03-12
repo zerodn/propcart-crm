@@ -181,9 +181,11 @@ export const ALL_EMOJIS = EMOJI_CATEGORIES.flatMap((c) => c.icons);
 interface IconPickerProps {
   value: string;
   onChange: (emoji: string) => void;
+  className?: string;
+  buttonClassName?: string;
 }
 
-export function IconPicker({ value, onChange }: IconPickerProps) {
+export function IconPicker({ value, onChange, className, buttonClassName }: IconPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(0);
@@ -328,12 +330,12 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   ) : null;
 
   return (
-    <div className="relative">
+    <div className={`relative ${className ?? ''}`}>
       <button
         ref={buttonRef}
         type="button"
         onClick={openDropdown}
-        className="flex h-7 items-center justify-center gap-1 w-full px-2 text-xs leading-none border border-gray-200 rounded hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+        className={`flex h-7 w-full items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 text-xs leading-none hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 ${buttonClassName ?? ''}`}
         aria-label="Chọn biểu tượng"
       >
         {value ? (

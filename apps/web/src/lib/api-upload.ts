@@ -3,7 +3,7 @@
  * Handles file uploads to /temp folder before form save
  */
 
-const UPLOAD_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import apiClient from './api-client';
 
 export interface UploadResponse {
   data: {
@@ -18,30 +18,22 @@ export interface UploadResponse {
  * WorkspaceId is resolved from the JWT token on the backend
  * Files in /temp are auto-deleted after 24 hours
  */
-export async function uploadFileToTemp(
-  file: File,
-  accessToken: string,
-): Promise<string | null> {
+export async function uploadFileToTemp(file: File, accessToken?: string): Promise<string | null> {
   try {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${UPLOAD_API_URL}/upload/temp`, {
-      method: 'POST',
+    // Prefer apiClient to leverage request/refresh-token interceptors.
+    const res = await apiClient.post<UploadResponse>('/upload/temp', formData, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'multipart/form-data',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
-      body: formData,
     });
 
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      console.error(`Upload failed ${response.status}:`, body);
-      return null;
-    }
-
-    const data: UploadResponse = await response.json();
-    return data.data.url;
+    const payload: any = res.data;
+    const url = payload?.data?.url ?? payload?.url ?? null;
+    return typeof url === 'string' ? url : null;
   } catch (err) {
     console.error('Upload error:', err);
     return null;

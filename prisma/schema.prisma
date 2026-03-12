@@ -497,6 +497,12 @@ model Project {
   address       String?
   province      String?
   district      String?
+  ward          String?
+  latitude      String?
+  longitude     String?
+  googleMapUrl  String?  @db.Text               // Link Google MyMap / bản đồ
+  locationDescriptionHtml String? @db.Text      // Mô tả vị trí (rich text)
+  subdivisions   Json?                         // [{name, unitCount, unitStandard}]
   zoneImageUrl    String?                       // Mặt bằng (legacy single URL)
   zoneImages      Json?                         // Mặt bằng (MediaItem[])
   productImageUrl String?                       // Sản phẩm (legacy single URL)
@@ -505,8 +511,10 @@ model Project {
   amenityImages   Json?                         // Tiện ích (MediaItem[])
   videoUrl        String?                       // Video giới thiệu
   videoDescription String? @db.Text             // Mô tả video (rich text)
-  contacts        Json?                         // [{name, title, phone, imageUrl, description}]
+  contacts        Json?                         // [{name, title, phone, zaloPhone, imageUrl}]
   planningStats   Json?                         // [{label, icon, value}]
+  progressUpdates Json?                         // [{label, detailHtml, videoUrl, images}]
+  documentItems   Json?                         // [{icon, documentType, documentUrl}]
 
   createdByUserId String
   createdAt       DateTime @default(now())

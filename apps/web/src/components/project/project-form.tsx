@@ -13,11 +13,32 @@ import {
   ChevronDown,
   Check,
   Camera,
+  MapPinned,
+  MapPin,
+  ExternalLink,
+  Eye,
+  Pencil,
 } from 'lucide-react';
-import { Project, CreateProjectPayload, PlanningStat, ProjectContact, MediaItem } from '@/hooks/use-project';
+import {
+  Project,
+  CreateProjectPayload,
+  PlanningStat,
+  ProjectProgressUpdate,
+  ProjectDocumentItem,
+  ProjectContact,
+  MediaItem,
+  ProjectSubdivision,
+  ProjectTower,
+  TowerFundProduct,
+  FloorPlanImage,
+} from '@/hooks/use-project';
 import { ProjectMediaUploadManager } from './project-media-upload-manager';
+import { TowerCamera360Viewer } from './tower-camera-360-viewer';
+import { TowerFloorPlanEditor } from '@/components/project/tower-floor-plan-editor';
 import { RichTextEditor } from '@/components/common/RichTextEditor';
+import { BaseDataGrid } from '@/components/common/base-data-grid';
 import { BaseDialog } from '@/components/common/base-dialog';
+import { BaseSlideOver } from '@/components/common/base-slide-over';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { uploadFileToTemp } from '@/lib/api-upload';
 import apiClient from '@/lib/api-client';
@@ -30,12 +51,7 @@ import { IconPicker } from '@/components/common/icon-picker';
 const STEPS = [
   'Tổng quan',
   'Vị trí',
-  'Pháp lý',
-  'Ảnh 360',
-  'Quỹ căn',
-  'Mặt bằng quỹ căn',
-  'Tòa nhà',
-  'Chính sách bán hàng',
+  'Phân khu',
   'Tiến độ',
   'Tài liệu',
 ];
@@ -50,6 +66,63 @@ const SALE_STATUS_OPTIONS = [
   { value: 'ON_SALE', label: 'Đang mở bán' },
   { value: 'SOLD_OUT', label: 'Đã bán hết' },
 ];
+
+function parseCoordinate(value: string): number | null {
+  const normalized = value.trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildCoordinatePreviewUrl(latitude: string, longitude: string): string | null {
+  const lat = parseCoordinate(latitude);
+  const lng = parseCoordinate(longitude);
+
+  if (lat === null || lng === null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return null;
+  }
+
+  const delta = 0.008;
+  const left = Math.max(-180, lng - delta);
+  const right = Math.min(180, lng + delta);
+  const top = Math.min(90, lat + delta);
+  const bottom = Math.max(-90, lat - delta);
+
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lng}`;
+}
+
+function normalizeExternalUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function buildGoogleMapPreviewUrl(value: string): string | null {
+  const normalized = normalizeExternalUrl(value);
+  if (!normalized) return null;
+
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname.toLowerCase();
+    if (!host.includes('google.')) return null;
+
+    if (url.pathname.includes('/maps/d/embed')) {
+      return url.toString();
+    }
+
+    if (url.pathname.includes('/maps/d/') && url.searchParams.get('mid')) {
+      return `https://www.google.com/maps/d/embed?mid=${url.searchParams.get('mid')}`;
+    }
+
+    if (url.searchParams.get('output') === 'embed') {
+      return url.toString();
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -95,6 +168,70 @@ interface ProjectFormProps {
   workspaceId?: string; // kept for future use
 }
 
+interface SubdivisionFormState {
+  name: string;
+  imageUrl: string;
+  towerCount: string;
+  unitCount: string;
+  unitStandard: string;
+  handoverDate: string;
+  area: string;
+  constructionStyle: string;
+  ownershipType: string;
+  descriptionHtml: string;
+}
+
+interface ProjectTowerRow {
+  name: string;
+  unitCount?: string;
+  unitStandard?: string;
+}
+
+interface TowerFormState {
+  name: string;
+  floorCount: string;
+  unitCount: string;
+  elevatorCount: string;
+  ownershipType: string;
+  handoverStandard: string;
+  constructionStartDate: string;
+  completionDate: string;
+  latitude: string;
+  longitude: string;
+  googleMapUrl: string;
+  locationDescriptionHtml: string;
+  camera360Url: string;
+  camera360Images: MediaItem[];
+  salesPolicyImages: MediaItem[];
+  fundProducts: TowerFundProduct[];
+  floorPlanImages: FloorPlanImage[];
+  descriptionHtml: string;
+}
+
+interface TowerProductOption {
+  id: string;
+  unitCode: string;
+  name: string;
+  warehouseId?: string;
+  warehouseName?: string;
+}
+
+interface ProgressUpdateFormState {
+  label: string;
+  detailHtml: string;
+  videoUrl: string;
+  images: MediaItem[];
+}
+
+const TOWER_STEPS = [
+  'Tổng quan',
+  'Vị trí',
+  'Camera 360',
+  'Quỹ hàng',
+  'Vị trí quỹ hàng',
+  'Chính sách bán hàng',
+];
+
 // ─────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────
@@ -117,11 +254,8 @@ export function ProjectForm({
 
   // ── Upload handler ────────────────────────────────────────
   const handleUploadFile = async (file: File): Promise<string | null> => {
-    // Use temp upload if we have accessToken, fallback to uploadImage
-    if (accessToken) {
-      return uploadFileToTemp(file, accessToken);
-    }
-    return uploadImage(file);
+    // Always use temp upload flow for project wizard files.
+    return uploadFileToTemp(file, accessToken);
   };
 
   // ── Form State ────────────────────────────────────────────
@@ -132,6 +266,11 @@ export function ProjectForm({
   const [address, setAddress] = useState('');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
+  const [ward, setWard] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [googleMapUrl, setGoogleMapUrl] = useState('');
+  const [locationDescriptionHtml, setLocationDescriptionHtml] = useState('');
   const [provinceCode, setProvinceCode] = useState('');
   const [wardCode, setWardCode] = useState('');
   const [provinces, setProvinces] = useState<LocationItem[]>([]);
@@ -151,7 +290,78 @@ export function ProjectForm({
   
   // Planning stats & contacts
   const [planningStats, setPlanningStats] = useState<PlanningStat[]>([]);
+  const [progressUpdates, setProgressUpdates] = useState<ProjectProgressUpdate[]>([]);
+  const [documentItems, setDocumentItems] = useState<ProjectDocumentItem[]>([]);
+  const [draggedDocumentIndex, setDraggedDocumentIndex] = useState<number | null>(null);
+  const [documentDeleteIndex, setDocumentDeleteIndex] = useState<number | null>(null);
+  const [isProgressDrawerOpen, setIsProgressDrawerOpen] = useState(false);
+  const [progressDrawerMode, setProgressDrawerMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [activeProgressIndex, setActiveProgressIndex] = useState<number | null>(null);
+  const [progressDeleteIndex, setProgressDeleteIndex] = useState<number | null>(null);
+  const [progressForm, setProgressForm] = useState<ProgressUpdateFormState>({
+    label: '',
+    detailHtml: '',
+    videoUrl: '',
+    images: [],
+  });
   const [contacts, setContacts] = useState<ProjectContact[]>([]);
+  const [subdivisions, setSubdivisions] = useState<ProjectSubdivision[]>([]);
+  const [isSubdivisionDialogOpen, setIsSubdivisionDialogOpen] = useState(false);
+  const [subdivisionDialogMode, setSubdivisionDialogMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [activeSubdivisionIndex, setActiveSubdivisionIndex] = useState<number | null>(null);
+  const [subdivisionForm, setSubdivisionForm] = useState<SubdivisionFormState>({
+    name: '',
+    imageUrl: '',
+    towerCount: '',
+    unitCount: '',
+    unitStandard: '',
+    handoverDate: '',
+    area: '',
+    constructionStyle: '',
+    ownershipType: '',
+    descriptionHtml: '',
+  });
+  const [subdivisionDeleteIndex, setSubdivisionDeleteIndex] = useState<number | null>(null);
+  const [isUploadingSubdivisionImage, setIsUploadingSubdivisionImage] = useState(false);
+  const [isSavingSubdivision, setIsSavingSubdivision] = useState(false);
+  const [selectedSubdivisionIndex, setSelectedSubdivisionIndex] = useState<number | null>(null);
+  const [draggedSubdivisionIndex, setDraggedSubdivisionIndex] = useState<number | null>(null);
+  const [draggedTowerIndex, setDraggedTowerIndex] = useState<number | null>(null);
+  const [isTowerDrawerOpen, setIsTowerDrawerOpen] = useState(false);
+  const [towerDrawerMode, setTowerDrawerMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [activeTowerIndex, setActiveTowerIndex] = useState<number | null>(null);
+  const [towerDeleteIndex, setTowerDeleteIndex] = useState<number | null>(null);
+  const [towerCurrentStep, setTowerCurrentStep] = useState(0);
+  const [isSavingTowerStep, setIsSavingTowerStep] = useState(false);
+  const [isUploadingTowerMedia, setIsUploadingTowerMedia] = useState(false);
+  const [isTowerProductDialogOpen, setIsTowerProductDialogOpen] = useState(false);
+  const [isLoadingTowerProducts, setIsLoadingTowerProducts] = useState(false);
+  const [towerProductKeyword, setTowerProductKeyword] = useState('');
+  const [towerWarehouseFilter, setTowerWarehouseFilter] = useState<string>('');
+  const [towerWarehouses, setTowerWarehouses] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [towerProducts, setTowerProducts] = useState<TowerProductOption[]>([]);
+  const [floorPlanEditorOpen, setFloorPlanEditorOpen] = useState(false);
+  const [floorPlanEditorIndex, setFloorPlanEditorIndex] = useState<number | null>(null);
+  const [towerForm, setTowerForm] = useState<TowerFormState>({
+    name: '',
+    floorCount: '',
+    unitCount: '',
+    elevatorCount: '',
+    ownershipType: '',
+    handoverStandard: '',
+    constructionStartDate: '',
+    completionDate: '',
+    latitude: '',
+    longitude: '',
+    googleMapUrl: '',
+    locationDescriptionHtml: '',
+    camera360Url: '',
+    camera360Images: [],
+    salesPolicyImages: [],
+    fundProducts: [],
+    floorPlanImages: [],
+    descriptionHtml: '',
+  });
   const [newContactForm, setNewContactForm] = useState<ProjectContact>({ name: '' });
   const [uploadingContactIndex, setUploadingContactIndex] = useState<number | null>(null);
   const [deleteContactIndex, setDeleteContactIndex] = useState<number | null>(null);
@@ -161,6 +371,7 @@ export function ProjectForm({
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
   const [isSearchingMembers, setIsSearchingMembers] = useState(false);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
+  const subdivisionImageInputRef = useRef<HTMLInputElement>(null);
   const isUploading = uploadingCount > 0;
 
   const handleUploadingChange = (uploading: boolean) => {
@@ -168,6 +379,10 @@ export function ProjectForm({
   };
 
   const projectTypeLabel = projectType === 'LOW_RISE' ? 'Dự án thấp tầng' : 'Dự án cao tầng';
+
+  const coordinatePreviewUrl = buildCoordinatePreviewUrl(latitude, longitude);
+  const googleMapPreviewUrl = buildGoogleMapPreviewUrl(googleMapUrl);
+  const googleMapExternalUrl = normalizeExternalUrl(googleMapUrl);
 
   const buildOverviewPayload = (): CreateProjectPayload => {
     const sanitizedContacts = contacts
@@ -189,9 +404,6 @@ export function ProjectForm({
     bannerUrl: bannerItems[0]?.originalUrl || undefined,
     bannerUrls: bannerItems.length > 0 ? bannerItems : undefined,
     overviewHtml: overviewHtml || undefined,
-    address: address || undefined,
-    province: province || undefined,
-    district: district || undefined,
     zoneImageUrl: zoneItems[0]?.originalUrl || undefined,
     zoneImages: zoneItems.length > 0 ? zoneItems : undefined,
     productImageUrl: productItems[0]?.originalUrl || undefined,
@@ -202,12 +414,87 @@ export function ProjectForm({
     videoDescription: videoDescription || undefined,
     contacts: sanitizedContacts.length > 0 ? sanitizedContacts : undefined,
     planningStats: planningStats.filter((s) => s.label && s.value),
+    progressUpdates:
+      progressUpdates.length > 0
+        ? progressUpdates
+            .map((item) => ({
+              label: item.label.trim(),
+              detailHtml: item.detailHtml || undefined,
+              videoUrl: item.videoUrl?.trim() || undefined,
+              images: item.images && item.images.length > 0 ? item.images : undefined,
+            }))
+            .filter((item) => item.label.length > 0)
+        : undefined,
+    documentItems:
+      documentItems.length > 0
+        ? documentItems
+            .map((item) => ({
+              icon: item.icon?.trim() || undefined,
+              documentType: item.documentType.trim(),
+              documentUrl: normalizeExternalUrl(item.documentUrl)?.trim() || item.documentUrl.trim(),
+            }))
+            .filter((item) => item.documentType.length > 0 && item.documentUrl.length > 0)
+        : undefined,
+    subdivisions: subdivisions.length > 0 ? subdivisions : undefined,
     };
   };
+
+  const buildLocationPayload = (): Partial<CreateProjectPayload> => ({
+    address: address.trim() || undefined,
+    province: province.trim() || undefined,
+    ward: ward.trim() || undefined,
+    latitude: latitude.trim() || undefined,
+    longitude: longitude.trim() || undefined,
+    googleMapUrl: googleMapUrl.trim() || undefined,
+    locationDescriptionHtml: locationDescriptionHtml || undefined,
+  });
+
+  const buildFormPayload = (): CreateProjectPayload => ({
+    ...buildOverviewPayload(),
+    ...buildLocationPayload(),
+  });
 
   const getStepPayload = (step: number): Partial<CreateProjectPayload> => {
     if (step === 0) {
       return buildOverviewPayload();
+    }
+    if (step === 1) {
+      return buildLocationPayload();
+    }
+    if (step === 2) {
+      return {
+        subdivisions: subdivisions.length > 0 ? subdivisions : undefined,
+      };
+    }
+    if (step === 3) {
+      return {
+        progressUpdates:
+          progressUpdates.length > 0
+            ? progressUpdates
+                .map((item) => ({
+                  label: item.label.trim(),
+                  detailHtml: item.detailHtml || undefined,
+                  videoUrl: item.videoUrl?.trim() || undefined,
+                  images: item.images && item.images.length > 0 ? item.images : undefined,
+                }))
+                .filter((item) => item.label.length > 0)
+            : undefined,
+      };
+    }
+    if (step === 4) {
+      return {
+        documentItems:
+          documentItems.length > 0
+            ? documentItems
+                .map((item) => ({
+                  icon: item.icon?.trim() || undefined,
+                  documentType: item.documentType.trim(),
+                  documentUrl:
+                    normalizeExternalUrl(item.documentUrl)?.trim() || item.documentUrl.trim(),
+                }))
+                .filter((item) => item.documentType.length > 0 && item.documentUrl.length > 0)
+            : undefined,
+      };
     }
     return {};
   };
@@ -224,6 +511,11 @@ export function ProjectForm({
       setAddress(editingProject.address ?? '');
       setProvince(editingProject.province ?? '');
       setDistrict(editingProject.district ?? '');
+      setWard(editingProject.ward ?? '');
+      setLatitude(editingProject.latitude ?? '');
+      setLongitude(editingProject.longitude ?? '');
+      setGoogleMapUrl(editingProject.googleMapUrl ?? '');
+      setLocationDescriptionHtml(editingProject.locationDescriptionHtml ?? '');
       setProvinceCode('');
       setWardCode('');
       setWards([]);
@@ -284,7 +576,17 @@ export function ProjectForm({
       }
 
       setPlanningStats(editingProject.planningStats ?? []);
+      setProgressUpdates(editingProject.progressUpdates ?? []);
+      setDocumentItems(editingProject.documentItems ?? []);
       setContacts(editingProject.contacts ?? []);
+      setSubdivisions(editingProject.subdivisions ?? []);
+      setSubdivisionDeleteIndex(null);
+      setIsSubdivisionDialogOpen(false);
+      setActiveSubdivisionIndex(null);
+      setSelectedSubdivisionIndex(null);
+      setIsTowerDrawerOpen(false);
+      setActiveTowerIndex(null);
+      setTowerDeleteIndex(null);
     } else if (isOpen && !editingProject) {
       setDraftProjectId(null);
       // Reset form for new project
@@ -295,6 +597,11 @@ export function ProjectForm({
       setAddress('');
       setProvince('');
       setDistrict('');
+      setWard('');
+      setLatitude('');
+      setLongitude('');
+      setGoogleMapUrl('');
+      setLocationDescriptionHtml('');
       setProvinceCode('');
       setWardCode('');
       setWards([]);
@@ -306,7 +613,17 @@ export function ProjectForm({
       setProductItems([]);
       setAmenityItems([]);
       setPlanningStats([]);
+      setProgressUpdates([]);
+      setDocumentItems([]);
       setContacts([]);
+      setSubdivisions([]);
+      setSubdivisionDeleteIndex(null);
+      setIsSubdivisionDialogOpen(false);
+      setActiveSubdivisionIndex(null);
+      setSelectedSubdivisionIndex(null);
+      setIsTowerDrawerOpen(false);
+      setActiveTowerIndex(null);
+      setTowerDeleteIndex(null);
       setNewContactForm({ name: '' });
       setDeleteContactIndex(null);
       setWorkspaceMemberOptions([]);
@@ -370,12 +687,12 @@ export function ProjectForm({
   }, [province, provinceCode, provinces]);
 
   useEffect(() => {
-    if (!district || wardCode || wards.length === 0) return;
-    const matchedWard = wards.find((w) => w.name.toLowerCase() === district.toLowerCase());
+    if (!ward || wardCode || wards.length === 0) return;
+    const matchedWard = wards.find((w) => w.name.toLowerCase() === ward.toLowerCase());
     if (matchedWard) {
       setWardCode(String(matchedWard.code));
     }
-  }, [district, wardCode, wards]);
+  }, [ward, wardCode, wards]);
 
   useEffect(() => {
     if (!workspaceId || !isOpen) return;
@@ -455,6 +772,7 @@ export function ProjectForm({
     setProvinceCode(code);
     setProvince(selectedProvince?.name ?? '');
     setWardCode('');
+    setWard('');
     setDistrict('');
     setWards([]);
   };
@@ -462,7 +780,7 @@ export function ProjectForm({
   const handleWardChange = (code: string) => {
     const selectedWard = wards.find((w) => String(w.code) === code);
     setWardCode(code);
-    setDistrict(selectedWard?.name ?? '');
+    setWard(selectedWard?.name ?? '');
   };
 
   // ── Planning Stats Handlers ────────────────────────────────
@@ -559,9 +877,186 @@ export function ProjectForm({
 
   const removeContact = (i: number) => setContacts((c) => c.filter((_, idx) => idx !== i));
 
+  const openCreateSubdivision = () => {
+    if (projectType === 'LOW_RISE') {
+      setSelectedSubdivisionIndex(null);
+      setTowerDrawerMode('create');
+      setActiveTowerIndex(null);
+      setTowerCurrentStep(0);
+      setSubdivisionForm({
+        name: '',
+        imageUrl: '',
+        towerCount: '1',
+        unitCount: '',
+        unitStandard: '',
+        handoverDate: '',
+        area: '',
+        constructionStyle: '',
+        ownershipType: '',
+        descriptionHtml: '',
+      });
+      setTowerForm({
+        name: '',
+        floorCount: '',
+        unitCount: '',
+        elevatorCount: '',
+        ownershipType: '',
+        handoverStandard: '',
+        constructionStartDate: '',
+        completionDate: '',
+        latitude: '',
+        longitude: '',
+        googleMapUrl: '',
+        locationDescriptionHtml: '',
+        camera360Url: '',
+        camera360Images: [],
+        salesPolicyImages: [],
+        fundProducts: [],
+        floorPlanImages: [],
+        descriptionHtml: '',
+      });
+      setIsTowerDrawerOpen(true);
+      return;
+    }
+
+    setSubdivisionDialogMode('create');
+    setActiveSubdivisionIndex(null);
+    setSubdivisionForm({
+      name: '',
+      imageUrl: '',
+      towerCount: '',
+      unitCount: '',
+      unitStandard: '',
+      handoverDate: '',
+      area: '',
+      constructionStyle: '',
+      ownershipType: '',
+      descriptionHtml: '',
+    });
+    setIsSubdivisionDialogOpen(true);
+  };
+
+  const openSubdivisionDialog = (mode: 'edit' | 'view', index: number) => {
+    const item = subdivisions[index];
+    if (!item) return;
+    setSubdivisionDialogMode(mode);
+    setActiveSubdivisionIndex(index);
+    setSubdivisionForm({
+      name: item.name || '',
+      imageUrl: item.imageUrl || '',
+      towerCount: item.towerCount || '',
+      unitCount: item.unitCount || '',
+      unitStandard: item.unitStandard || '',
+      handoverDate: item.handoverDate || '',
+      area: item.area || '',
+      constructionStyle: item.constructionStyle || '',
+      ownershipType: item.ownershipType || '',
+      descriptionHtml: item.descriptionHtml || '',
+    });
+    setIsSubdivisionDialogOpen(true);
+  };
+
+  const handleSubdivisionImageUpload = async (file: File | null) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn tệp hình ảnh hợp lệ');
+      return;
+    }
+
+    try {
+      setIsUploadingSubdivisionImage(true);
+      const url = await handleUploadFile(file);
+      if (!url) {
+        toast.error('Upload ảnh đại diện thất bại');
+        return;
+      }
+      setSubdivisionForm((prev) => ({ ...prev, imageUrl: url }));
+    } finally {
+      setIsUploadingSubdivisionImage(false);
+    }
+  };
+
+  const saveSubdivision = async () => {
+    const existingSubdivision =
+      subdivisionDialogMode === 'edit' && activeSubdivisionIndex !== null
+        ? subdivisions[activeSubdivisionIndex]
+        : undefined;
+
+    const normalized: ProjectSubdivision = {
+      // Preserve tower data and any other non-form fields that are not exposed in the edit form
+      ...(existingSubdivision?.towers ? { towers: existingSubdivision.towers } : {}),
+      name: subdivisionForm.name.trim(),
+      imageUrl: subdivisionForm.imageUrl.trim() || undefined,
+      towerCount:
+        projectType === 'LOW_RISE'
+          ? '1'
+          : subdivisionForm.towerCount.trim() || undefined,
+      unitCount: subdivisionForm.unitCount.trim() || subdivisionForm.towerCount.trim() || undefined,
+      unitStandard: subdivisionForm.unitStandard.trim() || undefined,
+      handoverDate: subdivisionForm.handoverDate || undefined,
+      area: subdivisionForm.area.trim() || undefined,
+      constructionStyle: subdivisionForm.constructionStyle.trim() || undefined,
+      ownershipType: subdivisionForm.ownershipType.trim() || undefined,
+      descriptionHtml: subdivisionForm.descriptionHtml || undefined,
+    };
+
+    if (!normalized.name) {
+      toast.error('Vui lòng nhập tên phân khu');
+      return;
+    }
+
+    const nextSubdivisions =
+      subdivisionDialogMode === 'edit' && activeSubdivisionIndex !== null
+        ? subdivisions.map((item, idx) => (idx === activeSubdivisionIndex ? normalized : item))
+        : [...subdivisions, normalized];
+
+    if (subdivisionDialogMode === 'edit') {
+      setIsSavingSubdivision(true);
+      try {
+        const saved = await onSubmit(
+          {
+            subdivisions: nextSubdivisions,
+          },
+          {
+            closeAfterSave: false,
+            projectId: draftProjectId ?? undefined,
+            silent: true,
+          },
+        );
+
+        if (!saved) {
+          return;
+        }
+
+        setSubdivisions(saved.subdivisions ?? nextSubdivisions);
+        if (saved.id && saved.id !== draftProjectId) {
+          setDraftProjectId(saved.id);
+        }
+      } finally {
+        setIsSavingSubdivision(false);
+      }
+    } else {
+      setSubdivisions(nextSubdivisions);
+    }
+
+    setIsSubdivisionDialogOpen(false);
+    setActiveSubdivisionIndex(null);
+  };
+
+  const removeSubdivision = (index: number) => {
+    setSubdivisions((prev) => prev.filter((_, idx) => idx !== index));
+    setSelectedSubdivisionIndex((current) => {
+      if (current === null) return current;
+      if (current === index) return null;
+      if (current > index) return current - 1;
+      return current;
+    });
+  };
+
   // ── Form Submit ────────────────────────────────────────────
   const handleSubmit = async () => {
-    const payload = buildOverviewPayload();
+    const payload = buildFormPayload();
     const saved = await onSubmit(payload, {
       closeAfterSave: true,
       projectId: draftProjectId ?? undefined,
@@ -573,7 +1068,7 @@ export function ProjectForm({
   };
 
   const handleNextStep = async () => {
-    if (currentStep === 0 && !name.trim()) {
+    if (!draftProjectId && !name.trim()) {
       toast.error('Vui lòng nhập tên dự án trước khi tiếp tục');
       return;
     }
@@ -583,7 +1078,7 @@ export function ProjectForm({
       return;
     }
 
-    const payload = getStepPayload(currentStep);
+    const payload = draftProjectId ? getStepPayload(currentStep) : buildFormPayload();
     const saved = await onSubmit(payload, {
       closeAfterSave: false,
       projectId: draftProjectId ?? undefined,
@@ -604,6 +1099,688 @@ export function ProjectForm({
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === STEPS.length - 1;
   const isOverviewStep = currentStep === 0;
+  const isLocationStep = currentStep === 1;
+  const isSubdivisionStep = currentStep === 2;
+  const isProgressStep = currentStep === 3;
+  const isDocumentStep = currentStep === 4;
+
+  const selectedSubdivision =
+    selectedSubdivisionIndex !== null ? subdivisions[selectedSubdivisionIndex] ?? null : null;
+  const towerCoordinatePreviewUrl = buildCoordinatePreviewUrl(towerForm.latitude, towerForm.longitude);
+  const towerGoogleMapPreviewUrl = buildGoogleMapPreviewUrl(towerForm.googleMapUrl);
+  const towerGoogleMapExternalUrl = normalizeExternalUrl(towerForm.googleMapUrl);
+  const towerCamera360PreviewUrl = normalizeExternalUrl(towerForm.camera360Url);
+
+
+  // Load warehouses once when the product dialog opens
+  useEffect(() => {
+    if (!isTowerProductDialogOpen || !workspaceId) return;
+    apiClient
+      .get(`/workspaces/${workspaceId}/warehouses`, { params: { limit: 200 } })
+      .then(({ data }) => {
+        const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        setTowerWarehouses(items.map((w: any) => ({ id: w.id, name: w.name, code: w.code })));
+      })
+      .catch(() => setTowerWarehouses([]));
+  }, [isTowerProductDialogOpen, workspaceId]);
+
+  // Load products filtered by keyword + warehouse
+  useEffect(() => {
+    if (!isTowerProductDialogOpen) return;
+
+    const timer = setTimeout(async () => {
+      if (!workspaceId) {
+        setTowerProducts([]);
+        return;
+      }
+
+      try {
+        setIsLoadingTowerProducts(true);
+        const { data } = await apiClient.get(`/workspaces/${workspaceId}/products`, {
+          params: {
+            search: towerProductKeyword.trim() || undefined,
+            warehouseId: towerWarehouseFilter || undefined,
+          },
+        });
+
+        const rawItems = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        const mapped: TowerProductOption[] = rawItems.map((item: any) => ({
+          id: item.id,
+          unitCode: item.unitCode,
+          name: item.name,
+          warehouseId: item.warehouse?.id || item.warehouseId || undefined,
+          warehouseName: item.warehouse?.name || undefined,
+        }));
+        setTowerProducts(mapped);
+      } catch {
+        setTowerProducts([]);
+      } finally {
+        setIsLoadingTowerProducts(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [isTowerProductDialogOpen, towerProductKeyword, towerWarehouseFilter, workspaceId]);
+
+  const getTowerRowsFromSubdivision = (subdivision: ProjectSubdivision | null): ProjectTowerRow[] => {
+    if (!subdivision) return [];
+
+    const maybeTowers = subdivision.towers;
+    if (Array.isArray(maybeTowers)) {
+      return maybeTowers.map((tower) => ({
+        name: tower.name,
+        unitCount: tower.unitCount,
+        unitStandard: tower.handoverStandard,
+      }));
+    }
+
+    const count = Number.parseInt(subdivision.towerCount ?? '', 10);
+    if (!Number.isFinite(count) || count <= 0) {
+      return [];
+    }
+
+    const prefix = (subdivision.name.match(/[A-Za-z]+/)?.[0] ?? 'T').toUpperCase();
+    return Array.from({ length: count }, (_, idx) => ({
+      name: `${prefix}${idx + 1}`,
+      unitCount: subdivision.unitCount,
+      unitStandard: subdivision.unitStandard,
+    }));
+  };
+
+  const towerRows = getTowerRowsFromSubdivision(selectedSubdivision);
+
+  const getEditableTowers = (subdivision: ProjectSubdivision | null): ProjectTower[] => {
+    if (!subdivision) return [];
+    if (Array.isArray(subdivision.towers)) {
+      return subdivision.towers;
+    }
+
+    const generatedRows = getTowerRowsFromSubdivision(subdivision);
+    return generatedRows.map((row) => ({
+      name: row.name,
+      unitCount: row.unitCount,
+      handoverStandard: row.unitStandard,
+    }));
+  };
+
+  const openTowerDrawer = () => {
+    if (selectedSubdivisionIndex === null) {
+      toast.error('Vui lòng chọn phân khu trước khi thêm tòa nhà');
+      return;
+    }
+    setTowerDrawerMode('create');
+    setActiveTowerIndex(null);
+    setTowerCurrentStep(0);
+    setTowerForm({
+      name: '',
+      floorCount: '',
+      unitCount: '',
+      elevatorCount: '',
+      ownershipType: '',
+      handoverStandard: '',
+      constructionStartDate: '',
+      completionDate: '',
+      latitude: '',
+      longitude: '',
+      googleMapUrl: '',
+      locationDescriptionHtml: '',
+      camera360Url: '',
+      camera360Images: [],
+      salesPolicyImages: [],
+      fundProducts: [],
+      floorPlanImages: [],
+      descriptionHtml: '',
+    });
+    setIsTowerDrawerOpen(true);
+  };
+
+  const closeTowerDrawer = () => {
+    setIsTowerDrawerOpen(false);
+    setTowerCurrentStep(0);
+    setActiveTowerIndex(null);
+    setIsTowerProductDialogOpen(false);
+    setTowerProductKeyword('');
+    setTowerWarehouseFilter('');
+    setTowerWarehouses([]);
+    setTowerProducts([]);
+    setFloorPlanEditorOpen(false);
+    setFloorPlanEditorIndex(null);
+  };
+
+  const addFundProductToTower = (product: TowerProductOption) => {
+    setTowerForm((prev) => {
+      const existed = prev.fundProducts.some((item) => item.productId === product.id);
+      if (existed) return prev;
+
+      return {
+        ...prev,
+        fundProducts: [
+          ...prev.fundProducts,
+          {
+            productId: product.id,
+            unitCode: product.unitCode,
+            name: product.name,
+            warehouseId: product.warehouseId,
+            warehouseName: product.warehouseName,
+          },
+        ],
+      };
+    });
+  };
+
+  const removeFundProductFromTower = (productId: string) => {
+    setTowerForm((prev) => ({
+      ...prev,
+      fundProducts: prev.fundProducts.filter((item) => item.productId !== productId),
+    }));
+  };
+
+  const closeSubdivisionDrawer = () => {
+    setIsSubdivisionDialogOpen(false);
+    setActiveSubdivisionIndex(null);
+  };
+
+  const openTowerDrawerForRow = (mode: 'edit' | 'view', index: number) => {
+    if (selectedSubdivisionIndex === null) return;
+    const towers = getEditableTowers(subdivisions[selectedSubdivisionIndex] ?? null);
+    const tower = towers[index];
+    if (!tower) return;
+
+    setTowerDrawerMode(mode);
+    setActiveTowerIndex(index);
+    setTowerCurrentStep(0);
+    setTowerForm({
+      name: tower.name || '',
+      floorCount: tower.floorCount || '',
+      unitCount: tower.unitCount || '',
+      elevatorCount: tower.elevatorCount || '',
+      ownershipType: tower.ownershipType || '',
+      handoverStandard: tower.handoverStandard || '',
+      constructionStartDate: tower.constructionStartDate || '',
+      completionDate: tower.completionDate || '',
+      latitude: tower.latitude || '',
+      longitude: tower.longitude || '',
+      googleMapUrl: tower.googleMapUrl || '',
+      locationDescriptionHtml: tower.locationDescriptionHtml || '',
+      camera360Url: tower.camera360Url || '',
+      camera360Images: Array.isArray(tower.camera360Images) ? tower.camera360Images : [],
+      salesPolicyImages: Array.isArray(tower.salesPolicyImages) ? tower.salesPolicyImages : [],
+      fundProducts: Array.isArray(tower.fundProducts) ? tower.fundProducts : [],
+      floorPlanImages: Array.isArray(tower.floorPlanImages) ? tower.floorPlanImages : [],
+      descriptionHtml: tower.descriptionHtml || '',
+    });
+    setIsTowerDrawerOpen(true);
+  };
+
+  const openSubdivisionTowerDrawer = (mode: 'edit' | 'view', index: number) => {
+    const subdivision = subdivisions[index];
+    if (!subdivision) return;
+
+    const primaryTower = Array.isArray(subdivision.towers) ? subdivision.towers[0] : undefined;
+
+    setSelectedSubdivisionIndex(index);
+    setActiveSubdivisionIndex(index);
+    setTowerDrawerMode(mode);
+    setActiveTowerIndex(0);
+    setTowerCurrentStep(0);
+    setSubdivisionForm({
+      name: subdivision.name || '',
+      imageUrl: subdivision.imageUrl || '',
+      towerCount: '1',
+      unitCount: subdivision.unitCount || '',
+      unitStandard: subdivision.unitStandard || '',
+      handoverDate: subdivision.handoverDate || '',
+      area: subdivision.area || '',
+      constructionStyle: subdivision.constructionStyle || '',
+      ownershipType: subdivision.ownershipType || '',
+      descriptionHtml: subdivision.descriptionHtml || '',
+    });
+    setTowerForm({
+      name: primaryTower?.name || subdivision.name || '',
+      floorCount: primaryTower?.floorCount || '',
+      unitCount: primaryTower?.unitCount || subdivision.unitCount || '',
+      elevatorCount: primaryTower?.elevatorCount || '',
+      ownershipType: primaryTower?.ownershipType || subdivision.ownershipType || '',
+      handoverStandard: primaryTower?.handoverStandard || subdivision.unitStandard || '',
+      constructionStartDate: primaryTower?.constructionStartDate || '',
+      completionDate: primaryTower?.completionDate || subdivision.handoverDate || '',
+      latitude: primaryTower?.latitude || '',
+      longitude: primaryTower?.longitude || '',
+      googleMapUrl: primaryTower?.googleMapUrl || '',
+      locationDescriptionHtml: primaryTower?.locationDescriptionHtml || '',
+      camera360Url: primaryTower?.camera360Url || '',
+      camera360Images: Array.isArray(primaryTower?.camera360Images)
+        ? primaryTower.camera360Images
+        : [],
+      salesPolicyImages: Array.isArray(primaryTower?.salesPolicyImages)
+        ? primaryTower.salesPolicyImages
+        : [],
+      fundProducts: Array.isArray(primaryTower?.fundProducts) ? primaryTower.fundProducts : [],
+      floorPlanImages: Array.isArray(primaryTower?.floorPlanImages) ? primaryTower.floorPlanImages : [],
+      descriptionHtml: primaryTower?.descriptionHtml || subdivision.descriptionHtml || '',
+    });
+
+    setIsTowerDrawerOpen(true);
+  };
+
+  const buildSubdivisionsWithTower = (tower: ProjectTower): ProjectSubdivision[] => {
+    if (projectType === 'LOW_RISE') {
+      const normalizedSubdivision: ProjectSubdivision = {
+        name: subdivisionForm.name.trim(),
+        imageUrl: subdivisionForm.imageUrl.trim() || undefined,
+        towerCount: '1',
+        unitCount: subdivisionForm.unitCount.trim() || undefined,
+        unitStandard: subdivisionForm.unitStandard.trim() || undefined,
+        handoverDate: subdivisionForm.handoverDate || undefined,
+        area: subdivisionForm.area.trim() || undefined,
+        constructionStyle: subdivisionForm.constructionStyle.trim() || undefined,
+        ownershipType: subdivisionForm.ownershipType.trim() || undefined,
+        descriptionHtml: subdivisionForm.descriptionHtml || undefined,
+        towers: [{ ...tower }],
+      };
+
+      if (selectedSubdivisionIndex === null) {
+        return [...subdivisions, normalizedSubdivision];
+      }
+
+      return subdivisions.map((item, idx) =>
+        idx === selectedSubdivisionIndex ? normalizedSubdivision : item,
+      );
+    }
+
+    if (selectedSubdivisionIndex === null) {
+      return subdivisions;
+    }
+
+    return subdivisions.map((item, idx) => {
+      if (idx !== selectedSubdivisionIndex) return item;
+
+      const currentTowers = getEditableTowers(item);
+      const nextTowers =
+        towerDrawerMode === 'edit' && activeTowerIndex !== null
+          ? currentTowers.map((existingTower, towerIdx) =>
+              towerIdx === activeTowerIndex ? tower : existingTower,
+            )
+          : [...currentTowers, tower];
+
+      return {
+        ...item,
+        towers: nextTowers,
+        towerCount: String(nextTowers.length),
+      };
+    });
+  };
+
+  const persistTowerStep = async () => {
+    if (projectType !== 'LOW_RISE' && selectedSubdivisionIndex === null) {
+      toast.error('Không xác định được phân khu đang chọn');
+      return false;
+    }
+
+    const normalizedTower: ProjectTower = {
+      name: projectType === 'LOW_RISE' ? subdivisionForm.name.trim() : towerForm.name.trim(),
+      floorCount: towerForm.floorCount.trim() || undefined,
+      unitCount:
+        projectType === 'LOW_RISE'
+          ? subdivisionForm.unitCount.trim() || undefined
+          : towerForm.unitCount.trim() || undefined,
+      elevatorCount: towerForm.elevatorCount.trim() || undefined,
+      ownershipType:
+        projectType === 'LOW_RISE'
+          ? subdivisionForm.ownershipType.trim() || undefined
+          : towerForm.ownershipType.trim() || undefined,
+      handoverStandard:
+        projectType === 'LOW_RISE'
+          ? subdivisionForm.unitStandard.trim() || undefined
+          : towerForm.handoverStandard.trim() || undefined,
+      constructionStartDate: towerForm.constructionStartDate || undefined,
+      completionDate:
+        projectType === 'LOW_RISE'
+          ? subdivisionForm.handoverDate || undefined
+          : towerForm.completionDate || undefined,
+      latitude: towerForm.latitude.trim() || undefined,
+      longitude: towerForm.longitude.trim() || undefined,
+      googleMapUrl: towerForm.googleMapUrl.trim() || undefined,
+      locationDescriptionHtml: towerForm.locationDescriptionHtml || undefined,
+      camera360Url: towerForm.camera360Url.trim() || undefined,
+      camera360Images: towerForm.camera360Images.length > 0 ? towerForm.camera360Images : undefined,
+      salesPolicyImages: towerForm.salesPolicyImages.length > 0 ? towerForm.salesPolicyImages : undefined,
+      fundProducts: towerForm.fundProducts.length > 0 ? towerForm.fundProducts : undefined,
+      floorPlanImages: towerForm.floorPlanImages.length > 0 ? towerForm.floorPlanImages : undefined,
+      descriptionHtml:
+        projectType === 'LOW_RISE'
+          ? subdivisionForm.descriptionHtml || undefined
+          : towerForm.descriptionHtml || undefined,
+    };
+
+    if (!normalizedTower.name) {
+      toast.error(projectType === 'LOW_RISE' ? 'Vui lòng nhập tên phân khu' : 'Vui lòng nhập tên tòa nhà');
+      return false;
+    }
+
+    if (towerCurrentStep === 0 && projectType === 'LOW_RISE') {
+      if (!subdivisionForm.name.trim()) {
+        toast.error('Vui lòng nhập tên phân khu');
+        return false;
+      }
+    }
+
+    if (towerCurrentStep === 0 && projectType !== 'LOW_RISE') {
+      if (!towerForm.floorCount.trim()) {
+        toast.error('Vui lòng nhập số tầng');
+        return false;
+      }
+      if (!towerForm.unitCount.trim()) {
+        toast.error('Vui lòng nhập số căn hộ');
+        return false;
+      }
+    }
+
+    if (towerCurrentStep === 1) {
+      if (!towerForm.latitude.trim()) {
+        toast.error('Vui lòng nhập vĩ độ');
+        return false;
+      }
+      if (!towerForm.longitude.trim()) {
+        toast.error('Vui lòng nhập kinh độ');
+        return false;
+      }
+    }
+
+    if (towerCurrentStep === 2 && isUploadingTowerMedia) {
+      toast.error('Vui lòng chờ tải ảnh 360 hoàn tất trước khi tiếp tục');
+      return false;
+    }
+
+    const nextSubdivisions = buildSubdivisionsWithTower(normalizedTower);
+
+    setIsSavingTowerStep(true);
+    try {
+      const payload = draftProjectId
+        ? { subdivisions: nextSubdivisions }
+        : {
+            ...buildFormPayload(),
+            subdivisions: nextSubdivisions,
+          };
+
+      const saved = await onSubmit(payload, {
+        closeAfterSave: false,
+        projectId: draftProjectId ?? undefined,
+        silent: true,
+      });
+
+      if (!saved) {
+        return false;
+      }
+
+      setSubdivisions(saved.subdivisions ?? nextSubdivisions);
+      if (saved.id && saved.id !== draftProjectId) {
+        setDraftProjectId(saved.id);
+      }
+
+      return true;
+    } finally {
+      setIsSavingTowerStep(false);
+    }
+  };
+
+  const saveTowerToSubdivision = async () => {
+    const ok = await persistTowerStep();
+    if (!ok) return;
+
+    if (towerCurrentStep < TOWER_STEPS.length - 1) {
+      setTowerCurrentStep((step) => Math.min(TOWER_STEPS.length - 1, step + 1));
+      return;
+    }
+
+    setIsTowerDrawerOpen(false);
+    setActiveTowerIndex(null);
+    setTowerCurrentStep(0);
+  };
+
+  const removeTowerFromSubdivision = (index: number) => {
+    if (selectedSubdivisionIndex === null) return;
+
+    setSubdivisions((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== selectedSubdivisionIndex) return item;
+        const currentTowers = getEditableTowers(item);
+        const nextTowers = currentTowers.filter((_, towerIdx) => towerIdx !== index);
+        return {
+          ...item,
+          towers: nextTowers,
+          towerCount: String(nextTowers.length),
+        };
+      }),
+    );
+  };
+
+  const openCreateProgressUpdate = () => {
+    setProgressDrawerMode('create');
+    setActiveProgressIndex(null);
+    setProgressForm({
+      label: '',
+      detailHtml: '',
+      videoUrl: '',
+      images: [],
+    });
+    setIsProgressDrawerOpen(true);
+  };
+
+  const openProgressUpdateDialog = (mode: 'edit' | 'view', index: number) => {
+    const item = progressUpdates[index];
+    if (!item) return;
+    setProgressDrawerMode(mode);
+    setActiveProgressIndex(index);
+    setProgressForm({
+      label: item.label || '',
+      detailHtml: item.detailHtml || '',
+      videoUrl: item.videoUrl || '',
+      images: Array.isArray(item.images) ? item.images : [],
+    });
+    setIsProgressDrawerOpen(true);
+  };
+
+  const closeProgressDrawer = () => {
+    setIsProgressDrawerOpen(false);
+    setActiveProgressIndex(null);
+    setProgressForm({
+      label: '',
+      detailHtml: '',
+      videoUrl: '',
+      images: [],
+    });
+  };
+
+  const saveProgressUpdate = () => {
+    const normalized: ProjectProgressUpdate = {
+      label: progressForm.label.trim(),
+      detailHtml: progressForm.detailHtml || undefined,
+      videoUrl: progressForm.videoUrl.trim() || undefined,
+      images: progressForm.images.length > 0 ? progressForm.images : undefined,
+    };
+
+    if (!normalized.label) {
+      toast.error('Vui lòng nhập nhãn tiến độ');
+      return;
+    }
+
+    setProgressUpdates((prev) =>
+      progressDrawerMode === 'edit' && activeProgressIndex !== null
+        ? prev.map((item, idx) => (idx === activeProgressIndex ? normalized : item))
+        : [...prev, normalized],
+    );
+
+    closeProgressDrawer();
+  };
+
+  const [draggedProgressIndex, setDraggedProgressIndex] = useState<number | null>(null);
+
+  const handleProgressDragStart = (index: number, e: React.DragEvent<HTMLDivElement>) => {
+    setDraggedProgressIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleProgressDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleProgressDrop = (dropIndex: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (draggedProgressIndex === null || draggedProgressIndex === dropIndex) {
+      setDraggedProgressIndex(null);
+      return;
+    }
+
+    setProgressUpdates((prev) => {
+      const updated = [...prev];
+      const [draggedItem] = updated.splice(draggedProgressIndex, 1);
+      updated.splice(dropIndex, 0, draggedItem);
+      return updated;
+    });
+
+    toast.success('Sắp xếp tiến độ thành công');
+    setDraggedProgressIndex(null);
+  };
+
+  const handleProgressDragEnd = () => {
+    setDraggedProgressIndex(null);
+  };
+
+  const addDocumentItem = () => {
+    setDocumentItems((prev) => [...prev, { icon: '📄', documentType: '', documentUrl: '' }]);
+  };
+
+  const updateDocumentItem = (
+    index: number,
+    field: keyof ProjectDocumentItem,
+    value: string,
+  ) => {
+    setDocumentItems((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
+    );
+  };
+
+  const removeDocumentItem = (index: number) => {
+    setDocumentItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleDocumentDragStart = (index: number, e: React.DragEvent<HTMLDivElement>) => {
+    setDraggedDocumentIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDocumentDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDocumentDrop = (dropIndex: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (draggedDocumentIndex === null || draggedDocumentIndex === dropIndex) {
+      setDraggedDocumentIndex(null);
+      return;
+    }
+
+    setDocumentItems((prev) => {
+      const updated = [...prev];
+      const [draggedItem] = updated.splice(draggedDocumentIndex, 1);
+      updated.splice(dropIndex, 0, draggedItem);
+      return updated;
+    });
+
+    toast.success('Sắp xếp tài liệu thành công');
+    setDraggedDocumentIndex(null);
+  };
+
+  const handleDocumentDragEnd = () => {
+    setDraggedDocumentIndex(null);
+  };
+
+  const openDocumentUrl = (url: string) => {
+    const normalized = normalizeExternalUrl(url);
+    if (!normalized) {
+      toast.error('Vui lòng nhập URL tài liệu hợp lệ');
+      return;
+    }
+    window.open(normalized, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSubdivisionDragStart = (index: number, e: React.DragEvent<HTMLDivElement>) => {
+    setDraggedSubdivisionIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSubdivisionDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleSubdivisionDrop = (dropIndex: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (draggedSubdivisionIndex === null || draggedSubdivisionIndex === dropIndex) {
+      setDraggedSubdivisionIndex(null);
+      return;
+    }
+
+    setSubdivisions((prev) => {
+      const updated = [...prev];
+      const [draggedItem] = updated.splice(draggedSubdivisionIndex, 1);
+      updated.splice(dropIndex, 0, draggedItem);
+      return updated;
+    });
+
+    toast.success('Sắp xếp phân khu thành công');
+    setDraggedSubdivisionIndex(null);
+  };
+
+  const handleSubdivisionDragEnd = () => {
+    setDraggedSubdivisionIndex(null);
+  };
+
+  const handleTowerDragStart = (index: number, e: React.DragEvent<HTMLDivElement>) => {
+    setDraggedTowerIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleTowerDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleTowerDrop = (dropIndex: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (draggedTowerIndex === null || draggedTowerIndex === dropIndex || selectedSubdivisionIndex === null) {
+      setDraggedTowerIndex(null);
+      return;
+    }
+
+    setSubdivisions((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== selectedSubdivisionIndex) return item;
+        const towers = getEditableTowers(item);
+        if (draggedTowerIndex < 0 || draggedTowerIndex >= towers.length) return item;
+
+        const updatedTowers = [...towers];
+        const [draggedTower] = updatedTowers.splice(draggedTowerIndex, 1);
+        updatedTowers.splice(dropIndex, 0, draggedTower);
+
+        return {
+          ...item,
+          towers: updatedTowers,
+          towerCount: String(updatedTowers.length),
+        };
+      }),
+    );
+
+    toast.success('Sắp xếp tòa nhà thành công');
+    setDraggedTowerIndex(null);
+  };
+
+  const handleTowerDragEnd = () => {
+    setDraggedTowerIndex(null);
+  };
   const footer = (
     <div className="w-full flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -648,7 +1825,7 @@ export function ProjectForm({
         ) : (
           <button
             type="button"
-            disabled={isSubmitting || isUploading || (isOverviewStep && !name.trim())}
+            disabled={isSubmitting || isUploading || (!draftProjectId && !name.trim())}
             onClick={handleNextStep}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -695,10 +1872,6 @@ export function ProjectForm({
           <div className="flex-1 overflow-y-auto p-6 space-y-5">
             {isOverviewStep ? (
               <>
-                <h3 className="text-base font-semibold text-gray-900 pb-1">
-                  Thông tin tổng quan dự án
-                </h3>
-
                 {/* Row: Tên + Trạng thái hiển thị + Trạng thái bán */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -743,7 +1916,6 @@ export function ProjectForm({
                   </div>
                 </div>
 
-                {/* Row: Chủ dự án */}
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -759,52 +1931,6 @@ export function ProjectForm({
                         <option key={m.value} value={m.value}>{m.label}</option>
                       ))}
                     </select>
-                  </div>
-                </div>
-
-                {/* Address fields */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tỉnh/Thành phố</label>
-                    <select
-                      value={provinceCode}
-                      onChange={(e) => handleProvinceChange(e.target.value)}
-                      disabled={locationLoading}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 bg-white"
-                    >
-                      <option value="">Chọn tỉnh/thành</option>
-                      {provinces.map((item) => (
-                        <option key={item.code} value={String(item.code)}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phường/Xã</label>
-                    <select
-                      value={wardCode}
-                      onChange={(e) => handleWardChange(e.target.value)}
-                      disabled={!provinceCode || locationLoading || wardLoading}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 bg-white"
-                    >
-                      <option value="">Chọn phường/xã</option>
-                      {wards.map((item) => (
-                        <option key={item.code} value={String(item.code)}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ chi tiết</label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Nhập địa chỉ chi tiết"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
                   </div>
                 </div>
 
@@ -1235,6 +2361,553 @@ export function ProjectForm({
                   </div>
                 </div>
               </>
+            ) : isLocationStep ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Tỉnh / Thành phố <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={provinceCode}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      disabled={locationLoading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 bg-white"
+                    >
+                      <option value="">Chọn tỉnh / thành phố</option>
+                      {provinces.map((item) => (
+                        <option key={item.code} value={String(item.code)}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Phường / Xã <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={wardCode}
+                      onChange={(e) => handleWardChange(e.target.value)}
+                      disabled={!provinceCode || locationLoading || wardLoading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 bg-white"
+                    >
+                      <option value="">Chọn phường / xã</option>
+                      {wards.map((item) => (
+                        <option key={item.code} value={String(item.code)}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Địa chỉ
+                    </label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Nhập địa chỉ"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Vĩ độ (Latitude) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                      placeholder="Nhập vĩ độ"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Kinh độ (Longitude) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                      placeholder="Nhập kinh độ"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[260px] overflow-hidden">
+                  {coordinatePreviewUrl ? (
+                    <iframe
+                      title="Coordinate preview"
+                      src={coordinatePreviewUrl}
+                      className="h-[228px] w-full rounded-lg border border-gray-200 bg-white"
+                    />
+                  ) : (
+                    <div className="flex h-[228px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                        <MapPinned className="h-8 w-8 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Chưa có tọa độ để hiển thị bản đồ</p>
+                        <p className="mt-1 text-xs text-gray-500">Nhập vĩ độ và kinh độ để xem vị trí dự án trên bản đồ.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Google Mymap</label>
+                  <input
+                    type="text"
+                    value={googleMapUrl}
+                    onChange={(e) => setGoogleMapUrl(e.target.value)}
+                    placeholder="Nhập link bản đồ"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[260px] overflow-hidden">
+                  {googleMapPreviewUrl ? (
+                    <iframe
+                      title="Google MyMap preview"
+                      src={googleMapPreviewUrl}
+                      className="h-[228px] w-full rounded-lg border border-gray-200 bg-white"
+                    />
+                  ) : (
+                    <div className="flex h-[228px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                        <MapPinned className="h-8 w-8 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Nhập link để hiển thị Google MyMap</p>
+                        <p className="mt-1 text-xs text-gray-500">Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.</p>
+                      </div>
+                      {googleMapExternalUrl && (
+                        <a
+                          href={googleMapExternalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                        >
+                          Mở liên kết bản đồ <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả vị trí</label>
+                  <RichTextEditor
+                    value={locationDescriptionHtml}
+                    onChange={setLocationDescriptionHtml}
+                    placeholder="Nhập mô tả"
+                  />
+                </div>
+              </>
+            ) : isSubdivisionStep ? (
+              <>
+                <div className="rounded-xl border border-gray-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                    <h4 className="text-sm font-semibold text-gray-800">Phân khu</h4>
+                    <button
+                      type="button"
+                      onClick={openCreateSubdivision}
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                    >
+                      <Plus className="h-4 w-4" /> Thêm phân khu
+                    </button>
+                  </div>
+
+                  <div className="px-4 py-3 text-sm text-gray-600">Có {subdivisions.length} kết quả</div>
+
+                  <div className="border-t border-gray-200 p-4">
+                    {subdivisions.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">Chưa có phân khu nào</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {subdivisions.map((item, index) => (
+                          <div
+                            key={index}
+                            draggable
+                            onDragStart={(e) => handleSubdivisionDragStart(index, e)}
+                            onDragOver={handleSubdivisionDragOver}
+                            onDrop={(e) => handleSubdivisionDrop(index, e)}
+                            onDragEnd={handleSubdivisionDragEnd}
+                            className={`flex items-center gap-3 rounded-lg border p-3 transition-all cursor-move ${
+                              draggedSubdivisionIndex === index
+                                ? 'bg-gray-100 border-gray-300 opacity-50'
+                                : projectType === 'HIGH_RISE' && selectedSubdivisionIndex === index
+                                  ? 'border-amber-300 bg-amber-50'
+                                  : 'border-gray-200 hover:border-amber-300 bg-white hover:bg-amber-50'
+                            }`}
+                          >
+                            <div className="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                              <GripVertical className="h-4 w-4" />
+                            </div>
+
+                            <div className="flex-1 min-w-0" onClick={() => {
+                                if (projectType === 'HIGH_RISE') {
+                                  setSelectedSubdivisionIndex((current) => (current === index ? null : index));
+                                }
+                              }}>
+                              <div className="font-medium text-sm text-gray-900">{item.name}</div>
+                              {item.unitStandard && (
+                                <div className="text-xs text-gray-600 mt-1">
+                                  Tiêu chuẩn: {item.unitStandard}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {item.towerCount && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                  {item.towerCount} tòa
+                                </span>
+                              )}
+                              {item.unitCount && (
+                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                  {item.unitCount} căn
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  projectType === 'LOW_RISE'
+                                    ? openSubdivisionTowerDrawer('view', index)
+                                    : openSubdivisionDialog('view', index)
+                                }
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-200"
+                                title="Xem"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  projectType === 'LOW_RISE'
+                                    ? openSubdivisionTowerDrawer('edit', index)
+                                    : openSubdivisionDialog('edit', index)
+                                }
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-200"
+                                title="Sửa"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSubdivisionDeleteIndex(index)}
+                                className="rounded p-1.5 text-gray-500 hover:bg-red-100 hover:text-red-600"
+                                title="Xóa"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {projectType === 'HIGH_RISE' && selectedSubdivision && (
+                  <div className="rounded-xl border border-gray-200 bg-white">
+                    <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                      <div className="text-sm font-semibold text-gray-800">
+                        Danh sách tòa nhà - {selectedSubdivision.name}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openTowerDrawer}
+                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                      >
+                        <Plus className="h-4 w-4" /> Thêm mới
+                      </button>
+                    </div>
+                    <div className="p-4">
+                      {towerRows.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">Phân khu này chưa có dữ liệu tòa nhà</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {towerRows.map((tower, index) => (
+                            <div
+                              key={`${tower.name}-${index}`}
+                              draggable
+                              onDragStart={(e) => handleTowerDragStart(index, e)}
+                              onDragOver={handleTowerDragOver}
+                              onDrop={(e) => handleTowerDrop(index, e)}
+                              onDragEnd={handleTowerDragEnd}
+                              className={`flex items-center gap-3 rounded-lg border p-3 transition-all cursor-move ${
+                                draggedTowerIndex === index
+                                  ? 'bg-gray-100 border-gray-300 opacity-50'
+                                  : 'border-gray-200 hover:border-amber-300 bg-white hover:bg-amber-50'
+                              }`}
+                            >
+                              <div className="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm text-gray-900">{tower.name || '-'}</div>
+                                {tower.unitStandard && (
+                                  <div className="text-xs text-gray-600 mt-1">Tiêu chuẩn: {tower.unitStandard}</div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {tower.unitCount && (
+                                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                    {tower.unitCount} căn
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => openTowerDrawerForRow('view', index)}
+                                  className="rounded p-1.5 text-gray-500 hover:bg-gray-200"
+                                  title="Xem"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openTowerDrawerForRow('edit', index)}
+                                  className="rounded p-1.5 text-gray-500 hover:bg-gray-200"
+                                  title="Sửa"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setTowerDeleteIndex(index)}
+                                  className="rounded p-1.5 text-gray-500 hover:bg-red-100 hover:text-red-600"
+                                  title="Xóa"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : isProgressStep ? (
+              <>
+                <div className="rounded-xl border border-gray-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                    <h4 className="text-sm font-semibold text-gray-800">Tiến độ</h4>
+                    <button
+                      type="button"
+                      onClick={openCreateProgressUpdate}
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                    >
+                      <Plus className="h-4 w-4" /> Nhập tiến độ
+                    </button>
+                  </div>
+
+                  <div className="px-4 py-3 text-sm text-gray-600">Có {progressUpdates.length} mốc tiến độ</div>
+
+                  <div className="border-t border-gray-200 p-4">
+                    {progressUpdates.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">Chưa có mốc tiến độ nào</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {progressUpdates.map((item, index) => (
+                          <div
+                            key={index}
+                            draggable
+                            onDragStart={(e) => handleProgressDragStart(index, e)}
+                            onDragOver={handleProgressDragOver}
+                            onDrop={(e) => handleProgressDrop(index, e)}
+                            onDragEnd={handleProgressDragEnd}
+                            className={`flex items-center gap-3 rounded-lg border p-3 transition-all cursor-move ${
+                              draggedProgressIndex === index
+                                ? 'bg-gray-100 border-gray-300 opacity-50'
+                                : 'border-gray-200 hover:border-amber-300 bg-white hover:bg-amber-50'
+                            }`}
+                          >
+                            <div className="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                              <GripVertical className="h-4 w-4" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm text-gray-900">{item.label}</div>
+                              {item.detailHtml && (
+                                <div className="text-xs text-gray-600 mt-1 line-clamp-1">
+                                  {item.detailHtml.replace(/<[^>]*>/g, '')}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {Array.isArray(item.images) && item.images.length > 0 && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                  {item.images.length} ảnh
+                                </span>
+                              )}
+                              {item.videoUrl && (
+                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                  Video
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => openProgressUpdateDialog('view', index)}
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-200"
+                                title="Xem"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openProgressUpdateDialog('edit', index)}
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-200"
+                                title="Sửa"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setProgressDeleteIndex(index)}
+                                className="rounded p-1.5 text-gray-500 hover:bg-red-100 hover:text-red-600"
+                                title="Xóa"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : isDocumentStep ? (
+              <>
+                <div className="rounded-xl border border-gray-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                    <h4 className="text-sm font-semibold text-gray-800">Tài liệu</h4>
+                    <button
+                      type="button"
+                      onClick={addDocumentItem}
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                    >
+                      <Plus className="h-4 w-4" /> Thêm tài liệu
+                    </button>
+                  </div>
+
+                  <div className="px-4 py-3 text-sm text-gray-600">Có {documentItems.length} tài liệu</div>
+
+                  <div className="border-t border-gray-200 p-4">
+                    {documentItems.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">Chưa có tài liệu nào</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <div className="min-w-[820px]">
+                          <div className="grid grid-cols-[140px_220px_1fr_110px] gap-3 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                            <div>Icon tài liệu</div>
+                            <div>Loại tài liệu</div>
+                            <div>URL tài liệu</div>
+                            <div>Thao tác</div>
+                          </div>
+
+                          <div className="mt-2 space-y-2">
+                            {documentItems.map((item, index) => (
+                              <div
+                                key={`document-row-${index}`}
+                                draggable
+                                onDragStart={(e) => handleDocumentDragStart(index, e)}
+                                onDragOver={handleDocumentDragOver}
+                                onDrop={(e) => handleDocumentDrop(index, e)}
+                                onDragEnd={handleDocumentDragEnd}
+                                className={`grid grid-cols-[140px_220px_1fr_110px] gap-3 rounded-lg border px-3 py-3 transition-all ${
+                                  draggedDocumentIndex === index
+                                    ? 'cursor-move border-gray-300 bg-gray-100 opacity-50'
+                                    : 'cursor-move border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50'
+                                }`}
+                              >
+                                <div className="flex h-10 items-stretch gap-2">
+                                  <div className="flex flex-shrink-0 items-center text-gray-400 hover:text-gray-600">
+                                    <GripVertical className="h-4 w-4" />
+                                  </div>
+                                  <IconPicker
+                                    value={item.icon ?? ''}
+                                    onChange={(value) => updateDocumentItem(index, 'icon', value)}
+                                    className="h-full flex-1"
+                                    buttonClassName="h-full rounded-lg border-gray-300 px-3 text-sm focus:ring-2 focus:ring-amber-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={item.documentType}
+                                    onChange={(e) =>
+                                      updateDocumentItem(index, 'documentType', e.target.value)
+                                    }
+                                    placeholder="VD: Pháp lý, Brochure"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={item.documentUrl}
+                                    onChange={(e) =>
+                                      updateDocumentItem(index, 'documentUrl', e.target.value)
+                                    }
+                                    placeholder="https://..."
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                  />
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => openDocumentUrl(item.documentUrl)}
+                                    disabled={!item.documentUrl.trim()}
+                                    className="rounded p-2 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                    title="Mở tài liệu"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDocumentDeleteIndex(index)}
+                                    className="rounded p-2 text-red-600 hover:bg-red-50"
+                                    title="Xóa tài liệu"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             ) : (
               /* Placeholder for other steps */
               <div className="flex flex-col items-center justify-center h-60 text-gray-400 gap-3">
@@ -1250,6 +2923,1172 @@ export function ProjectForm({
           </div>
         </div>
       </BaseDialog>
+
+      <ConfirmDialog
+        isOpen={subdivisionDeleteIndex !== null}
+        onCancel={() => setSubdivisionDeleteIndex(null)}
+        onConfirm={() => {
+          if (subdivisionDeleteIndex !== null) {
+            removeSubdivision(subdivisionDeleteIndex);
+          }
+          setSubdivisionDeleteIndex(null);
+        }}
+        title="Xóa phân khu"
+        message="Bạn có chắc muốn xóa phân khu này?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+      />
+
+      <ConfirmDialog
+        isOpen={progressDeleteIndex !== null}
+        onCancel={() => setProgressDeleteIndex(null)}
+        onConfirm={() => {
+          if (progressDeleteIndex !== null) {
+            setProgressUpdates((prev) => prev.filter((_, idx) => idx !== progressDeleteIndex));
+          }
+          setProgressDeleteIndex(null);
+        }}
+        title="Xóa mốc tiến độ"
+        message="Bạn có chắc muốn xóa mốc tiến độ này?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+      />
+
+      <ConfirmDialog
+        isOpen={documentDeleteIndex !== null}
+        onCancel={() => setDocumentDeleteIndex(null)}
+        onConfirm={() => {
+          if (documentDeleteIndex !== null) {
+            removeDocumentItem(documentDeleteIndex);
+          }
+          setDocumentDeleteIndex(null);
+        }}
+        title="Xóa tài liệu"
+        message="Bạn có chắc muốn xóa tài liệu này?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+      />
+
+      {isProgressDrawerOpen && (
+        <BaseSlideOver
+          isOpen={isProgressDrawerOpen}
+          onClose={closeProgressDrawer}
+          title={
+            progressDrawerMode === 'create'
+              ? 'Thêm thông tin tiến độ'
+              : progressDrawerMode === 'edit'
+                ? 'Chỉnh sửa thông tin tiến độ'
+                : 'Xem thông tin tiến độ'
+          }
+          width="xl"
+          zIndexClassName="z-[10010]"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeProgressDrawer}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              {progressDrawerMode !== 'view' && (
+                <button
+                  type="button"
+                  onClick={saveProgressUpdate}
+                  disabled={isUploading}
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  Lưu
+                </button>
+              )}
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Nhãn tiến độ <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={progressForm.label}
+                onChange={(e) => setProgressForm((prev) => ({ ...prev, label: e.target.value }))}
+                disabled={progressDrawerMode === 'view'}
+                placeholder="Ví dụ: Tháng 11/2025"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Chi tiết tiến độ</label>
+              <RichTextEditor
+                value={progressForm.detailHtml}
+                onChange={(value) => setProgressForm((prev) => ({ ...prev, detailHtml: value }))}
+                placeholder="Nhập chi tiết tiến độ"
+                disabled={progressDrawerMode === 'view'}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Video</label>
+              <input
+                type="text"
+                value={progressForm.videoUrl}
+                onChange={(e) => setProgressForm((prev) => ({ ...prev, videoUrl: e.target.value }))}
+                disabled={progressDrawerMode === 'view'}
+                placeholder="Nhập link video từ Youtube, Tiktok, Drive"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+              />
+            </div>
+
+            <ProjectMediaUploadManager
+              label="Hình ảnh"
+              hint="Tối đa 10 tệp, dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG."
+              items={progressForm.images}
+              onItemsChange={(items) => setProgressForm((prev) => ({ ...prev, images: items }))}
+              uploadFn={handleUploadFile}
+              maxFiles={10}
+              maxFileSizeMB={10}
+              showMultiple
+              onUploadingChange={handleUploadingChange}
+            />
+          </div>
+        </BaseSlideOver>
+      )}
+
+      {projectType !== 'LOW_RISE' && isSubdivisionDialogOpen && (
+        <BaseSlideOver
+          isOpen={isSubdivisionDialogOpen}
+          onClose={closeSubdivisionDrawer}
+          title={
+            subdivisionDialogMode === 'create'
+              ? 'Thêm phân khu'
+              : subdivisionDialogMode === 'edit'
+                ? 'Chỉnh sửa phân khu'
+                : 'Chi tiết phân khu'
+          }
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeSubdivisionDrawer}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              {subdivisionDialogMode !== 'view' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveSubdivision();
+                  }}
+                  disabled={isSavingSubdivision || isUploadingSubdivisionImage}
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                >
+                  {isSavingSubdivision ? 'Đang lưu...' : 'Tiếp tục'}
+                </button>
+              )}
+            </div>
+          }
+        >
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Ảnh đại diện</label>
+                <div
+                  className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4"
+                  onClick={() => {
+                    if (subdivisionDialogMode !== 'view') {
+                      subdivisionImageInputRef.current?.click();
+                    }
+                  }}
+                >
+                  {subdivisionForm.imageUrl ? (
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={subdivisionForm.imageUrl}
+                        alt="Subdivision avatar"
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                      {subdivisionDialogMode !== 'view' && (
+                        <span className="text-sm text-gray-600">Nhấn để đổi ảnh đại diện</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-sm text-gray-600">Kéo thả hoặc tải tệp hình ảnh tiện ích lên tại đây.</div>
+                      <div className="mt-1 text-xs text-gray-500">Dung lượng tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG.</div>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={subdivisionImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={subdivisionDialogMode === 'view' || isUploadingSubdivisionImage}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    void handleSubdivisionImageUpload(file);
+                    e.currentTarget.value = '';
+                  }}
+                />
+                {isUploadingSubdivisionImage && (
+                  <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải ảnh...
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Tên phân khu <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={subdivisionForm.name}
+                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, name: e.target.value }))}
+                    disabled={subdivisionDialogMode === 'view'}
+                    placeholder="Nhập tên phân khu"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số tòa nhà</label>
+                  <input
+                    type="text"
+                    value={subdivisionForm.towerCount}
+                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, towerCount: e.target.value }))}
+                    disabled={subdivisionDialogMode === 'view'}
+                    placeholder="Nhập số tòa nhà"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Tiêu chuẩn căn hộ</label>
+                  <input
+                    type="text"
+                    value={subdivisionForm.unitStandard}
+                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, unitStandard: e.target.value }))}
+                    disabled={subdivisionDialogMode === 'view'}
+                    placeholder="Nhập tiêu chuẩn căn hộ"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Ngày bàn giao</label>
+                  <input
+                    type="date"
+                    value={subdivisionForm.handoverDate}
+                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, handoverDate: e.target.value }))}
+                    disabled={subdivisionDialogMode === 'view'}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Diện tích</label>
+                  <input
+                    type="text"
+                    value={subdivisionForm.area}
+                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, area: e.target.value }))}
+                    disabled={subdivisionDialogMode === 'view'}
+                    placeholder="Nhập mô tả diện tích"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Phong cách xây dựng</label>
+                  <input
+                    type="text"
+                    value={subdivisionForm.constructionStyle}
+                    onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, constructionStyle: e.target.value }))}
+                    disabled={subdivisionDialogMode === 'view'}
+                    placeholder="Nhập phong cách xây dựng"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Hình thức sở hữu</label>
+                <input
+                  type="text"
+                  value={subdivisionForm.ownershipType}
+                  onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, ownershipType: e.target.value }))}
+                  disabled={subdivisionDialogMode === 'view'}
+                  placeholder="Nhập hình thức sở hữu"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả phân khu</label>
+                <RichTextEditor
+                  value={subdivisionForm.descriptionHtml}
+                  onChange={(value) => setSubdivisionForm((prev) => ({ ...prev, descriptionHtml: value }))}
+                  placeholder="Nhập mô tả"
+                  disabled={subdivisionDialogMode === 'view'}
+                />
+              </div>
+
+            </div>
+        </BaseSlideOver>
+      )}
+
+      {isTowerDrawerOpen && (
+        <BaseSlideOver
+          isOpen={isTowerDrawerOpen}
+          onClose={closeTowerDrawer}
+          title={
+            projectType === 'LOW_RISE'
+              ? towerDrawerMode === 'create'
+                ? 'Thêm phân khu'
+                : towerDrawerMode === 'edit'
+                  ? 'Chỉnh sửa phân khu'
+                  : 'Chi tiết phân khu'
+              : towerDrawerMode === 'create'
+                ? 'Thêm thông tin tòa nhà'
+                : towerDrawerMode === 'edit'
+                  ? 'Chỉnh sửa tòa nhà'
+                  : 'Chi tiết tòa nhà'
+          }
+                    width="xl"
+          zIndexClassName="z-[10001]"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeTowerDrawer}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              {towerDrawerMode !== 'view' && towerCurrentStep > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTowerCurrentStep((step) => Math.max(0, step - 1))}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Quay lại
+                </button>
+              )}
+              {towerDrawerMode !== 'view' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveTowerToSubdivision();
+                  }}
+                  disabled={isSavingTowerStep}
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                >
+                  {isSavingTowerStep ? 'Đang lưu...' : towerCurrentStep === TOWER_STEPS.length - 1 ? 'Hoàn tất' : 'Tiếp tục'}
+                </button>
+              )}
+            </div>
+          }
+        >
+
+            <div className="mb-5">
+              <div>
+                <div className="relative mx-auto px-2">
+                  <div className="absolute left-[6.75%] right-[6.75%] top-[14px] h-[2px] bg-gray-200" />
+                  <div
+                    className="absolute left-[6.75%] top-[14px] h-[2px] bg-amber-600 transition-all"
+                    style={{ width: `${(towerCurrentStep / (TOWER_STEPS.length - 1)) * 86.5}%` }}
+                  />
+
+                  <div
+                    className="grid gap-2"
+                    style={{ gridTemplateColumns: `repeat(${TOWER_STEPS.length}, minmax(0, 1fr))` }}
+                  >
+                    {TOWER_STEPS.map((step, index) => {
+                      const isActive = index === towerCurrentStep;
+                      const isDone = index < towerCurrentStep;
+                      return (
+                        <div key={step} className="relative flex flex-col items-center text-center">
+                          <div
+                            className={`relative z-[1] flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
+                              isActive
+                                ? 'border-amber-600 bg-white text-amber-700'
+                                : isDone
+                                  ? 'border-amber-600 bg-amber-600 text-white'
+                                  : 'border-gray-300 bg-white text-gray-500'
+                            }`}
+                          >
+                            {index + 1}
+                          </div>
+                          <span
+                            className={`mt-2 min-h-[30px] px-1 text-[11px] leading-4 ${
+                              isActive ? 'font-medium text-amber-700' : 'text-gray-600'
+                            }`}
+                          >
+                            {step}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {towerCurrentStep === 0 && projectType === 'LOW_RISE' ? (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Ảnh đại diện</label>
+                    <div
+                      className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4"
+                      onClick={() => {
+                        if (towerDrawerMode !== 'view') {
+                          subdivisionImageInputRef.current?.click();
+                        }
+                      }}
+                    >
+                      {subdivisionForm.imageUrl ? (
+                        <div className="flex items-center gap-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={subdivisionForm.imageUrl}
+                            alt="Subdivision avatar"
+                            className="h-16 w-16 rounded-lg object-cover"
+                          />
+                          {towerDrawerMode !== 'view' && (
+                            <span className="text-sm text-gray-600">Nhấn để đổi ảnh đại diện</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <div className="text-sm text-gray-600">Kéo thả hoặc tải tệp hình ảnh tiện ích lên tại đây.</div>
+                          <div className="mt-1 text-xs text-gray-500">Dung lượng tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG.</div>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={subdivisionImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={towerDrawerMode === 'view' || isUploadingSubdivisionImage}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        void handleSubdivisionImageUpload(file);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                    {isUploadingSubdivisionImage && (
+                      <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải ảnh...
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        Tên phân khu <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={subdivisionForm.name}
+                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, name: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập tên phân khu"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Số căn hộ</label>
+                      <input
+                        type="text"
+                        value={subdivisionForm.unitCount}
+                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, unitCount: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập số căn hộ"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Tiêu chuẩn căn hộ</label>
+                      <input
+                        type="text"
+                        value={subdivisionForm.unitStandard}
+                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, unitStandard: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập tiêu chuẩn căn hộ"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Ngày bàn giao</label>
+                      <input
+                        type="date"
+                        value={subdivisionForm.handoverDate}
+                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, handoverDate: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Diện tích</label>
+                      <input
+                        type="text"
+                        value={subdivisionForm.area}
+                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, area: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập mô tả diện tích"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Phong cách xây dựng</label>
+                      <input
+                        type="text"
+                        value={subdivisionForm.constructionStyle}
+                        onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, constructionStyle: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập phong cách xây dựng"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Hình thức sở hữu</label>
+                    <input
+                      type="text"
+                      value={subdivisionForm.ownershipType}
+                      onChange={(e) => setSubdivisionForm((prev) => ({ ...prev, ownershipType: e.target.value }))}
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập hình thức sở hữu"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả phân khu</label>
+                    <RichTextEditor
+                      value={subdivisionForm.descriptionHtml}
+                      onChange={(value) => setSubdivisionForm((prev) => ({ ...prev, descriptionHtml: value }))}
+                      placeholder="Nhập mô tả"
+                      disabled={towerDrawerMode === 'view'}
+                    />
+                  </div>
+                </>
+              ) : towerCurrentStep === 0 ? (
+                <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Tên tòa nhà <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={towerForm.name}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, name: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập tòa nhà"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Phân khu</label>
+                  <input
+                    type="text"
+                    value={selectedSubdivision?.name ?? ''}
+                    disabled
+                    className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số tầng <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={towerForm.floorCount}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, floorCount: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập số tầng"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số căn hộ <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={towerForm.unitCount}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, unitCount: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập số căn hộ"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Số thang máy</label>
+                  <input
+                    type="text"
+                    value={towerForm.elevatorCount}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, elevatorCount: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập số thang máy"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Hình thức sở hữu</label>
+                  <input
+                    type="text"
+                    value={towerForm.ownershipType}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, ownershipType: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập hình thức sở hữu"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Tiêu chuẩn bàn giao</label>
+                  <input
+                    type="text"
+                    value={towerForm.handoverStandard}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, handoverStandard: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    placeholder="Nhập tiêu chuẩn bàn giao"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Thời điểm khởi công</label>
+                  <input
+                    type="date"
+                    value={towerForm.constructionStartDate}
+                    onChange={(e) => setTowerForm((prev) => ({ ...prev, constructionStartDate: e.target.value }))}
+                    disabled={towerDrawerMode === 'view'}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Thời điểm hoàn thành</label>
+                <input
+                  type="date"
+                  value={towerForm.completionDate}
+                  onChange={(e) => setTowerForm((prev) => ({ ...prev, completionDate: e.target.value }))}
+                  disabled={towerDrawerMode === 'view'}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả tòa nhà</label>
+                <RichTextEditor
+                  value={towerForm.descriptionHtml}
+                  onChange={(value) => setTowerForm((prev) => ({ ...prev, descriptionHtml: value }))}
+                  placeholder="Nhập mô tả"
+                  disabled={towerDrawerMode === 'view'}
+                />
+              </div>
+                </>
+              ) : towerCurrentStep === 1 ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        Vĩ độ (Latitude) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={towerForm.latitude}
+                        onChange={(e) => setTowerForm((prev) => ({ ...prev, latitude: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập vĩ độ"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        Kinh độ (Longitude) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={towerForm.longitude}
+                        onChange={(e) => setTowerForm((prev) => ({ ...prev, longitude: e.target.value }))}
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập kinh độ"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                    {towerCoordinatePreviewUrl ? (
+                      <iframe
+                        title="Tower coordinate preview"
+                        src={towerCoordinatePreviewUrl}
+                        className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                      />
+                    ) : (
+                      <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                          <MapPinned className="h-7 w-7 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Chưa có tọa độ để hiển thị bản đồ</p>
+                          <p className="mt-1 text-xs text-gray-500">Nhập vĩ độ và kinh độ để xem vị trí tòa nhà.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Google Mymap</label>
+                    <input
+                      type="text"
+                      value={towerForm.googleMapUrl}
+                      onChange={(e) => setTowerForm((prev) => ({ ...prev, googleMapUrl: e.target.value }))}
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="Nhập link bản đồ"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                    {towerGoogleMapPreviewUrl ? (
+                      <iframe
+                        title="Tower Google MyMap preview"
+                        src={towerGoogleMapPreviewUrl}
+                        className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                      />
+                    ) : (
+                      <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                          <MapPinned className="h-7 w-7 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Nhập link để hiển thị Google MyMap</p>
+                          <p className="mt-1 text-xs text-gray-500">Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.</p>
+                        </div>
+                        {towerGoogleMapExternalUrl && (
+                          <a
+                            href={towerGoogleMapExternalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                          >
+                            Mở liên kết bản đồ <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả vị trí</label>
+                    <RichTextEditor
+                      value={towerForm.locationDescriptionHtml}
+                      onChange={(value) => setTowerForm((prev) => ({ ...prev, locationDescriptionHtml: value }))}
+                      placeholder="Nhập mô tả"
+                      disabled={towerDrawerMode === 'view'}
+                    />
+                  </div>
+                </>
+              ) : towerCurrentStep === 2 ? (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Link nhúng 360 (Iframe/URL)</label>
+                    <input
+                      type="text"
+                      value={towerForm.camera360Url}
+                      onChange={(e) => setTowerForm((prev) => ({ ...prev, camera360Url: e.target.value }))}
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="https://view360.example.com"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                    {towerCamera360PreviewUrl ? (
+                      <iframe
+                        title="Tower 360 preview"
+                        src={towerCamera360PreviewUrl}
+                        className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                      />
+                    ) : (
+                      <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                          <Camera className="h-7 w-7 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Chưa có link nhúng 360 để xem thử</p>
+                          <p className="mt-1 text-xs text-gray-500">Nhập URL/iframe hợp lệ để hiển thị preview.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <ProjectMediaUploadManager
+                    label="Hình ảnh toàn cảnh 360"
+                    hint="Dung lượng mỗi tệp tối đa 10MB. Hỗ trợ tệp: PNG, JPG, JPEG. Kích thước 1910x735px."
+                    items={towerForm.camera360Images}
+                    onItemsChange={(items) => setTowerForm((prev) => ({ ...prev, camera360Images: items }))}
+                    uploadFn={handleUploadFile}
+                    maxFiles={20}
+                    maxFileSizeMB={10}
+                    showMultiple
+                    onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                  />
+
+                  {towerForm.camera360Images.length > 0 && (
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">Danh sách ảnh 360 xem thử</label>
+                      <TowerCamera360Viewer items={towerForm.camera360Images} />
+                    </div>
+                  )}
+                </>
+              ) : towerCurrentStep === 3 ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Danh sách sản phẩm trong quỹ hàng</p>
+                      <p className="text-xs text-gray-500">1 tòa nhà có thể chứa nhiều sản phẩm từ kho sản phẩm.</p>
+                    </div>
+                    {towerDrawerMode !== 'view' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!workspaceId) {
+                            toast.error('Không xác định được workspace để tải kho sản phẩm');
+                            return;
+                          }
+                          setIsTowerProductDialogOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                      >
+                        <Plus className="h-4 w-4" /> Thêm sản phẩm
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-gray-200 bg-white">
+                    <div className="border-b border-gray-200 px-4 py-3 text-sm text-gray-600">
+                      Có {towerForm.fundProducts.length} sản phẩm đã chọn
+                    </div>
+                    {towerForm.fundProducts.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-gray-500">
+                        Chưa có sản phẩm nào trong quỹ hàng. Nhấn Thêm sản phẩm để chọn từ kho.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-600">
+                              <th className="px-4 py-2 text-left font-medium">Mã sản phẩm</th>
+                              <th className="px-4 py-2 text-left font-medium">Tên sản phẩm</th>
+                              <th className="px-4 py-2 text-left font-medium">Kho hàng</th>
+                              {towerDrawerMode !== 'view' && <th className="px-4 py-2 text-right font-medium">Thao tác</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {towerForm.fundProducts.map((item) => (
+                              <tr key={item.productId} className="border-t border-gray-100">
+                                <td className="px-4 py-2">{item.unitCode}</td>
+                                <td className="px-4 py-2">{item.name}</td>
+                                <td className="px-4 py-2">{item.warehouseName || '-'}</td>
+                                {towerDrawerMode !== 'view' && (
+                                  <td className="px-4 py-2 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeFundProductFromTower(item.productId)}
+                                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" /> Bỏ khỏi quỹ hàng
+                                    </button>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : towerCurrentStep === 4 ? (
+                <>
+                  <ProjectMediaUploadManager
+                    label="Hình ảnh mặt bằng quỹ hàng"
+                    hint="Upload hình ảnh mặt bằng tầng. Sau đó bấm Đặt vị trí để gắn marker sản phẩm lên từng hình."
+                    items={towerForm.floorPlanImages}
+                    onItemsChange={(newItems) => {
+                      setTowerForm((prev) => {
+                        // Merge: preserve existing markers when items are reordered / renamed
+                        const merged: FloorPlanImage[] = newItems.map((item) => {
+                          const existing = prev.floorPlanImages.find(
+                            (fp) => fp.originalUrl === item.originalUrl,
+                          );
+                          return { ...item, markers: existing?.markers };
+                        });
+                        return { ...prev, floorPlanImages: merged };
+                      });
+                    }}
+                    uploadFn={handleUploadFile}
+                    maxFiles={20}
+                    maxFileSizeMB={10}
+                    showMultiple
+                    onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                  />
+
+                  {towerForm.floorPlanImages.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">Gắn vị trí sản phẩm</p>
+                      {towerForm.floorPlanImages.map((img, idx) => {
+                        const markerCount = img.markers?.length ?? 0;
+                        const assignedCount = img.markers?.filter((m) => m.productId).length ?? 0;
+                        return (
+                          <div
+                            key={img.originalUrl + idx}
+                            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={img.thumbnailUrl || img.originalUrl}
+                              alt={img.fileName || `Hình ${idx + 1}`}
+                              className="h-12 w-20 shrink-0 rounded object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-gray-800">
+                                {img.fileName || `Hình ${idx + 1}`}
+                              </p>
+                              {markerCount > 0 ? (
+                                <p className="mt-0.5 text-xs text-gray-500">
+                                  {markerCount} marker · {assignedCount} đã gán sản phẩm
+                                </p>
+                              ) : (
+                                <p className="mt-0.5 text-xs text-gray-400">Chưa có marker</p>
+                              )}
+                            </div>
+                            {towerDrawerMode !== 'view' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFloorPlanEditorIndex(idx);
+                                  setFloorPlanEditorOpen(true);
+                                }}
+                                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                              >
+                                <MapPin className="h-3.5 w-3.5" />
+                                Đặt vị trí
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : towerCurrentStep === 5 ? (
+                <>
+                  <ProjectMediaUploadManager
+                    label="Hình ảnh chính sách bán hàng"
+                    hint="Upload danh sách hình ảnh chính sách bán hàng. Có thể chỉnh sửa tên/mô tả từng ảnh sau khi tải lên."
+                    items={towerForm.salesPolicyImages}
+                    onItemsChange={(items) => setTowerForm((prev) => ({ ...prev, salesPolicyImages: items }))}
+                    uploadFn={handleUploadFile}
+                    maxFiles={20}
+                    maxFileSizeMB={10}
+                    showMultiple
+                    onUploadingChange={(uploading) => setIsUploadingTowerMedia(uploading)}
+                  />
+                </>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                  <p className="font-medium text-gray-700">Bước {towerCurrentStep + 1}: {TOWER_STEPS[towerCurrentStep]}</p>
+                  <p className="mt-1">Dữ liệu hiện tại của tòa nhà sẽ được lưu khi bấm Tiếp tục. Nội dung chi tiết cho bước này sẽ được bổ sung ở phase tiếp theo.</p>
+                </div>
+              )}
+            </div>
+
+        </BaseSlideOver>
+      )}
+
+      {/* Floor Plan Marker Editor */}
+      {floorPlanEditorOpen && floorPlanEditorIndex !== null && towerForm.floorPlanImages[floorPlanEditorIndex] && (
+        <TowerFloorPlanEditor
+          isOpen={floorPlanEditorOpen}
+          image={towerForm.floorPlanImages[floorPlanEditorIndex]}
+          fundProducts={towerForm.fundProducts}
+          onSave={(updated: FloorPlanImage) => {
+            setTowerForm((prev) => {
+              const next = [...prev.floorPlanImages];
+              next[floorPlanEditorIndex!] = updated;
+              return { ...prev, floorPlanImages: next };
+            });
+          }}
+          onClose={() => {
+            setFloorPlanEditorOpen(false);
+            setFloorPlanEditorIndex(null);
+          }}
+        />
+      )}
+
+      <BaseSlideOver
+        isOpen={isTowerProductDialogOpen}
+        onClose={() => {
+          setIsTowerProductDialogOpen(false);
+          setTowerProductKeyword('');
+          setTowerWarehouseFilter('');
+          setTowerWarehouses([]);
+          setTowerProducts([]);
+        }}
+        title="Thêm sản phẩm"
+        zIndexClassName="z-[10030]"
+        width="xl"
+        footer={
+          <div className="flex w-full items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsTowerProductDialogOpen(false);
+                setTowerProductKeyword('');
+                setTowerWarehouseFilter('');
+                setTowerWarehouses([]);
+                setTowerProducts([]);
+              }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Đóng
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={towerProductKeyword}
+              onChange={(e) => setTowerProductKeyword(e.target.value)}
+              placeholder="Tìm theo mã / tên sản phẩm"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <select
+              value={towerWarehouseFilter}
+              onChange={(e) => setTowerWarehouseFilter(e.target.value)}
+              className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">Tất cả kho</option>
+              {towerWarehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="text-sm text-gray-600">Có {towerProducts.length} kết quả</div>
+
+          <BaseDataGrid<TowerProductOption>
+            data={towerProducts}
+            isLoading={isLoadingTowerProducts}
+            pageSize={10}
+            emptyMessage="Không có sản phẩm phù hợp"
+            columns={[
+              {
+                key: 'select',
+                label: 'Chọn',
+                headerClassName: 'w-14',
+                render: (_val, product) => {
+                  const selected = towerForm.fundProducts.some((item) => item.productId === product.id);
+                  return (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selected) {
+                          removeFundProductFromTower(product.id);
+                        } else {
+                          addFundProductToTower(product);
+                        }
+                      }}
+                      className={`inline-flex h-5 w-5 items-center justify-center rounded border ${
+                        selected
+                          ? 'border-amber-600 bg-amber-600 text-white'
+                          : 'border-gray-300 bg-white text-transparent'
+                      }`}
+                      aria-label={selected ? 'Bỏ chọn sản phẩm' : 'Chọn sản phẩm'}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                  );
+                },
+              },
+              { key: 'unitCode', label: 'Mã sản phẩm' },
+              { key: 'name', label: 'Tên sản phẩm' },
+              {
+                key: 'warehouseName',
+                label: 'Kho hàng',
+                render: (val) => val || '—',
+              },
+            ]}
+            rowClassName={(product) =>
+              towerForm.fundProducts.some((item) => item.productId === product.id)
+                ? 'bg-amber-50'
+                : ''
+            }
+            onRowClick={(product) => {
+              const selected = towerForm.fundProducts.some((item) => item.productId === product.id);
+              if (selected) {
+                removeFundProductFromTower(product.id);
+              } else {
+                addFundProductToTower(product);
+              }
+            }}
+          />
+        </div>
+      </BaseSlideOver>
+
+      <ConfirmDialog
+        isOpen={towerDeleteIndex !== null}
+        onCancel={() => setTowerDeleteIndex(null)}
+        onConfirm={() => {
+          if (towerDeleteIndex !== null) {
+            removeTowerFromSubdivision(towerDeleteIndex);
+          }
+          setTowerDeleteIndex(null);
+        }}
+        title="Xóa tòa nhà"
+        message="Bạn có chắc muốn xóa tòa nhà này?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDangerous
+      />
 
       <ConfirmDialog
         isOpen={deleteContactIndex !== null}

@@ -15,6 +15,75 @@ export interface PlanningStat {
   value: string;
 }
 
+export interface ProjectProgressUpdate {
+  label: string;
+  detailHtml?: string;
+  videoUrl?: string;
+  images?: MediaItem[];
+}
+
+export interface ProjectDocumentItem {
+  icon?: string;
+  documentType: string;
+  documentUrl: string;
+}
+
+export interface ProjectSubdivision {
+  towers?: ProjectTower[];
+  name: string;
+  imageUrl?: string;
+  towerCount?: string;
+  unitCount?: string;
+  unitStandard?: string;
+  handoverDate?: string;
+  area?: string;
+  constructionStyle?: string;
+  ownershipType?: string;
+  descriptionHtml?: string;
+}
+
+export interface ProjectTower {
+  name: string;
+  floorCount?: string;
+  unitCount?: string;
+  elevatorCount?: string;
+  ownershipType?: string;
+  handoverStandard?: string;
+  constructionStartDate?: string;
+  completionDate?: string;
+  latitude?: string;
+  longitude?: string;
+  googleMapUrl?: string;
+  locationDescriptionHtml?: string;
+  camera360Url?: string;
+  camera360Images?: MediaItem[];
+  salesPolicyImages?: MediaItem[];
+  fundProducts?: TowerFundProduct[];
+  floorPlanImages?: FloorPlanImage[];
+  descriptionHtml?: string;
+}
+
+export interface TowerFundProduct {
+  productId: string;
+  unitCode: string;
+  name: string;
+  warehouseId?: string;
+  warehouseName?: string;
+}
+
+export interface FloorPlanMarker {
+  id: string;
+  x: number;
+  y: number;
+  productId?: string;
+  productUnitCode?: string;
+  productName?: string;
+}
+
+export interface FloorPlanImage extends MediaItem {
+  markers?: FloorPlanMarker[];
+}
+
 export interface ProjectContact {
   name: string;
   title?: string;
@@ -37,6 +106,11 @@ export interface Project {
   address?: string | null;
   province?: string | null;
   district?: string | null;
+  ward?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  googleMapUrl?: string | null;
+  locationDescriptionHtml?: string | null;
   zoneImageUrl?: string | null;
   zoneImages?: MediaItem[] | null;
   productImageUrl?: string | null;
@@ -47,6 +121,9 @@ export interface Project {
   videoDescription?: string | null;
   contacts?: ProjectContact[] | null;
   planningStats?: PlanningStat[] | null;
+  progressUpdates?: ProjectProgressUpdate[] | null;
+  documentItems?: ProjectDocumentItem[] | null;
+  subdivisions?: ProjectSubdivision[] | null;
   createdByUserId: string;
   createdBy?: { id: string; fullName?: string; phone?: string } | null;
   createdAt: string;
@@ -65,6 +142,11 @@ export interface CreateProjectPayload {
   address?: string;
   province?: string;
   district?: string;
+  ward?: string;
+  latitude?: string;
+  longitude?: string;
+  googleMapUrl?: string;
+  locationDescriptionHtml?: string;
   zoneImageUrl?: string;
   zoneImages?: MediaItem[];
   productImageUrl?: string;
@@ -75,6 +157,9 @@ export interface CreateProjectPayload {
   videoDescription?: string;
   contacts?: ProjectContact[];
   planningStats?: PlanningStat[];
+  progressUpdates?: ProjectProgressUpdate[];
+  documentItems?: ProjectDocumentItem[];
+  subdivisions?: ProjectSubdivision[];
 }
 
 function normalizeProject(raw: any): Project {
@@ -95,7 +180,7 @@ function normalizeProject(raw: any): Project {
         return raw_urls.map((item: any) =>
           typeof item === 'string'
             ? { originalUrl: item, fileName: 'Banner', thumbnailUrl: item }
-            : item
+            : item,
         );
       }
       return null;
@@ -104,6 +189,11 @@ function normalizeProject(raw: any): Project {
     address: raw.address ?? null,
     province: raw.province ?? null,
     district: raw.district ?? null,
+    ward: raw.ward ?? null,
+    latitude: raw.latitude ?? null,
+    longitude: raw.longitude ?? null,
+    googleMapUrl: raw.googleMapUrl ?? null,
+    locationDescriptionHtml: raw.locationDescriptionHtml ?? null,
     zoneImageUrl: raw.zoneImageUrl ?? null,
     zoneImages: Array.isArray(raw.zoneImages) ? raw.zoneImages : null,
     productImageUrl: raw.productImageUrl ?? null,
@@ -114,6 +204,9 @@ function normalizeProject(raw: any): Project {
     videoDescription: raw.videoDescription ?? null,
     contacts: Array.isArray(raw.contacts) ? raw.contacts : null,
     planningStats: Array.isArray(raw.planningStats) ? raw.planningStats : null,
+    progressUpdates: Array.isArray(raw.progressUpdates) ? raw.progressUpdates : null,
+    documentItems: Array.isArray(raw.documentItems) ? raw.documentItems : null,
+    subdivisions: Array.isArray(raw.subdivisions) ? raw.subdivisions : null,
     createdByUserId: raw.createdByUserId,
     createdBy: raw.createdBy ?? null,
     createdAt: raw.createdAt,
@@ -127,7 +220,14 @@ export function useProject(workspaceId: string) {
   const [isLoading, setIsLoading] = useState(false);
 
   const list = useCallback(
-    async (params?: { search?: string; projectType?: string; displayStatus?: string; saleStatus?: string; page?: number; limit?: number }) => {
+    async (params?: {
+      search?: string;
+      projectType?: string;
+      displayStatus?: string;
+      saleStatus?: string;
+      page?: number;
+      limit?: number;
+    }) => {
       if (!workspaceId) return;
       setIsLoading(true);
       try {
@@ -145,7 +245,10 @@ export function useProject(workspaceId: string) {
   );
 
   const create = useCallback(
-    async (payload: CreateProjectPayload, options?: { silent?: boolean }): Promise<Project | null> => {
+    async (
+      payload: CreateProjectPayload,
+      options?: { silent?: boolean },
+    ): Promise<Project | null> => {
       try {
         const res = await apiClient.post(`/workspaces/${workspaceId}/projects`, payload);
         const created = normalizeProject(res.data?.data ?? res.data);
@@ -164,7 +267,11 @@ export function useProject(workspaceId: string) {
   );
 
   const update = useCallback(
-    async (id: string, payload: Partial<CreateProjectPayload>, options?: { silent?: boolean }): Promise<Project | null> => {
+    async (
+      id: string,
+      payload: Partial<CreateProjectPayload>,
+      options?: { silent?: boolean },
+    ): Promise<Project | null> => {
       try {
         const res = await apiClient.patch(`/workspaces/${workspaceId}/projects/${id}`, payload);
         const updated = normalizeProject(res.data?.data ?? res.data);
@@ -202,9 +309,13 @@ export function useProject(workspaceId: string) {
       try {
         const formData = new FormData();
         formData.append('files', file);
-        const res = await apiClient.post(`/workspaces/${workspaceId}/products/upload-files`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const res = await apiClient.post(
+          `/workspaces/${workspaceId}/products/upload-files`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          },
+        );
         const urls: string[] = res.data?.data?.urls ?? res.data?.urls ?? [];
         return urls[0] ?? null;
       } catch {

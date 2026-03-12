@@ -14,6 +14,7 @@ interface BaseDialogProps {
   headerContent?: ReactNode; // Custom header content (overrides default title)
   disableClose?: boolean; // Disable close button and ESC key
   hideHeader?: boolean; // Hide header completely
+  zIndexClassName?: string;
 }
 
 const maxWidthClasses = {
@@ -39,6 +40,7 @@ export function BaseDialog({
   headerContent,
   disableClose = false,
   hideHeader = false,
+  zIndexClassName = 'z-[9999]',
 }: BaseDialogProps) {
   // ESC key handler
   useEffect(() => {
@@ -62,7 +64,7 @@ export function BaseDialog({
   if (!isOpen) return null;
 
   const dialogContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40" style={{ margin: 0, padding: '1rem' }}>
+    <div className={`fixed inset-0 ${zIndexClassName} flex items-center justify-center p-4 bg-black/40`} style={{ margin: 0, padding: '1rem' }}>
       <div
         className={`bg-white rounded-2xl shadow-xl w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col`}
         role="dialog"
