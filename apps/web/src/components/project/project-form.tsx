@@ -39,6 +39,8 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseSlideOver } from '@/components/common/base-slide-over';
 import { BaseDataGrid } from '@/components/common/base-data-grid';
 import { IconPicker } from '@/components/common/icon-picker';
+import { TowerFloorPlanEditor } from './tower-floor-plan-editor';
+import { TowerCamera360Viewer } from './tower-camera-360-viewer';
 // ...existing code...
 
 // ─────────────────────────────────────────────────────────────
@@ -325,6 +327,7 @@ export function ProjectForm({
   const [activeTowerIndex, setActiveTowerIndex] = useState<number | null>(null);
   const [towerDeleteIndex, setTowerDeleteIndex] = useState<number | null>(null);
   const [towerCurrentStep, setTowerCurrentStep] = useState(0);
+  const [isLoadingProjectLocation, setIsLoadingProjectLocation] = useState(false);
   const [isSavingTowerStep, setIsSavingTowerStep] = useState(false);
   const [isUploadingTowerMedia, setIsUploadingTowerMedia] = useState(false);
   const [isTowerProductDialogOpen, setIsTowerProductDialogOpen] = useState(false);
@@ -817,6 +820,53 @@ export function ProjectForm({
 
     return () => clearTimeout(timer);
   }, [workspaceId, isOpen, isMemberDropdownOpen, memberKeyword, workspaceMemberOptions]);
+
+  // ── Auto-fill project location when entering Vị trí step in tower edit mode ──
+  useEffect(() => {
+    if (
+      !workspaceId ||
+      !isTowerDrawerOpen ||
+      towerDrawerMode !== 'edit' ||
+      towerCurrentStep !== 1 ||
+      !draftProjectId
+    )
+      return;
+
+    const loadProjectLocation = async () => {
+      setIsLoadingProjectLocation(true);
+      try {
+        const { data } = await apiClient.get(
+          `/workspaces/${workspaceId}/projects/${draftProjectId}`,
+        );
+        const project = data?.data ?? data;
+        if (project) {
+          setTowerForm((prev) => {
+            if (
+              prev.latitude ||
+              prev.longitude ||
+              prev.googleMapUrl ||
+              prev.locationDescriptionHtml
+            ) {
+              return prev;
+            }
+            return {
+              ...prev,
+              latitude: String(project.latitude ?? ''),
+              longitude: String(project.longitude ?? ''),
+              googleMapUrl: String(project.googleMapUrl ?? ''),
+              locationDescriptionHtml: String(project.locationDescriptionHtml ?? ''),
+            };
+          });
+        }
+      } catch {
+        // silently ignore – project location unavailable
+      } finally {
+        setIsLoadingProjectLocation(false);
+      }
+    };
+
+    void loadProjectLocation();
+  }, [workspaceId, isTowerDrawerOpen, towerDrawerMode, towerCurrentStep, draftProjectId]);
 
   const handleProvinceChange = (code: string) => {
     const selectedProvince = provinces.find((p) => String(p.code) === code);
@@ -3876,6 +3926,32 @@ export function ProjectForm({
               </>
             ) : towerCurrentStep === 1 ? (
               <>
+                {isLoadingProjectLocation ? (
+                  <div className="animate-pulse space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="mb-1.5 h-4 w-28 rounded bg-gray-200" />
+                        <div className="h-10 w-full rounded-lg bg-gray-200" />
+                      </div>
+                      <div>
+                        <div className="mb-1.5 h-4 w-28 rounded bg-gray-200" />
+                        <div className="h-10 w-full rounded-lg bg-gray-200" />
+                      </div>
+                    </div>
+                    <div className="min-h-[220px] rounded-xl bg-gray-200" />
+                    <div>
+                      <div className="mb-1.5 h-4 w-24 rounded bg-gray-200" />
+                      <div className="h-10 w-full rounded-lg bg-gray-200" />
+                    </div>
+                    <div className="min-h-[220px] rounded-xl bg-gray-200" />
+                    <div>
+                      <div className="mb-1.5 h-4 w-20 rounded bg-gray-200" />
+                      <div className="h-32 w-full rounded-lg bg-gray-200" />
+                    </div>
+                  </div>
+                ) : null}
+                {!isLoadingProjectLocation && (
+                  <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -3996,6 +4072,8 @@ export function ProjectForm({
                     disabled={towerDrawerMode === 'view'}
                   />
                 </div>
+                  </>
+                )}
               </>
             ) : towerCurrentStep === 2 ? (
               <>
