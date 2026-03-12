@@ -135,6 +135,12 @@ export function RichTextEditor({
     setSourceValue(value ?? '');
   }, [value]);
 
+  // Update editor editable state based on source mode
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(!isSourceMode && !disabled);
+  }, [isSourceMode, disabled, editor]);
+
   // Sync external value changes into the editor (e.g. when loading an existing project)
   // onUpdate keeps editor → state in sync; this keeps state → editor in sync.
   useEffect(() => {
@@ -351,57 +357,6 @@ export function RichTextEditor({
           title="Highlight"
         >
           <Highlighter className="h-4 w-4" />
-        </button>
-
-        <div className="w-px bg-gray-300 mx-1"></div>
-
-        {/* Color controls */}
-        {TEXT_COLORS.map((item) => {
-          const isActive = item.value
-            ? (currentColor ?? '').toLowerCase() === item.value.toLowerCase()
-            : !currentColor;
-
-          return (
-            <button
-              key={`toolbar-color-${item.label}`}
-              type="button"
-              onClick={() => {
-                if (item.value) {
-                  editor.chain().focus().setColor(item.value).run();
-                } else {
-                  editor.chain().focus().unsetColor().run();
-                }
-              }}
-              disabled={disabled || isSourceMode}
-              className={`h-8 w-8 rounded border ${
-                isActive ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-300'
-              }`}
-              title={`Màu chữ: ${item.label}`}
-              style={item.value ? { backgroundColor: item.value } : { backgroundColor: '#ffffff' }}
-            >
-              {!item.value && <Palette className="h-3.5 w-3.5 mx-auto text-gray-500" />}
-            </button>
-          );
-        })}
-
-        <button
-          type="button"
-          onClick={() => colorInputRef.current?.click()}
-          disabled={disabled || isSourceMode}
-          className={getButtonClass(false)}
-          title="Chọn màu chữ tùy chỉnh"
-        >
-          <Paintbrush className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().unsetColor().run()}
-          disabled={disabled || isSourceMode || !currentColor}
-          className={getButtonClass(false)}
-          title="Xóa màu chữ"
-        >
-          <Eraser className="h-4 w-4" />
         </button>
 
         <div className="w-px bg-gray-300 mx-1"></div>
@@ -644,12 +599,11 @@ export function RichTextEditor({
       />
 
       {/* Bubble Menu — color picker on text selection */}
-      {!isSourceMode && (
-        <BubbleMenu
-          editor={editor}
-          tippyOptions={{ duration: 100, placement: 'top' }}
-          shouldShow={({ editor: ed }) => !ed.state.selection.empty}
-        >
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 100, placement: 'top' }}
+        shouldShow={({ editor: ed }) => !isSourceMode && !ed.state.selection.empty}
+      >
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1.5">
             <span className="text-[10px] text-gray-400 mr-1 select-none">Màu:</span>
             {TEXT_COLORS.map((item) => {
@@ -703,7 +657,6 @@ export function RichTextEditor({
             </button>
           </div>
         </BubbleMenu>
-      )}
 
       {/* Editor */}
       <div
@@ -712,21 +665,20 @@ export function RichTextEditor({
           minHeight,
         }}
       >
-        {isSourceMode ? (
-          <textarea
-            value={sourceValue}
-            onChange={(e) => {
-              setSourceValue(e.target.value);
-              onChange(e.target.value);
-            }}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="w-full min-h-[inherit] h-full resize-y border-0 p-3 font-mono text-sm leading-6 text-gray-800 outline-none"
-            style={{ minHeight }}
-          />
-        ) : (
+        <textarea
+          value={sourceValue}
+          onChange={(e) => {
+            setSourceValue(e.target.value);
+            onChange(e.target.value);
+          }}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="w-full min-h-[inherit] h-full resize-y border-0 p-3 font-mono text-sm leading-6 text-gray-800 outline-none"
+          style={{ display: isSourceMode ? 'block' : 'none', minHeight }}
+        />
+        <div style={{ display: isSourceMode ? 'none' : 'block', width: '100%', height: '100%' }}>
           <EditorContent editor={editor} className="w-full h-full" />
-        )}
+        </div>
       </div>
       <style>{`
         .ProseMirror {
