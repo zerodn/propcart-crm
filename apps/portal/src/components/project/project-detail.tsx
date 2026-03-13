@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useProject } from '@/hooks/useProject';
 import {
   LayoutDashboard, Navigation2, Building2, FolderOpen, HardHat,
-  Phone, MessageCircle, Copy, FileText,
+  Phone, MessageCircle, Copy, FileText, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import BannerGallery from './banner-gallery';
 
@@ -29,6 +29,8 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [imageList, setImageList] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
 
   useEffect(() => {
     if (project) {
@@ -40,11 +42,22 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     }
   }, [project]);
 
+  useEffect(() => {
+    setCarouselIndex(0);
+  }, [activeTab]);
+
   const handleCopyCode = () => {
     if (!project) return;
     navigator.clipboard.writeText(project.id.slice(0, 8));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const rotateCarousel = (direction: 'next' | 'prev', length: number) => {
+    let next = direction === 'next' ? carouselIndex + 1 : carouselIndex - 1;
+    if (next < 0) next = length - 1;
+    if (next >= length) next = 0;
+    setCarouselIndex(next);
   };
 
   if (loading) {
@@ -72,19 +85,17 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     );
   }
 
-  const typeLabel = project.projectType === 'HIGH_RISE' ? 'Cao tầng' : project.projectType === 'LOW_RISE' ? 'Thấp tầng' : project.projectType;
-  const location = [project.district, project.province].filter(Boolean).join(', ');
   const primaryContact = project.contacts?.[0];
   const shortCode = project.id.slice(0, 8);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Banner Section */}
+      {/* Full-width Banner */}
       <div className="w-screen relative left-1/2 right-1/2 -mx-[50vw]">
         <BannerGallery images={imageList} projectName={project.name} />
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="w-full py-6 px-[10px]">
         <div className="flex gap-6 items-start">
 
           {/* ── Left Tab Nav ── */}
@@ -109,143 +120,218 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
           {/* ── Center Content ── */}
           <div className="flex-1 min-w-0">
-            {/* Project Title */}
-            <h1 className="text-2xl font-bold text-amber-800 uppercase tracking-wide mb-4">
-              {project.name}
-            </h1>
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-6">
 
-            {/* Planning Stats */}
-            {project.planningStats && project.planningStats.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                {project.planningStats.map((stat, i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-                    {stat.icon ? (
-                      <img src={stat.icon} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 bg-amber-100 rounded-lg flex-shrink-0" />
-                    )}
-                    <div>
-                      <p className="text-xs text-gray-500">{stat.label}</p>
-                      <p className="text-base font-bold text-amber-700">{stat.value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Tab Content */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-
-              {/* OVERVIEW */}
+              {/* TỔNG QUAN */}
               {activeTab === 'overview' && (
-                <div>
-                  {project.overviewHtml ? (
-                    <div className="prose prose-sm max-w-none text-gray-700"
-                      dangerouslySetInnerHTML={{ __html: project.overviewHtml }} />
-                  ) : (
-                    <p className="text-gray-500">Chưa có thông tin tổng quan.</p>
+                <section className="space-y-6">
+                  {/* Planning Stats */}
+                  {project.planningStats && project.planningStats.length > 0 && (
+                    <div>
+                      <h3 className="font-bold text-amber-900 mb-4 text-lg">{project.name}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {project.planningStats.map((stat, i) => (
+                          <div key={i} className="bg-gray-100 border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4">
+                            <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
+                              {stat.icon ? (
+                                <span className="text-3xl leading-none select-none">{stat.icon}</span>
+                              ) : (
+                                <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-700 mb-1 font-medium">{stat.label}</p>
+                              <p className="text-xl font-bold text-amber-800">{stat.value}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </div>
+
+                  {/* Overview HTML */}
+                  {project.overviewHtml && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Giới thiệu dự án</h3>
+                      <div className="prose prose-sm max-w-none text-gray-700"
+                        dangerouslySetInnerHTML={{ __html: project.overviewHtml }} />
+                    </div>
+                  )}
+
+                  {/* Zone Images */}
+                  {project.zoneImages && project.zoneImages.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Hình ảnh dự án</h3>
+                      <div className="relative h-80 bg-gray-300 rounded-lg overflow-hidden">
+                        <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
+                          {project.zoneImages.map((img, i) => (
+                            <div key={i} className="min-w-full h-full relative">
+                              <Image src={img.originalUrl} alt={img.description || `Image ${i}`} fill className="object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                        {project.zoneImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => rotateCarousel('prev', project.zoneImages!.length)}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 p-2 rounded-full z-10 transition"
+                            >
+                              <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => rotateCarousel('next', project.zoneImages!.length)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 p-2 rounded-full z-10 transition"
+                            >
+                              <ChevronRight className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </section>
               )}
 
-              {/* LOCATION */}
+              {/* VỊ TRỊ */}
               {activeTab === 'location' && (
-                <div className="space-y-4">
-                  {location && <p className="text-sm text-gray-600">{location}</p>}
+                <section className="space-y-4">
                   {project.address && <p className="text-sm text-gray-800">{project.address}</p>}
-                  {project.locationDescriptionHtml ? (
+                  {[project.district, project.province].filter(Boolean).join(', ') && (
+                    <p className="text-xs text-gray-500">{[project.district, project.province].filter(Boolean).join(', ')}</p>
+                  )}
+                  {project.locationDescriptionHtml && (
                     <div className="prose prose-sm max-w-none text-gray-700"
                       dangerouslySetInnerHTML={{ __html: project.locationDescriptionHtml }} />
-                  ) : (
-                    <p className="text-gray-500">Chưa có thông tin vị trí.</p>
                   )}
                   {project.googleMapUrl && (
                     <a href={project.googleMapUrl} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-amber-600 hover:underline text-sm font-medium">
-                      Xem bản đồ
+                      Xem bản đồ →
                     </a>
                   )}
-                </div>
+                </section>
               )}
 
-              {/* SUBDIVISIONS */}
+              {/* PHÂN KHU */}
               {activeTab === 'subdivisions' && (
-                <div>
-                  {project.subdivisions && project.subdivisions.length > 0 ? (
-                    <div className="space-y-3">
-                      {project.subdivisions.map((sub, i) => (
-                        <div key={i} className="flex items-center justify-between border border-gray-100 rounded-lg px-4 py-3 hover:bg-gray-50 transition">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                              <Building2 className="w-5 h-5 text-amber-700" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900 text-sm">{sub.name}</p>
-                              <div className="flex gap-4 text-xs text-gray-500 mt-0.5">
-                                {sub.unitStandard && <span>Phân khu: <strong>{sub.unitStandard}</strong></span>}
-                                {sub.unitCount && <span>Số căn: <strong>{sub.unitCount}</strong></span>}
+                <section className="space-y-6">
+                  {project.subdivisions && project.subdivisions.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Danh sách phân khu</h3>
+                      <div className="space-y-3">
+                        {project.subdivisions.map((sub, i) => (
+                          <div key={i} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition">
+                            <div className="flex gap-3">
+                              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-amber-700 font-bold text-sm">{i + 1}</span>
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900 text-sm">{sub.name}</p>
+                                <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                                  {sub.unitStandard && <span>Phân khu: <strong>{sub.unitStandard}</strong></span>}
+                                  {sub.unitCount && <span>Số căn: <strong>{sub.unitCount}</strong></span>}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-gray-500">Chưa có thông tin phân khu.</p>
                   )}
-                </div>
+
+                  {/* Zone Images */}
+                  {project.zoneImages && project.zoneImages.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Hình ảnh phân khu</h3>
+                      <div className="relative h-80 bg-gray-300 rounded-lg overflow-hidden">
+                        <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
+                          {project.zoneImages.map((img, i) => (
+                            <div key={i} className="min-w-full h-full relative">
+                              <Image src={img.originalUrl} alt={img.description || `Zone ${i}`} fill className="object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                        {project.zoneImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => rotateCarousel('prev', project.zoneImages!.length)}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 p-2 rounded-full z-10 transition"
+                            >
+                              <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => rotateCarousel('next', project.zoneImages!.length)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 p-2 rounded-full z-10 transition"
+                            >
+                              <ChevronRight className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </section>
               )}
 
-              {/* DOCUMENTS */}
+              {/* KHO TÀI LIỆU */}
               {activeTab === 'documents' && (
-                <div>
+                <section>
                   {project.documentItems && project.documentItems.length > 0 ? (
-                    <ul className="space-y-2">
-                      {project.documentItems.map((doc, i) => (
-                        <li key={i}>
-                          <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-amber-50 hover:border-amber-200 transition group">
-                            <FileText className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                            <span className="text-sm text-gray-700 group-hover:text-amber-700">{doc.documentType}</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Tài liệu dự án</h3>
+                      <ul className="space-y-2">
+                        {project.documentItems.map((doc, i) => (
+                          <li key={i}>
+                            <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-amber-50 hover:border-amber-200 transition group">
+                              <FileText className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 group-hover:text-amber-700">{doc.documentType}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : (
                     <p className="text-gray-500">Chưa có tài liệu.</p>
                   )}
-                </div>
+                </section>
               )}
 
-              {/* PROGRESS */}
+              {/* TIẾN ĐỘ THI CÔNG */}
               {activeTab === 'progress' && (
-                <div>
+                <section>
                   {project.progressUpdates && project.progressUpdates.length > 0 ? (
-                    <div className="space-y-4">
-                      {project.progressUpdates.map((update, i) => (
-                        <div key={i} className="border-l-4 border-amber-400 pl-4">
-                          <p className="font-semibold text-gray-900 text-sm mb-1">{update.label}</p>
-                          {update.detailHtml && (
-                            <div className="prose prose-sm max-w-none text-gray-600"
-                              dangerouslySetInnerHTML={{ __html: update.detailHtml }} />
-                          )}
-                        </div>
-                      ))}
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Tiến độ thi công</h3>
+                      <div className="space-y-4">
+                        {project.progressUpdates.map((update, i) => (
+                          <div key={i} className="border-l-4 border-amber-400 pl-4">
+                            <p className="font-semibold text-gray-900 text-sm mb-1">{update.label}</p>
+                            {update.detailHtml && (
+                              <div className="prose prose-sm max-w-none text-gray-600"
+                                dangerouslySetInnerHTML={{ __html: update.detailHtml }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-gray-500">Chưa có cập nhật tiến độ.</p>
                   )}
-                </div>
+                </section>
               )}
             </div>
           </div>
 
           {/* ── Right Contact ── */}
-          <div className="w-72 flex-shrink-0 sticky top-20 space-y-4">
-            {/* Consultant card */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <h3 className="font-bold text-gray-900 mb-1">Liên hệ tư vấn</h3>
-              <p className="text-xs text-gray-500 mb-4">Nhận tư vấn MIỄN PHÍ từ chuyên viên tư vấn</p>
+          <div className="w-72 flex-shrink-0 sticky top-20">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
+              <div>
+                <h3 className="font-bold text-gray-900 mb-1">Liên hệ tư vấn</h3>
+                <p className="text-xs text-gray-500">Nhận tư vấn MIỄN PHÍ từ chuyên viên tư vấn</p>
+              </div>
 
               {primaryContact ? (
                 <div>
@@ -270,66 +356,52 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                       <a href={`https://zalo.me/${primaryContact.zaloPhone}`} target="_blank" rel="noopener noreferrer"
                         className="flex-1 flex items-center justify-center gap-1.5 border border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-medium py-2 rounded-lg transition">
                         <MessageCircle className="w-4 h-4" />
-                        Chat qua zalo
+                        Chat Zalo
                       </a>
                     )}
                     {primaryContact.phone && (
                       <a href={`tel:${primaryContact.phone}`}
                         className="flex-1 flex items-center justify-center gap-1.5 bg-amber-700 hover:bg-amber-800 text-white text-xs font-medium py-2 rounded-lg transition">
                         <Phone className="w-4 h-4" />
-                        {primaryContact.phone.replace(/(\d{3})\d{4}(\d+)/, '$1****$2')}
+                        Gọi
                       </a>
                     )}
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 mb-4">Chưa có thông tin chuyên viên.</p>
+                <p className="text-xs text-gray-400">Chưa có thông tin chuyên viên.</p>
               )}
 
               <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs text-gray-500 mb-1.5">Vui lòng để cập mã tin BĐS cho Chuyên viên tư vấn</p>
+                <p className="text-xs text-gray-500 mb-1.5">Mã tin BĐS</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600">Mã tin:</span>
                   <span className="text-xs font-semibold text-gray-900">{shortCode}</span>
-                  <button onClick={handleCopyCode} className="text-gray-400 hover:text-amber-600 transition" title="Sao chép mã">
+                  <button onClick={handleCopyCode} className="text-gray-400 hover:text-amber-600 transition" title="Sao chép">
                     <Copy className="w-3.5 h-3.5" />
                   </button>
                   {copied && <span className="text-xs text-green-600">Đã sao chép!</span>}
                 </div>
               </div>
-            </div>
 
-            {/* Extra contacts */}
-            {project.contacts && project.contacts.length > 1 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 className="font-bold text-gray-900 mb-3 text-sm">Đại lý bán hàng</h3>
-                <div className="space-y-3">
-                  {project.contacts.slice(1).map((contact, idx) => (
-                    <div key={idx} className="flex items-center gap-3 pb-3 border-b last:border-b-0 last:pb-0">
-                      {contact.imageUrl ? (
-                        <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-                          <Image src={contact.imageUrl} alt={contact.name} fill className="object-cover" />
-                        </div>
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-gray-500 font-bold text-sm">{contact.name[0]}</span>
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{contact.name}</p>
-                        {contact.title && <p className="text-xs text-gray-500">{contact.title}</p>}
+              {project.contacts && project.contacts.length > 1 && (
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-xs font-semibold text-gray-900 mb-2">Liên hệ khác</p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {project.contacts.slice(1).map((contact, idx) => (
+                      <div key={idx} className="text-xs">
+                        <p className="font-medium text-gray-900">{contact.name}</p>
                         {contact.phone && (
-                          <a href={`tel:${contact.phone}`} className="flex items-center gap-1 mt-0.5 text-xs text-amber-600 hover:underline">
+                          <a href={`tel:${contact.phone}`} className="text-amber-600 hover:underline flex items-center gap-1">
                             <Phone className="w-3 h-3" />
                             {contact.phone}
                           </a>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
         </div>
