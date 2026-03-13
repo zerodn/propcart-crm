@@ -11,6 +11,7 @@ import {
   Pencil,
   Trash2,
   Building2,
+  Copy,
 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { getAccessToken } from '@/lib/auth';
@@ -58,10 +59,12 @@ function ProjectTypeBadge({ type }: { type: string }) {
 function CardMenu({
   onView,
   onEdit,
+  onCopy,
   onDelete,
 }: {
   onView: () => void;
   onEdit: () => void;
+  onCopy: () => void;
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -102,6 +105,16 @@ function CardMenu({
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Pencil className="w-4 h-4 text-gray-400" /> Chỉnh sửa
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onCopy();
+              }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Copy className="w-4 h-4 text-gray-400" /> Sao chép
             </button>
             <button
               type="button"
@@ -216,8 +229,10 @@ export default function ProjectPage() {
     Partial<Record<'LOW_RISE' | 'HIGH_RISE', Project>>
   >({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [copyId, setCopyId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
 
   const ownerOptions = useMemo(() => {
     const catalog =
@@ -305,6 +320,142 @@ export default function ProjectPage() {
     }
   };
 
+  const handleCopyProject = async () => {
+    if (!copyId) return;
+    const sourceProject = projects.find((p) => p.id === copyId);
+    if (!sourceProject) return;
+
+    setIsCopying(true);
+
+    // Extract base name and find the highest sequential number
+    const baseName = sourceProject.name || 'Dự án';
+    const projectNames = projects.map((p) => p.name || '');
+
+    // Regex to match name + number at the end
+    const regex = new RegExp(`^${baseName}\\s*(\\d+)?$`);
+    let highestNum = 0;
+
+    projectNames.forEach((name) => {
+      const match = name.match(regex);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (num > highestNum) highestNum = num;
+      }
+    });
+
+    // Create new project with incremented name
+    const newProjectName = `${baseName} ${highestNum + 1}`;
+
+    // Deep copy all project data
+    const payload: CreateProjectPayload = {
+      projectType: sourceProject.projectType,
+      ownerId: sourceProject.ownerId,
+      saleStatus: sourceProject.saleStatus,
+      displayStatus: sourceProject.displayStatus,
+      name: newProjectName,
+      address: sourceProject.address,
+      province: sourceProject.province,
+      district: sourceProject.district,
+      ward: sourceProject.ward,
+      latitude: sourceProject.latitude,
+      longitude: sourceProject.longitude,
+      googleMapUrl: sourceProject.googleMapUrl,
+      locationDescriptionHtml: sourceProject.locationDescriptionHtml,
+      videoUrl: sourceProject.videoUrl,
+      overviewHtml: sourceProject.overviewHtml,
+      videoDescription: sourceProject.videoDescription,
+      bannerUrl: sourceProject.bannerUrl,
+      // Deep copy arrays
+      amenities: sourceProject.amenities
+        ? sourceProject.amenities.map((item) => ({ ...item }))
+        : undefined,
+      zones: sourceProject.zones
+        ? sourceProject.zones.map((item) => ({ ...item }))
+        : undefined,
+      products: sourceProject.products
+        ? sourceProject.products.map((item) => ({ ...item }))
+        : undefined,
+      amenityImages: sourceProject.amenityImages
+        ? sourceProject.amenityImages.map((item) => ({ ...item }))
+        : undefined,
+      // Deep copy subdivisions and all nested data
+      subdivisions: sourceProject.subdivisions
+        ? sourceProject.subdivisions.map((subdivision) => ({
+            name: subdivision.name,
+            imageUrl: subdivision.imageUrl,
+            towerCount: subdivision.towerCount,
+            unitCount: subdivision.unitCount,
+            unitStandard: subdivision.unitStandard,
+            handoverDate: subdivision.handoverDate,
+            area: subdivision.area,
+            constructionStyle: subdivision.constructionStyle,
+            ownershipType: subdivision.ownershipType,
+            descriptionHtml: subdivision.descriptionHtml,
+            // Deep copy towers and all nested arrays
+            towers: Array.isArray(subdivision.towers)
+              ? subdivision.towers.map((tower) => ({
+                  name: tower.name,
+                  floorCount: tower.floorCount,
+                  unitCount: tower.unitCount,
+                  elevatorCount: tower.elevatorCount,
+                  ownershipType: tower.ownershipType,
+                  handoverStandard: tower.handoverStandard,
+                  constructionStartDate: tower.constructionStartDate,
+                  completionDate: tower.completionDate,
+                  latitude: tower.latitude,
+                  longitude: tower.longitude,
+                  googleMapUrl: tower.googleMapUrl,
+                  locationDescriptionHtml: tower.locationDescriptionHtml,
+                  camera360Url: tower.camera360Url,
+                  descriptionHtml: tower.descriptionHtml,
+                  // Deep copy all nested arrays
+                  camera360Images: Array.isArray(tower.camera360Images)
+                    ? [...tower.camera360Images]
+                    : tower.camera360Images,
+                  salesPolicyImages: Array.isArray(tower.salesPolicyImages)
+                    ? [...tower.salesPolicyImages]
+                    : tower.salesPolicyImages,
+                  fundProducts: Array.isArray(tower.fundProducts)
+                    ? [...tower.fundProducts]
+                    : tower.fundProducts,
+                  floorPlanImages: Array.isArray(tower.floorPlanImages)
+                    ? [...tower.floorPlanImages]
+                    : tower.floorPlanImages,
+                }))
+              : subdivision.towers,
+          }))
+        : undefined,
+      planningStats: sourceProject.planningStats
+        ? sourceProject.planningStats.map((item) => ({ ...item }))
+        : undefined,
+      progressUpdates: sourceProject.progressUpdates
+        ? sourceProject.progressUpdates.map((item) => ({
+            label: item.label,
+            detailHtml: item.detailHtml,
+            videoUrl: item.videoUrl,
+            images: Array.isArray(item.images) ? [...item.images] : item.images,
+          }))
+        : undefined,
+      documentItems: sourceProject.documentItems
+        ? sourceProject.documentItems.map((item) => ({
+            documentType: item.documentType || '',
+            documentUrl: item.documentUrl || '',
+          }))
+        : undefined,
+      contacts: sourceProject.contacts
+        ? sourceProject.contacts.map((item) => ({ ...item }))
+        : undefined,
+    };
+
+    const saved = await create(payload, { silent: false });
+
+    setIsCopying(false);
+    if (saved) {
+      setCopyId(null);
+      list({ page: currentPage, limit: PAGE_LIMIT });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
@@ -370,6 +521,7 @@ export default function ProjectPage() {
                     <CardMenu
                       onView={() => {}}
                       onEdit={() => handleOpenEdit(project)}
+                      onCopy={() => setCopyId(project.id)}
                       onDelete={() => setDeleteId(project.id)}
                     />
                   </div>
@@ -435,6 +587,17 @@ export default function ProjectPage() {
         cancelText="Hủy"
         isDangerous
         isLoading={isDeleting}
+      />
+
+      <ConfirmDialog
+        isOpen={!!copyId}
+        onCancel={() => setCopyId(null)}
+        onConfirm={handleCopyProject}
+        title="Sao chép dự án"
+        message="Dự án sẽ được sao chép với tên = tên gốc + số thứ tự tăng. Dữ liệu sao chép là độc lập, xóa không ảnh hưởng đến bản gốc. Tiếp tục?"
+        confirmText="Sao chép"
+        cancelText="Hủy"
+        isLoading={isCopying}
       />
     </div>
   );

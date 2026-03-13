@@ -23,6 +23,7 @@ import { ProductModule } from './modules/product/product.module';
 import { ProjectModule } from './modules/project/project.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { PortalModule } from './modules/portal/portal.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { UploadModule } from './modules/upload/upload.module';
     ProjectModule,
     UploadModule,
     CleanupModule,
+    PortalModule,
   ],
   providers: [
     // Global HMAC signature guard

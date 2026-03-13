@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Eye,
   Pencil,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
@@ -317,6 +318,7 @@ export function ProjectForm({
     descriptionHtml: '',
   });
   const [subdivisionDeleteIndex, setSubdivisionDeleteIndex] = useState<number | null>(null);
+  const [subdivisionCopyIndex, setSubdivisionCopyIndex] = useState<number | null>(null);
   const [isUploadingSubdivisionImage, setIsUploadingSubdivisionImage] = useState(false);
   const [isSavingSubdivision, setIsSavingSubdivision] = useState(false);
   const [selectedSubdivisionIndex, setSelectedSubdivisionIndex] = useState<number | null>(null);
@@ -326,6 +328,7 @@ export function ProjectForm({
   const [towerDrawerMode, setTowerDrawerMode] = useState<'create' | 'edit' | 'view'>('create');
   const [activeTowerIndex, setActiveTowerIndex] = useState<number | null>(null);
   const [towerDeleteIndex, setTowerDeleteIndex] = useState<number | null>(null);
+  const [towerCopyIndex, setTowerCopyIndex] = useState<number | null>(null);
   const [towerCurrentStep, setTowerCurrentStep] = useState(0);
   const [isLoadingProjectLocation, setIsLoadingProjectLocation] = useState(false);
   const [isSavingTowerStep, setIsSavingTowerStep] = useState(false);
@@ -610,12 +613,14 @@ export function ProjectForm({
       setContacts(editingProject.contacts ?? []);
       setSubdivisions(editingProject.subdivisions ?? []);
       setSubdivisionDeleteIndex(null);
+      setSubdivisionCopyIndex(null);
       setIsSubdivisionDialogOpen(false);
       setActiveSubdivisionIndex(null);
       setSelectedSubdivisionIndex(null);
       setIsTowerDrawerOpen(false);
       setActiveTowerIndex(null);
       setTowerDeleteIndex(null);
+      setTowerCopyIndex(null);
     } else if (isOpen && !editingProject) {
       setDraftProjectId(null);
       // Reset form for new project
@@ -646,12 +651,14 @@ export function ProjectForm({
       setContacts([]);
       setSubdivisions([]);
       setSubdivisionDeleteIndex(null);
+      setSubdivisionCopyIndex(null);
       setIsSubdivisionDialogOpen(false);
       setActiveSubdivisionIndex(null);
       setSelectedSubdivisionIndex(null);
       setIsTowerDrawerOpen(false);
       setActiveTowerIndex(null);
       setTowerDeleteIndex(null);
+      setTowerCopyIndex(null);
       setNewContactForm({ name: '' });
       setDeleteContactIndex(null);
       setWorkspaceMemberOptions([]);
@@ -1150,6 +1157,64 @@ export function ProjectForm({
       if (current > index) return current - 1;
       return current;
     });
+  };
+
+  const copySubdivision = (index: number) => {
+    const sourceSubdivision = subdivisions[index];
+    if (!sourceSubdivision) return;
+
+    // Extract base name and find the highest sequential number
+    const baseName = sourceSubdivision.name || 'Phân khu';
+    const subdivisionNames = subdivisions.map((s) => s.name || '');
+
+    // Regex to match name + number at the end
+    const regex = new RegExp(`^${baseName}\\s*(\\d+)?$`);
+    let highestNum = 0;
+
+    subdivisionNames.forEach((name) => {
+      const match = name.match(regex);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (num > highestNum) highestNum = num;
+      }
+    });
+
+    // Create new subdivision with deep copy of towers
+    const newSubdivisionName = `${baseName} ${highestNum + 1}`;
+    const copiedSubdivision: ProjectSubdivision = {
+      name: newSubdivisionName,
+      imageUrl: sourceSubdivision.imageUrl,
+      towerCount: sourceSubdivision.towerCount,
+      unitCount: sourceSubdivision.unitCount,
+      unitStandard: sourceSubdivision.unitStandard,
+      handoverDate: sourceSubdivision.handoverDate,
+      area: sourceSubdivision.area,
+      constructionStyle: sourceSubdivision.constructionStyle,
+      ownershipType: sourceSubdivision.ownershipType,
+      descriptionHtml: sourceSubdivision.descriptionHtml,
+      // Deep copy towers and all nested arrays
+      towers: Array.isArray(sourceSubdivision.towers)
+        ? sourceSubdivision.towers.map((tower) => ({
+            ...tower,
+            camera360Images: Array.isArray(tower.camera360Images)
+              ? [...tower.camera360Images]
+              : tower.camera360Images,
+            salesPolicyImages: Array.isArray(tower.salesPolicyImages)
+              ? [...tower.salesPolicyImages]
+              : tower.salesPolicyImages,
+            fundProducts: Array.isArray(tower.fundProducts)
+              ? [...tower.fundProducts]
+              : tower.fundProducts,
+            floorPlanImages: Array.isArray(tower.floorPlanImages)
+              ? [...tower.floorPlanImages]
+              : tower.floorPlanImages,
+          }))
+        : sourceSubdivision.towers,
+    };
+
+    setSubdivisions((prev) => [...prev, copiedSubdivision]);
+    toast.success(`Đã copy phân khu thành công`);
+    setSubdivisionCopyIndex(null);
   };
 
   // ── Form Submit ────────────────────────────────────────────
@@ -1685,6 +1750,52 @@ export function ProjectForm({
         };
       }),
     );
+  };
+
+  const copyTowerFromSubdivision = (index: number) => {
+    if (selectedSubdivisionIndex === null) return;
+
+    setSubdivisions((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== selectedSubdivisionIndex) return item;
+        const currentTowers = getEditableTowers(item);
+        const sourceTower = currentTowers[index];
+        if (!sourceTower) return item;
+
+        // Extract base name and find the highest sequential number
+        const baseName = sourceTower.name || 'Tòa nhà';
+        const towerNames = currentTowers.map((t) => t.name || '');
+
+        // Regex to match name + number at the end
+        const regex = new RegExp(`^${baseName}\\s*(\\d+)?$`);
+        let highestNum = 0;
+
+        towerNames.forEach((name) => {
+          const match = name.match(regex);
+          if (match && match[1]) {
+            const num = parseInt(match[1], 10);
+            if (num > highestNum) highestNum = num;
+          }
+        });
+
+        // Create new tower with incremented name
+        const newTowerName = `${baseName} ${highestNum + 1}`;
+        const copiedTower: ProjectTower = {
+          ...sourceTower,
+          name: newTowerName,
+        };
+
+        const nextTowers = [...currentTowers, copiedTower];
+        return {
+          ...item,
+          towers: nextTowers,
+          towerCount: String(nextTowers.length),
+        };
+      }),
+    );
+
+    toast.success(`Đã copy tòa nhà thành công`);
+    setTowerCopyIndex(null);
   };
 
   const openCreateProgressUpdate = () => {
@@ -2762,11 +2873,6 @@ export function ProjectForm({
                                   {item.towerCount} tòa
                                 </span>
                               )}
-                              {item.unitCount && (
-                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                  {item.unitCount} căn
-                                </span>
-                              )}
                             </div>
 
                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -2793,6 +2899,14 @@ export function ProjectForm({
                                 title="Sửa"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSubdivisionCopyIndex(index)}
+                                className="rounded p-1.5 text-gray-500 hover:bg-amber-100 hover:text-amber-600"
+                                title="Sao chép"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 type="button"
@@ -2884,6 +2998,14 @@ export function ProjectForm({
                                   title="Sửa"
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setTowerCopyIndex(index)}
+                                  className="rounded p-1.5 text-gray-500 hover:bg-amber-100 hover:text-amber-600"
+                                  title="Sao chép"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                   type="button"
@@ -3138,6 +3260,21 @@ export function ProjectForm({
         confirmText="Xóa"
         cancelText="Hủy"
         isDangerous
+      />
+
+      <ConfirmDialog
+        isOpen={subdivisionCopyIndex !== null}
+        onCancel={() => setSubdivisionCopyIndex(null)}
+        onConfirm={() => {
+          if (subdivisionCopyIndex !== null) {
+            copySubdivision(subdivisionCopyIndex);
+          }
+          setSubdivisionCopyIndex(null);
+        }}
+        title="Sao chép phân khu"
+        message="Phân khu sẽ được sao chép với tên = tên gốc + số thứ tự tăng. Dữ liệu sao chép là độc lập, xóa không ảnh hưởng đến bản gốc. Tiếp tục?"
+        confirmText="Sao chép"
+        cancelText="Hủy"
       />
 
       <ConfirmDialog
@@ -4470,6 +4607,21 @@ export function ProjectForm({
         confirmText="Xóa"
         cancelText="Hủy"
         isDangerous
+      />
+
+      <ConfirmDialog
+        isOpen={towerCopyIndex !== null}
+        onCancel={() => setTowerCopyIndex(null)}
+        onConfirm={() => {
+          if (towerCopyIndex !== null) {
+            copyTowerFromSubdivision(towerCopyIndex);
+          }
+          setTowerCopyIndex(null);
+        }}
+        title="Sao chép tòa nhà"
+        message="Tòa nhà sẽ được sao chép với tên = tên gốc + số thứ tự tăng. Tiếp tục?"
+        confirmText="Sao chép"
+        cancelText="Hủy"
       />
 
       <ConfirmDialog
