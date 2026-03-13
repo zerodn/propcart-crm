@@ -95,11 +95,30 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         <BannerGallery images={imageList} projectName={project.name} />
       </div>
 
-      <main className="w-full py-6 px-[10px]">
+      <main className="w-full py-4 lg:py-6 px-[10px]">
+
+        {/* ── Mobile horizontal tab strip (hidden on lg+) ── */}
+        <div className="lg:hidden flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
+          {TABS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap flex-shrink-0 transition ${
+                activeTab === id
+                  ? 'bg-amber-700 text-white'
+                  : 'bg-white text-gray-700 border border-gray-200'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex gap-6 items-start">
 
-          {/* ── Left Tab Nav ── */}
-          <div className="w-52 flex-shrink-0 sticky top-20">
+          {/* ── Left Tab Nav (desktop only) ── */}
+          <div className="hidden lg:block w-52 flex-shrink-0 sticky top-20">
             <nav className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               {TABS.map(({ id, label, Icon }) => (
                 <button
@@ -129,7 +148,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                   {project.planningStats && project.planningStats.length > 0 && (
                     <div>
                       <h3 className="font-bold text-amber-900 mb-4 text-lg">{project.name}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {project.planningStats.map((stat, i) => (
                           <div key={i} className="bg-gray-100 border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4">
                             <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
@@ -164,7 +183,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                   {project.zoneImages && project.zoneImages.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3 text-sm">Hình ảnh dự án</h3>
-                      <div className="relative h-80 bg-gray-300 rounded-lg overflow-hidden">
+                      <div className="relative h-52 sm:h-72 lg:h-80 bg-gray-300 rounded-lg overflow-hidden">
                         <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
                           {project.zoneImages.map((img, i) => (
                             <div key={i} className="min-w-full h-full relative">
@@ -245,7 +264,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                   {project.zoneImages && project.zoneImages.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3 text-sm">Hình ảnh phân khu</h3>
-                      <div className="relative h-80 bg-gray-300 rounded-lg overflow-hidden">
+                      <div className="relative h-52 sm:h-72 lg:h-80 bg-gray-300 rounded-lg overflow-hidden">
                         <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
                           {project.zoneImages.map((img, i) => (
                             <div key={i} className="min-w-full h-full relative">
@@ -325,8 +344,8 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             </div>
           </div>
 
-          {/* ── Right Contact ── */}
-          <div className="w-72 flex-shrink-0 sticky top-20">
+          {/* ── Right Contact (desktop only) ── */}
+          <div className="hidden lg:block w-72 flex-shrink-0 sticky top-20">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
               <div>
                 <h3 className="font-bold text-gray-900 mb-1">Liên hệ tư vấn</h3>
@@ -405,6 +424,62 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
           </div>
 
         </div>
+
+        {/* ── Mobile Contact Card (hidden on lg+) ── */}
+        <div className="lg:hidden mt-4">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
+            <div>
+              <h3 className="font-bold text-gray-900 mb-1">Liên hệ tư vấn</h3>
+              <p className="text-xs text-gray-500">Nhận tư vấn MIỄN PHÍ từ chuyên viên tư vấn</p>
+            </div>
+            {primaryContact ? (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  {primaryContact.imageUrl ? (
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                      <Image src={primaryContact.imageUrl} alt={primaryContact.name} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-amber-700 font-bold text-lg">{primaryContact.name[0]}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{primaryContact.name}</p>
+                    {primaryContact.title && <p className="text-xs text-gray-500">{primaryContact.title}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {primaryContact.zaloPhone && (
+                    <a href={`https://zalo.me/${primaryContact.zaloPhone}`} target="_blank" rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-blue-300 text-blue-600 text-sm font-medium py-2.5 rounded-lg transition">
+                      <MessageCircle className="w-4 h-4" />
+                      Chat Zalo
+                    </a>
+                  )}
+                  {primaryContact.phone && (
+                    <a href={`tel:${primaryContact.phone}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-amber-700 text-white text-sm font-medium py-2.5 rounded-lg transition">
+                      <Phone className="w-4 h-4" />
+                      {primaryContact.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Chưa có thông tin chuyên viên.</p>
+            )}
+            <div className="border-t border-gray-100 pt-3 flex items-center gap-2">
+              <span className="text-xs text-gray-500">Mã tin:</span>
+              <span className="text-xs font-semibold text-gray-900">{shortCode}</span>
+              <button onClick={handleCopyCode} className="text-gray-400 hover:text-amber-600 transition">
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+              {copied && <span className="text-xs text-green-600">Đã sao chép!</span>}
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   );
