@@ -60,9 +60,10 @@ export default function BannerGallery({ images, projectName }: BannerGalleryProp
       {/* Full-width black banner, max height 1/2 screen */}
       <div className="w-full bg-black relative overflow-hidden" style={{ height: '50vh' }}>
         <div className="flex h-full gap-1 p-1">
-          {/* Left large image */}
+          {/* Left large image — wider than center */}
           <div
-            className="relative flex-1 overflow-hidden rounded-sm cursor-pointer group"
+            className="relative overflow-hidden rounded-sm cursor-pointer group"
+            style={{ flex: 2 }}
             onClick={() => handleImageClick(getIdx(0))}
           >
             <Image
