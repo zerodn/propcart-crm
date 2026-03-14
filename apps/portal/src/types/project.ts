@@ -32,10 +32,97 @@ export interface DocumentItem {
   documentUrl: string;
 }
 
+export interface TowerFundProduct {
+  productId: string;
+  unitCode: string;
+  name: string;
+  warehouseId?: string;
+  warehouseName?: string;
+}
+
+export interface PortalProductImage {
+  fileName?: string;
+  originalUrl: string;
+  thumbnailUrl?: string;
+}
+
+export interface PortalProductDocument {
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+}
+
+export interface PortalProduct {
+  id: string;
+  workspaceId: string;
+  warehouseId?: string;
+  name: string;
+  unitCode: string;
+  tags?: string[];
+  propertyType: string;
+  zone?: string;
+  block?: string;
+  direction?: string;
+  area?: number;
+  priceWithoutVat?: number;
+  priceWithVat?: number;
+  isContactForPrice?: boolean;
+  promotionProgram?: string;
+  policyImageUrls?: PortalProductImage[];
+  productDocuments?: PortalProductDocument[];
+  callPhone?: string;
+  zaloPhone?: string;
+  transactionStatus: string;
+  note?: string;
+  warehouse?: { id: string; name: string; code: string } | null;
+}
+
+export interface FloorPlanMarker {
+  id: string;
+  x: number;
+  y: number;
+  productId?: string;
+  productUnitCode?: string;
+  productName?: string;
+}
+
+export interface FloorPlanImage extends MediaItem {
+  markers?: FloorPlanMarker[];
+}
+
+export interface TowerItem {
+  name: string;
+  floorCount?: string;
+  unitCount?: string;
+  elevatorCount?: string;
+  ownershipType?: string;
+  handoverStandard?: string;
+  constructionStartDate?: string;
+  completionDate?: string;
+  latitude?: string;
+  longitude?: string;
+  googleMapUrl?: string;
+  locationDescriptionHtml?: string;
+  camera360Url?: string;
+  camera360Images?: MediaItem[];
+  salesPolicyImages?: MediaItem[];
+  fundProducts?: TowerFundProduct[];
+  floorPlanImages?: FloorPlanImage[];
+  descriptionHtml?: string;
+}
+
 export interface SubdivisionItem {
   name: string;
-  unitCount?: number;
+  unitCount?: number | string;
   unitStandard?: string;
+  imageUrl?: string;
+  towerCount?: string;
+  area?: string;
+  constructionStyle?: string;
+  ownershipType?: string;
+  handoverDate?: string;
+  descriptionHtml?: string;
+  towers?: TowerItem[];
 }
 
 export interface Project {

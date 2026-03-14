@@ -118,4 +118,21 @@ export class PortalController {
 
     return { data: rows.map((r) => r.province).filter(Boolean) };
   }
+
+  /** Public: product detail by id */
+  @Get(':workspaceId/products/:id')
+  async getProduct(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
+    const product = await this.prisma.propertyProduct.findFirst({
+      where: { id, workspaceId, isHidden: false },
+      include: {
+        warehouse: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tìm thấy');
+    }
+
+    return { data: product };
+  }
 }

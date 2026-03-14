@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import BannerGallery from './banner-gallery';
 import ImageLightbox from './image-lightbox';
+import { SubdivisionsTab } from './subdivisions-tab';
 
 function getEmbedUrl(url: string): string {
   try {
@@ -22,6 +23,46 @@ function getEmbedUrl(url: string): string {
     }
   } catch {}
   return url;
+}
+
+function getGoogleMapEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname;
+    const isGoogleMaps = host.includes('google.com') || host.includes('maps.google');
+
+    // Already an embed URL
+    if (u.pathname.includes('/maps/d/embed') || u.pathname.includes('/maps/embed')) return url;
+    if (u.searchParams.get('output') === 'embed') return url;
+
+    // MyMaps custom map (/maps/d/)
+    if (u.pathname.includes('/maps/d/')) {
+      const mid = u.searchParams.get('mid');
+      if (mid) return `https://www.google.com/maps/d/embed?mid=${mid}`;
+    }
+
+    if (!isGoogleMaps) return null;
+
+    // google.com/maps URLs with @lat,lng,zoom in path
+    const coordMatch = url.match(/@(-?\d+\.?\d+),(-?\d+\.?\d+),(\d+(?:\.\d+)?z?)/);
+    if (coordMatch) {
+      const zoom = coordMatch[3].replace('z', '');
+      return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&z=${zoom}&output=embed`;
+    }
+
+    // ?q= or &q= query parameter
+    const q = u.searchParams.get('q');
+    if (q) {
+      const params = new URLSearchParams({ q, output: 'embed' });
+      return `https://maps.google.com/maps?${params.toString()}`;
+    }
+
+    // Fallback: just append output=embed to the original URL
+    const fallback = new URL(url);
+    fallback.searchParams.set('output', 'embed');
+    return fallback.toString();
+  } catch {}
+  return null;
 }
 
 function SafeImg({ src, alt, className, onClick }: {
@@ -210,6 +251,13 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [selectedFloorPlan, setSelectedFloorPlan] = useState(0);
   const [selectedAmenity, setSelectedAmenity] = useState(0);
 
+
+  useEffect(() => {
+    if (project) {
+      document.title = `${project.name} - PropCart Portal`;
+    }
+    return () => { document.title = 'PropCart Portal - Dự án Bất động sản'; };
+  }, [project]);
 
   useEffect(() => {
     if (project) {
@@ -461,82 +509,80 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
               {/* VỊ TRỊ */}
               {activeTab === 'location' && (
-                <section className="space-y-4">
-                  {project.address && <p className="text-sm text-gray-800">{project.address}</p>}
-                  {[project.district, project.province].filter(Boolean).join(', ') && (
-                    <p className="text-xs text-gray-500">{[project.district, project.province].filter(Boolean).join(', ')}</p>
+                <section className="space-y-6">
+
+                  {/* Section 1: Địa chỉ + bản đồ OSM */}
+                  {(project.address || project.latitude) && (
+                    <div>
+                      {project.address && (
+                        <div className="flex items-start gap-2 mb-4">
+                          <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                          </svg>
+                          <div className="text-sm text-gray-800">
+                            <p>{project.address}</p>
+                            {[project.ward, project.district, project.province].filter(Boolean).length > 0 && (
+                              <p className="text-gray-500 mt-0.5">{[project.ward, project.district, project.province].filter(Boolean).join(', ')}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {project.latitude && project.longitude && (
+                        <div className="w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: '360px' }}>
+                          <iframe
+                            title="Vị trí dự án trên bản đồ"
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(project.longitude) - 0.006},${parseFloat(project.latitude) - 0.004},${parseFloat(project.longitude) + 0.006},${parseFloat(project.latitude) + 0.004}&layer=mapnik&marker=${project.latitude},${project.longitude}`}
+                            className="w-full h-full border-0"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
+
+                  {/* Section 2: Mô tả vị trí */}
                   {project.locationDescriptionHtml && (
-                    <div className="prose prose-sm max-w-none text-gray-700"
-                      dangerouslySetInnerHTML={{ __html: project.locationDescriptionHtml }} />
+                    <div>
+                      <div
+                        className="prose prose-sm max-w-none text-gray-700"
+                        dangerouslySetInnerHTML={{ __html: project.locationDescriptionHtml }}
+                      />
+                    </div>
                   )}
+
+                  {/* Section 3: Google MyMap */}
                   {project.googleMapUrl && (
-                    <a href={project.googleMapUrl} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-amber-600 hover:underline text-sm font-medium">
-                      Xem bản đồ →
-                    </a>
+                    <div>
+                      <div className="w-full rounded-xl overflow-hidden border border-gray-200 mb-3" style={{ height: '480px' }}>
+                        <iframe
+                          title="Bản đồ Google Maps"
+                          src={project.googleMapUrl}
+                          className="w-full h-full border-0"
+                          allowFullScreen
+                          loading="lazy"
+                        />
+                      </div>
+                      <a
+                        href={project.googleMapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-amber-700 hover:underline text-sm font-medium"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        Xem trên Google Maps →
+                      </a>
+                    </div>
                   )}
+
                 </section>
               )}
 
               {/* PHÂN KHU */}
               {activeTab === 'subdivisions' && (
-                <section className="space-y-6">
-                  {project.subdivisions && project.subdivisions.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Danh sách phân khu</h3>
-                      <div className="space-y-3">
-                        {project.subdivisions.map((sub, i) => (
-                          <div key={i} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition">
-                            <div className="flex gap-3">
-                              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-amber-700 font-bold text-sm">{i + 1}</span>
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-semibold text-gray-900 text-sm">{sub.name}</p>
-                                <div className="flex gap-4 text-xs text-gray-500 mt-1">
-                                  {sub.unitStandard && <span>Phân khu: <strong>{sub.unitStandard}</strong></span>}
-                                  {sub.unitCount && <span>Số căn: <strong>{sub.unitCount}</strong></span>}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Zone Images */}
-                  {project.zoneImages && project.zoneImages.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Hình ảnh phân khu</h3>
-                      <div className="relative h-52 sm:h-72 lg:h-80 bg-gray-300 rounded-lg overflow-hidden">
-                        <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
-                          {project.zoneImages.map((img, i) => (
-                            <div key={i} className="min-w-full h-full relative">
-                              <SafeImg src={img.originalUrl} alt={img.description || `Zone ${i}`} className="object-cover" onClick={() => openLb(project.zoneImages!.map(z => z.originalUrl), i)} />
-                            </div>
-                          ))}
-                        </div>
-                        {project.zoneImages.length > 1 && (
-                          <>
-                            <button
-                              onClick={() => rotateCarousel('prev', project.zoneImages!.length)}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 p-2 rounded-full z-10 transition"
-                            >
-                              <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => rotateCarousel('next', project.zoneImages!.length)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 p-2 rounded-full z-10 transition"
-                            >
-                              <ChevronRight className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                <section>
+                  <SubdivisionsTab subdivisions={project.subdivisions ?? []} />
                 </section>
               )}
 

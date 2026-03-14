@@ -4,8 +4,16 @@ import SiteHeader from '@/components/layout/header';
 import SiteFooter from '@/components/layout/footer';
 
 export const metadata: Metadata = {
-  title: 'PropCart Portal - Dự án Bất động sản',
+  title: {
+    default: 'PropCart Portal - Dự án Bất động sản',
+    template: '%s - PropCart Portal',
+  },
   description: 'Khám phá các dự án bất động sản cao cấp',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

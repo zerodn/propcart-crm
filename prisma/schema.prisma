@@ -460,7 +460,7 @@ model PropertyProduct {
   transactionStatus  String   @default("AVAILABLE") // AVAILABLE | BOOKED
 
   // 7) Ghi chú
-  note               String?
+  note               String?  @db.LongText
 
   createdByUserId    String
   createdAt          DateTime @default(now())
