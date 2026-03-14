@@ -1,9 +1,24 @@
-import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
+import { MailService } from '../../common/mail/mail.service';
 
 @Controller('portal')
 export class PortalController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+    private readonly mailService: MailService,
+  ) {}
 
   @Get(':workspaceId/projects')
   async listProjects(
@@ -69,7 +84,72 @@ export class PortalController {
       throw new NotFoundException('Dự án không tìm thấy');
     }
 
-    return { data: project };
+    // Enrich fundProducts in subdivisions with live price data from propertyProduct table
+    const subdivisions = project.subdivisions as Record<string, unknown>[] | null;
+    if (Array.isArray(subdivisions) && subdivisions.length > 0) {
+      // Collect all productIds across all towers in all subdivisions
+      const productIds: string[] = [];
+      for (const sub of subdivisions) {
+        if (Array.isArray(sub['towers'])) {
+          for (const tower of sub['towers'] as Record<string, unknown>[]) {
+            if (Array.isArray(tower['fundProducts'])) {
+              for (const fp of tower['fundProducts'] as Record<string, unknown>[]) {
+                if (fp['productId']) productIds.push(fp['productId'] as string);
+              }
+            }
+          }
+        }
+      }
+
+      if (productIds.length > 0) {
+        const products = await this.prisma.propertyProduct.findMany({
+          where: { id: { in: productIds }, workspaceId, isHidden: false },
+          select: {
+            id: true,
+            priceWithVat: true,
+            priceWithoutVat: true,
+            isContactForPrice: true,
+            area: true,
+            direction: true,
+            propertyType: true,
+            zone: true,
+            block: true,
+            warehouse: { select: { id: true, name: true, code: true } },
+          },
+        });
+        const productMap = new Map(products.map((p) => [p.id, p]));
+
+        // Merge enriched data back into fundProducts
+        for (const sub of subdivisions) {
+          if (Array.isArray(sub['towers'])) {
+            for (const tower of sub['towers'] as Record<string, unknown>[]) {
+              if (Array.isArray(tower['fundProducts'])) {
+                tower['fundProducts'] = (tower['fundProducts'] as Record<string, unknown>[]).map(
+                  (fp) => {
+                    const live = productMap.get(fp['productId'] as string);
+                    if (!live) return fp;
+                    return {
+                      ...fp,
+                      priceWithVat: live.priceWithVat ? Number(live.priceWithVat) : null,
+                      priceWithoutVat: live.priceWithoutVat ? Number(live.priceWithoutVat) : null,
+                      isContactForPrice: live.isContactForPrice,
+                      area: live.area ? Number(live.area) : (fp.area ?? null),
+                      direction: live.direction ?? fp.direction ?? null,
+                      propertyType: live.propertyType ?? fp.propertyType ?? null,
+                      zone: live.zone ?? fp.zone ?? null,
+                      block: live.block ?? fp.block ?? null,
+                      warehouse: live.warehouse ?? fp.warehouse ?? null,
+                    };
+                  },
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return { data: { ...project, subdivisions } };
   }
 
   /** Public: project types from catalog or fallback */
@@ -117,6 +197,86 @@ export class PortalController {
     });
 
     return { data: rows.map((r) => r.province).filter(Boolean) };
+  }
+
+  /** Public: catalog option values by type list */
+  @Get(':workspaceId/catalog-options')
+  async getCatalogOptions(
+    @Param('workspaceId') workspaceId: string,
+    @Query('types') types?: string,
+  ) {
+    const typeList = types?.split(',').filter(Boolean) ?? [];
+    const catalogs = await this.prisma.catalog.findMany({
+      where: typeList.length > 0 ? { workspaceId, type: { in: typeList } } : { workspaceId },
+      include: { values: { orderBy: { order: 'asc' } } },
+    });
+    const result: Record<string, { value: string; label: string }[]> = {};
+    for (const cat of catalogs) {
+      result[cat.type] = cat.values.map((v) => ({ value: v.value, label: v.label }));
+    }
+    return { data: result };
+  }
+
+  /** Public: submit booking request for a product */
+  @Post(':workspaceId/products/:id/booking-request')
+  async createBookingRequest(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') productId: string,
+    @Body() body: { saleName: string; agency?: string; phone: string; notes?: string },
+  ) {
+    if (!body.saleName?.trim() || !body.phone?.trim()) {
+      throw new BadRequestException('Tên sale và SĐT là bắt buộc');
+    }
+
+    const product = await this.prisma.propertyProduct.findFirst({
+      where: { id: productId, workspaceId, isHidden: false },
+      select: { id: true, name: true, unitCode: true, contactMemberIds: true },
+    });
+    if (!product) throw new NotFoundException('Sản phẩm không tìm thấy');
+
+    const contactIds: string[] = Array.isArray(product.contactMemberIds)
+      ? (product.contactMemberIds as string[])
+      : [];
+
+    const users =
+      contactIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: contactIds } },
+            select: { id: true, email: true, fullName: true },
+          })
+        : [];
+
+    const notificationPayload = {
+      type: 'BOOKING_REQUEST',
+      productId: product.id,
+      productName: product.name,
+      unitCode: product.unitCode,
+      saleName: body.saleName,
+      agency: body.agency,
+      phone: body.phone,
+      notes: body.notes,
+    };
+
+    await Promise.all([
+      ...users.map((u) =>
+        this.notificationService.create(u.id, 'BOOKING_REQUEST', notificationPayload),
+      ),
+      ...users
+        .filter((u) => u.email)
+        .map((u) =>
+          this.mailService.sendBookingRequestEmail(u.email!, {
+            recipientName: u.fullName || 'Sales',
+            productName: product.name,
+            unitCode: product.unitCode,
+            saleName: body.saleName,
+            agency: body.agency,
+            phone: body.phone,
+            notes: body.notes,
+          }),
+        ),
+    ]);
+
+    return { data: { success: true, notified: users.length } };
   }
 
   /** Public: product detail by id */

@@ -213,7 +213,7 @@ interface TowerProductOption {
 interface ProgressUpdateFormState {
   label: string;
   detailHtml: string;
-  videoUrl: string;
+  videos: { url: string; description: string }[];
   images: MediaItem[];
 }
 
@@ -295,7 +295,7 @@ export function ProjectForm({
   const [progressForm, setProgressForm] = useState<ProgressUpdateFormState>({
     label: '',
     detailHtml: '',
-    videoUrl: '',
+    videos: [],
     images: [],
   });
   const [contacts, setContacts] = useState<ProjectContact[]>([]);
@@ -426,7 +426,7 @@ export function ProjectForm({
           .map((item) => ({
             label: item.label.trim(),
             detailHtml: item.detailHtml || undefined,
-            videoUrl: item.videoUrl?.trim() || undefined,
+            videos: Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
             images: item.images && item.images.length > 0 ? item.images : undefined,
           }))
           .filter((item) => item.label.length > 0),
@@ -478,7 +478,7 @@ export function ProjectForm({
             .map((item) => ({
               label: item.label.trim(),
               detailHtml: item.detailHtml || undefined,
-              videoUrl: item.videoUrl?.trim() || undefined,
+              videos: Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
               images: item.images && item.images.length > 0 ? item.images : undefined,
             }))
             .filter((item) => item.label.length > 0),
@@ -1804,7 +1804,7 @@ export function ProjectForm({
     setProgressForm({
       label: '',
       detailHtml: '',
-      videoUrl: '',
+      videos: [],
       images: [],
     });
     setIsProgressDrawerOpen(true);
@@ -1818,7 +1818,9 @@ export function ProjectForm({
     setProgressForm({
       label: item.label || '',
       detailHtml: item.detailHtml || '',
-      videoUrl: item.videoUrl || '',
+      videos: Array.isArray(item.videos) && item.videos.length > 0
+        ? item.videos.map((v) => ({ url: v.url, description: v.description || '' }))
+        : item.videoUrl ? [{ url: item.videoUrl, description: '' }] : [],
       images: Array.isArray(item.images) ? item.images : [],
     });
     setIsProgressDrawerOpen(true);
@@ -1830,16 +1832,19 @@ export function ProjectForm({
     setProgressForm({
       label: '',
       detailHtml: '',
-      videoUrl: '',
+      videos: [],
       images: [],
     });
   };
 
   const saveProgressUpdate = () => {
+    const trimmedVideos = progressForm.videos
+      .filter((v) => v.url.trim())
+      .map((v) => ({ url: v.url.trim(), description: v.description.trim() || undefined }));
     const normalized: ProjectProgressUpdate = {
       label: progressForm.label.trim(),
       detailHtml: progressForm.detailHtml || undefined,
-      videoUrl: progressForm.videoUrl.trim() || undefined,
+      videos: trimmedVideos.length > 0 ? trimmedVideos : undefined,
       images: progressForm.images.length > 0 ? progressForm.images : undefined,
     };
 
@@ -3080,9 +3085,9 @@ export function ProjectForm({
                                   {item.images.length} ảnh
                                 </span>
                               )}
-                              {item.videoUrl && (
+                              {((item.videos && item.videos.length > 0) || item.videoUrl) && (
                                 <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                  Video
+                                  {item.videos && item.videos.length > 1 ? `${item.videos.length} video` : 'Video'}
                                 </span>
                               )}
                             </div>
@@ -3372,15 +3377,97 @@ export function ProjectForm({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Video</label>
-              <input
-                type="text"
-                value={progressForm.videoUrl}
-                onChange={(e) => setProgressForm((prev) => ({ ...prev, videoUrl: e.target.value }))}
-                disabled={progressDrawerMode === 'view'}
-                placeholder="Nhập link video từ Youtube, Tiktok, Drive"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-gray-700">Videos</label>
+                {progressDrawerMode !== 'view' && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProgressForm((prev) => ({
+                        ...prev,
+                        videos: [...prev.videos, { url: '', description: '' }],
+                      }))
+                    }
+                    className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                  >
+                    + Thêm video
+                  </button>
+                )}
+              </div>
+              {progressForm.videos.length === 0 ? (
+                progressDrawerMode !== 'view' ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProgressForm((prev) => ({
+                        ...prev,
+                        videos: [{ url: '', description: '' }],
+                      }))
+                    }
+                    className="w-full rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-500 hover:border-amber-400 hover:text-amber-600 transition"
+                  >
+                    + Thêm video
+                  </button>
+                ) : (
+                  <p className="text-xs text-gray-400">Chưa có video</p>
+                )
+              ) : (
+                <div className="space-y-2">
+                  {progressForm.videos.map((v, vi) => (
+                    <div key={vi} className="rounded-lg border border-gray-200 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={v.url}
+                          onChange={(e) =>
+                            setProgressForm((prev) => ({
+                              ...prev,
+                              videos: prev.videos.map((x, xi) =>
+                                xi === vi ? { ...x, url: e.target.value } : x,
+                              ),
+                            }))
+                          }
+                          disabled={progressDrawerMode === 'view'}
+                          placeholder="Link video (YouTube, TikTok, Drive...)"
+                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                        />
+                        {progressDrawerMode !== 'view' && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setProgressForm((prev) => ({
+                                ...prev,
+                                videos: prev.videos.filter((_, xi) => xi !== vi),
+                              }))
+                            }
+                            className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                            aria-label="Xóa video"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={v.description}
+                        onChange={(e) =>
+                          setProgressForm((prev) => ({
+                            ...prev,
+                            videos: prev.videos.map((x, xi) =>
+                              xi === vi ? { ...x, description: e.target.value } : x,
+                            ),
+                          }))
+                        }
+                        disabled={progressDrawerMode === 'view'}
+                        placeholder="Mô tả video (tùy chọn)"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <ProjectMediaUploadManager

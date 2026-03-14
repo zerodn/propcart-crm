@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useProject } from '@/hooks/useProject';
 import {
   LayoutDashboard, Navigation2, Building2, FolderOpen, HardHat,
-  Phone, MessageCircle, FileText, ChevronLeft, ChevronRight,
+  Phone, MessageCircle, FileText, ChevronLeft, ChevronRight, ExternalLink,
 } from 'lucide-react';
 import BannerGallery from './banner-gallery';
 import ImageLightbox from './image-lightbox';
@@ -15,14 +15,84 @@ import { SubdivisionsTab } from './subdivisions-tab';
 function getEmbedUrl(url: string): string {
   try {
     const u = new URL(url);
-    if (u.hostname.includes('youtube.com') && u.searchParams.get('v')) {
-      return `https://www.youtube.com/embed/${u.searchParams.get('v')}`;
+    // YouTube watch & shorts
+    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtube-nocookie.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}?rel=0`;
+      const shorts = u.pathname.match(/\/shorts\/([^/?]+)/);
+      if (shorts) return `https://www.youtube.com/embed/${shorts[1]}?rel=0`;
     }
     if (u.hostname === 'youtu.be') {
-      return `https://www.youtube.com/embed${u.pathname}`;
+      const id = u.pathname.slice(1).split('?')[0];
+      if (id) return `https://www.youtube.com/embed/${id}?rel=0`;
+    }
+    // Google Drive
+    if (u.hostname === 'drive.google.com') {
+      const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+      if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+    }
+    // Vimeo
+    if (u.hostname.includes('vimeo.com')) {
+      const m = u.pathname.match(/\/(\d+)/);
+      if (m) return `https://player.vimeo.com/video/${m[1]}`;
     }
   } catch {}
   return url;
+}
+
+function isEmbeddable(url: string): boolean {
+  try {
+    const h = new URL(url).hostname;
+    return h.includes('youtube.com') || h.includes('youtube-nocookie.com') ||
+           h === 'youtu.be' || h === 'drive.google.com' || h.includes('vimeo.com');
+  } catch {}
+  return false;
+}
+
+function VideoCard({ url, title }: { url: string; title?: string }) {
+  const embeddable = isEmbeddable(url);
+  return (
+    <div className="relative rounded-xl overflow-hidden aspect-video bg-gray-900">
+      {embeddable ? (
+        <iframe
+          src={getEmbedUrl(url)}
+          title={title || 'Video'}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+          {title && <p className="text-white/70 text-sm line-clamp-2">{title}</p>}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs px-4 py-2 rounded-xl transition"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Mở trong tab mới
+          </a>
+        </div>
+      )}
+      {/* Always-visible escape hatch */}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={e => e.stopPropagation()}
+        className="absolute top-2 right-2 bg-black/50 hover:bg-black/80 text-white p-1.5 rounded-lg transition"
+        aria-label="Mở trong tab mới"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+      </a>
+    </div>
+  );
 }
 
 function getGoogleMapEmbedUrl(url: string): string | null {
@@ -64,6 +134,9 @@ function getGoogleMapEmbedUrl(url: string): string | null {
   } catch {}
   return null;
 }
+
+const IMAGE_URL_RE = /\.(jpe?g|png|gif|webp|svg|bmp|tiff?)(\?.*)?$/i;
+function isImageUrl(url: string) { return IMAGE_URL_RE.test(url.split('?')[0]); }
 
 function SafeImg({ src, alt, className, onClick }: {
   src?: string; alt: string; className?: string; onClick?: () => void;
@@ -250,6 +323,9 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [selectedFloorPlan, setSelectedFloorPlan] = useState(0);
   const [selectedAmenity, setSelectedAmenity] = useState(0);
+  const [docSearch, setDocSearch] = useState('');
+  const [selectedProgressIndex, setSelectedProgressIndex] = useState(0);
+  const [progressVideoIndex, setProgressVideoIndex] = useState(0);
 
 
   useEffect(() => {
@@ -271,6 +347,10 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   useEffect(() => {
     setCarouselIndex(0);
   }, [activeTab]);
+
+  useEffect(() => {
+    setProgressVideoIndex(0);
+  }, [selectedProgressIndex]);
 
   const rotateCarousel = (direction: 'next' | 'prev', length: number) => {
     let next = direction === 'next' ? carouselIndex + 1 : carouselIndex - 1;
@@ -588,48 +668,209 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
               {/* KHO TÀI LIỆU */}
               {activeTab === 'documents' && (
-                <section>
-                  {project.documentItems && project.documentItems.length > 0 ? (
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Tài liệu dự án</h3>
-                      <ul className="space-y-2">
-                        {project.documentItems.map((doc, i) => (
-                          <li key={i}>
-                            <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-amber-50 hover:border-amber-200 transition group">
-                              <FileText className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                              <span className="text-sm text-gray-700 group-hover:text-amber-700">{doc.documentType}</span>
+                <section className="space-y-4">
+                  {/* Search bar */}
+                  <div className="relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Tìm tài liệu..."
+                      value={docSearch}
+                      onChange={e => setDocSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 placeholder-gray-400"
+                    />
+                  </div>
+                  {project.documentItems && project.documentItems.length > 0 ? (() => {
+                    const filtered = project.documentItems!.filter(d =>
+                      !docSearch || d.documentType.toLowerCase().includes(docSearch.toLowerCase())
+                    );
+                    const imageDocUrls = filtered.filter(d => isImageUrl(d.documentUrl)).map(d => d.documentUrl);
+                    return filtered.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {filtered.map((doc, i) => {
+                          const isImg = isImageUrl(doc.documentUrl);
+                          const imgIdx = isImg ? imageDocUrls.indexOf(doc.documentUrl) : -1;
+                          const cardClass = 'group relative flex flex-col justify-between bg-amber-50 border border-amber-200 rounded-xl p-4 hover:bg-amber-100 hover:border-amber-400 hover:shadow-md transition overflow-hidden text-left w-full';
+                          const cardStyle = { clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%)' };
+                          const cardContent = (
+                            <>
+                              {/* Folded corner */}
+                              <div className="absolute top-0 right-0 w-5 h-5 bg-amber-300 group-hover:bg-amber-400 transition"
+                                style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 0)' }} />
+                              {/* Icon */}
+                              <div className="flex flex-col gap-2 min-h-[80px]">
+                                {doc.icon ? (
+                                  /^https?:\/\/|^\//.test(doc.icon) ? (
+                                    <img src={doc.icon} alt="" className="w-10 h-10 object-contain rounded-lg flex-shrink-0" />
+                                  ) : (
+                                    <span className="text-3xl leading-none select-none">{doc.icon}</span>
+                                  )
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-amber-200 group-hover:bg-amber-300 flex items-center justify-center transition flex-shrink-0">
+                                    <FileText className="w-5 h-5 text-amber-700" />
+                                  </div>
+                                )}
+                                <p className="text-xs font-semibold text-amber-900 leading-snug line-clamp-3">{doc.documentType}</p>
+                              </div>
+                              {/* Arrow */}
+                              <div className="flex justify-end mt-3">
+                                <span className="text-amber-600 group-hover:text-amber-800 transition">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                  </svg>
+                                </span>
+                              </div>
+                            </>
+                          );
+                          return isImg ? (
+                            <button key={i} onClick={() => openLb(imageDocUrls, imgIdx)} className={cardClass} style={cardStyle} aria-label={doc.documentType}>
+                              {cardContent}
+                            </button>
+                          ) : (
+                            <a key={i} href={doc.documentUrl} target="_blank" rel="noopener noreferrer" className={cardClass} style={cardStyle}>
+                              {cardContent}
                             </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">Chưa có tài liệu.</p>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 text-center py-10">Không tìm thấy tài liệu phù hợp.</p>
+                    );
+                  })() : (
+                    <p className="text-sm text-gray-400 text-center py-10">Chưa có tài liệu.</p>
                   )}
                 </section>
               )}
 
               {/* TIẾN ĐỘ THI CÔNG */}
               {activeTab === 'progress' && (
-                <section>
-                  {project.progressUpdates && project.progressUpdates.length > 0 ? (
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-3 text-sm">Tiến độ thi công</h3>
-                      <div className="space-y-4">
-                        {project.progressUpdates.map((update, i) => (
-                          <div key={i} className="border-l-4 border-amber-400 pl-4">
-                            <p className="font-semibold text-gray-900 text-sm mb-1">{update.label}</p>
-                            {update.detailHtml && (
-                              <div className="prose prose-sm max-w-none text-gray-600"
-                                dangerouslySetInnerHTML={{ __html: update.detailHtml }} />
+                <section className="space-y-5">
+                  {project.progressUpdates && project.progressUpdates.length > 0 ? (() => {
+                    const updates = project.progressUpdates!;
+                    const active = updates[selectedProgressIndex] ?? updates[0];
+                    return (
+                      <>
+                        {/* Timeline ribbon */}
+                        <div className="overflow-x-auto -mx-1 pb-1">
+                          <div className="flex gap-2 px-1 min-w-max">
+                            {updates.map((u, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setSelectedProgressIndex(i)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition border ${
+                                  i === selectedProgressIndex
+                                    ? 'bg-amber-600 border-amber-600 text-white shadow-sm'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300'
+                                }`}
+                              >
+                                {u.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Active milestone content */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                          <div className="px-4 py-3 border-b border-gray-100 bg-amber-50/60">
+                            <p className="font-semibold text-amber-900 text-sm">{active.label}</p>
+                          </div>
+                          <div className="p-4 space-y-5">
+                            {/* ── Images — reuse InfiniteCarousel (same as overview) ── */}
+                            {active.images && active.images.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hình ảnh</p>
+                                <InfiniteCarousel
+                                  items={active.images}
+                                  label="Tiến độ"
+                                  onOpen={openLb}
+                                />
+                              </div>
+                            )}
+                            {/* ── Description ── */}
+                            {active.detailHtml && (
+                              <div
+                                className="prose prose-sm max-w-none text-gray-700"
+                                dangerouslySetInnerHTML={{ __html: active.detailHtml }}
+                              />
+                            )}
+                            {/* ── Videos ── */}
+                            {(() => {
+                              const videos = active.videos?.filter(v => v.url) ??
+                                (active.videoUrl ? [{ url: active.videoUrl, description: undefined }] : []);
+                              if (videos.length === 0) return null;
+                              if (videos.length === 1) {
+                                // Single video – full player at bottom
+                                return (
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Video</p>
+                                    <VideoCard url={videos[0].url} title={videos[0].description || active.label} />
+                                    {videos[0].description && (
+                                      <p className="text-xs text-gray-500 mt-1.5 px-1">{videos[0].description}</p>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              // Multiple videos – slide view
+                              const activeVid = videos[progressVideoIndex] ?? videos[0];
+                              return (
+                                <div>
+                                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Video</p>
+                                  {/* Player */}
+                                  <div className="relative">
+                                    <VideoCard key={progressVideoIndex} url={activeVid.url} title={activeVid.description || `Video ${progressVideoIndex + 1}`} />
+                                    {/* Prev / Next arrows */}
+                                    <button
+                                      onClick={() => setProgressVideoIndex(p => Math.max(0, p - 1))}
+                                      disabled={progressVideoIndex === 0}
+                                      className="absolute left-2 top-[40%] -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition disabled:opacity-20"
+                                      aria-label="Video trước"
+                                    >
+                                      <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => setProgressVideoIndex(p => Math.min(videos.length - 1, p + 1))}
+                                      disabled={progressVideoIndex >= videos.length - 1}
+                                      className="absolute right-2 top-[40%] -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition disabled:opacity-20"
+                                      aria-label="Video tiếp"
+                                    >
+                                      <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                    {/* Counter badge */}
+                                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                                      {progressVideoIndex + 1}/{videos.length}
+                                    </span>
+                                  </div>
+                                  {/* Description */}
+                                  {activeVid.description && (
+                                    <p className="text-xs text-gray-500 mt-1.5 px-1">{activeVid.description}</p>
+                                  )}
+                                  {/* Dot indicators */}
+                                  <div className="flex justify-center gap-1.5 mt-3">
+                                    {videos.map((_, vi) => (
+                                      <button
+                                        key={vi}
+                                        onClick={() => setProgressVideoIndex(vi)}
+                                        aria-label={`Video ${vi + 1}`}
+                                        className={`rounded-full transition-all duration-300 ${
+                                          vi === progressVideoIndex ? 'bg-amber-700 w-5 h-2' : 'bg-gray-300 w-2 h-2'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                            {!active.images?.length && !active.detailHtml && !active.videos?.length && !active.videoUrl && (
+                              <p className="text-sm text-gray-400 text-center py-4">Chưa có nội dung chi tiết cho mốc này.</p>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">Chưa có cập nhật tiến độ.</p>
+                        </div>
+                      </>
+                    );
+                  })() : (
+                    <p className="text-sm text-gray-400 text-center py-10">Chưa có cập nhật tiến độ.</p>
                   )}
                 </section>
               )}

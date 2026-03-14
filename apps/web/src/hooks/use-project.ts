@@ -20,7 +20,8 @@ export interface PlanningStat {
 export interface ProjectProgressUpdate {
   label: string;
   detailHtml?: string;
-  videoUrl?: string;
+  videoUrl?: string; // backward compat
+  videos?: { url: string; description?: string }[];
   images?: MediaItem[];
 }
 

@@ -2,13 +2,53 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { createPortal } from 'react-dom';
 import type { SubdivisionItem, TowerItem, FloorPlanImage, FloorPlanMarker, TowerFundProduct, PortalProduct, PortalProductImage, PortalProductDocument } from '@/types/project';
 import { FloorPlanViewer } from './floor-plan-viewer';
 import apiClient from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
+import { Dialog } from '../common/dialog';
+import { SlidePanel } from '../common/slide-panel';
+import ImageLightbox from './image-lightbox';
 
 const WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID || '';
+
+// ─── Property type & direction label maps ────────────────────────────────────
+// Vietnamese catalog codes (catalog-seed.ts) + legacy English codes (seed.ts)
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  CAN_HO: 'Căn hộ',
+  NHA_PHO: 'Nhà phố',
+  BIET_THU: 'Biệt thự',
+  DAT_NEN: 'Đất nền',
+  SHOPTEL: 'Shoptel',
+  // Legacy English codes
+  APARTMENT: 'Căn hộ',
+  TOWNHOUSE: 'Nhà phố',
+  SHOPHOUSE: 'Shophouse',
+  VILLA: 'Biệt thự',
+};
+
+const DIRECTION_LABELS: Record<string, string> = {
+  DONG: 'Đông',
+  TAY: 'Tây',
+  NAM: 'Nam',
+  BAC: 'Bắc',
+  DONG_NAM: 'Đông Nam',
+  DONG_BAC: 'Đông Bắc',
+  TAY_NAM: 'Tây Nam',
+  TAY_BAC: 'Tây Bắc',
+  // Legacy English codes
+  NORTH: 'Bắc',
+  SOUTH: 'Nam',
+  EAST: 'Đông',
+  WEST: 'Tây',
+  NORTH_EAST: 'Đông Bắc',
+  SOUTH_EAST: 'Đông Nam',
+  NORTH_WEST: 'Tây Bắc',
+  SOUTH_WEST: 'Tây Nam',
+};
+
+const displayLabel = (map: Record<string, string>, v?: string | null) =>
+  v ? (map[v] ?? v) : undefined;
 
 const ReactPhotoSphereViewer = dynamic(
   () => import('react-photo-sphere-viewer').then((m) => m.ReactPhotoSphereViewer),
@@ -90,7 +130,12 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
   const [cam360Index, setCam360Index] = useState(0);
   const [fpIndex, setFpIndex] = useState(0);
   const [policyIndex, setPolicyIndex] = useState(0);
+  const [policyViewerImages, setPolicyViewerImages] = useState<string[]>([]);
+  const [policyViewerIndex, setPolicyViewerIndex] = useState(0);
   const [selectedMarker, setSelectedMarker] = useState<FloorPlanMarker | null>(null);
+  const [selectedInventoryProduct, setSelectedInventoryProduct] = useState<TowerFundProduct | null>(null);
+  const [invPage, setInvPage] = useState(0);
+  const INV_PAGE_SIZE = 10;
 
   const overviewFields: { label: string; value?: string }[] = [
     { label: 'Số tầng', value: tower.floorCount },
@@ -105,6 +150,7 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
   const activeFpImage: FloorPlanImage | undefined = tower.floorPlanImages?.[fpIndex];
 
   return (
+    <>
     <div className="mt-3 rounded-xl border border-gray-200 bg-white overflow-hidden">
       {/* Tab bar */}
       <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar">
@@ -251,31 +297,111 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
         )}
 
         {/* ── Quỹ hàng ── */}
-        {activeTab === 'inventory' && (
-          <div>
-            {tower.fundProducts && tower.fundProducts.length > 0 ? (
-              <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-gray-500 px-3 pb-1 border-b border-gray-100">
-                  <span>Mã căn</span>
-                  <span>Tên căn</span>
-                  <span>Kho</span>
-                </div>
-                {tower.fundProducts.map((p, i) => (
-                  <div
-                    key={`${p.productId}-${i}`}
-                    className="grid grid-cols-3 gap-2 text-sm px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-                  >
-                    <span className="font-medium text-amber-700">{p.unitCode}</span>
-                    <span className="text-gray-800 truncate">{p.name}</span>
-                    <span className="text-gray-500 truncate">{p.warehouseName || '—'}</span>
-                  </div>
-                ))}
+        {activeTab === 'inventory' && (() => {
+          const products = tower.fundProducts ?? [];
+          const totalPages = Math.ceil(products.length / INV_PAGE_SIZE);
+          const pageProducts = products.slice(invPage * INV_PAGE_SIZE, (invPage + 1) * INV_PAGE_SIZE);
+          return (
+            <div className="space-y-3">
+              <div className="overflow-x-auto -mx-4">
+                {products.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="text-left text-xs font-semibold text-gray-500 px-3 py-2 whitespace-nowrap">Mã căn</th>
+                        <th className="text-left text-xs font-semibold text-gray-500 px-3 py-2">Tên</th>
+                        <th className="text-right text-xs font-semibold text-gray-500 px-3 py-2 whitespace-nowrap">Giá bán (gồm VAT)</th>
+                        <th className="text-right text-xs font-semibold text-gray-500 px-3 py-2 whitespace-nowrap">Giá bán (chưa VAT)</th>
+                        <th className="text-right text-xs font-semibold text-gray-500 px-3 py-2 whitespace-nowrap">Diện tích (m²)</th>
+                        <th className="text-left text-xs font-semibold text-gray-500 px-3 py-2">Hướng</th>
+                        <th className="text-left text-xs font-semibold text-gray-500 px-3 py-2">Phân khu</th>
+                        <th className="text-left text-xs font-semibold text-gray-500 px-3 py-2">Dãy</th>
+                        <th className="px-3 py-2 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageProducts.map((p, i) => (
+                        <tr key={`${p.productId}-${i}`} className="border-b border-gray-50 hover:bg-amber-50/40 transition">
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <button
+                              onClick={() => setSelectedInventoryProduct(p)}
+                              className="font-semibold text-amber-700 hover:text-amber-900 hover:underline"
+                            >{p.unitCode}</button>
+                          </td>
+                          <td className="px-3 py-2 text-gray-800 max-w-[160px] truncate">{p.name}</td>
+                          <td className="px-3 py-2 text-right text-gray-700 whitespace-nowrap">
+                            {p.isContactForPrice ? 'Liên hệ' : (p.priceWithVat ? formatPrice(p.priceWithVat) : <span className="text-gray-400">—</span>)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-700 whitespace-nowrap">
+                            {p.isContactForPrice ? 'Liên hệ' : (p.priceWithoutVat ? formatPrice(p.priceWithoutVat) : <span className="text-gray-400">—</span>)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">{p.area ? `${p.area} m²` : '—'}</td>
+                          <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{displayLabel(DIRECTION_LABELS, p.direction) || '—'}</td>
+                          <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{p.zone || subdivisionName}</td>
+                          <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{p.block || '—'}</td>
+                          <td className="px-3 py-2">
+                            <button
+                              onClick={() => setSelectedInventoryProduct(p)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                              aria-label="Xem chi tiết"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-6 px-4">Chưa có thông tin quỹ hàng</p>
+                )}
               </div>
-            ) : (
-              <p className="text-sm text-gray-400 text-center py-6">Chưa có thông tin quỹ hàng</p>
-            )}
-          </div>
-        )}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-1 py-1">
+                  <p className="text-xs text-gray-500">{products.length} sản phẩm — Trang {invPage + 1}/{totalPages}</p>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setInvPage(p => Math.max(0, p - 1))}
+                      disabled={invPage === 0}
+                      className="px-2.5 py-1 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >←</button>
+                    {Array.from({ length: totalPages }, (_, i) => i).slice(
+                      Math.max(0, invPage - 2), Math.min(totalPages, invPage + 3)
+                    ).map(pg => (
+                      <button
+                        key={pg}
+                        onClick={() => setInvPage(pg)}
+                        className={`px-2.5 py-1 rounded-lg border text-xs transition ${
+                          pg === invPage ? 'bg-amber-600 border-amber-600 text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >{pg + 1}</button>
+                    ))}
+                    <button
+                      onClick={() => setInvPage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={invPage >= totalPages - 1}
+                      className="px-2.5 py-1 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >→</button>
+                  </div>
+                </div>
+              )}
+              {selectedInventoryProduct && (
+                <ProductDialog
+                  productId={selectedInventoryProduct.productId}
+                  fallbackUnitCode={selectedInventoryProduct.unitCode}
+                  fallbackName={selectedInventoryProduct.name}
+                  subdivisionName={subdivisionName}
+                  towerName={tower.name}
+                  onClose={() => setSelectedInventoryProduct(null)}
+                />
+              )}
+            </div>
+          );
+        })()}
+
 
         {/* ── Vị trí quỹ hàng (Floor Plan) ── */}
         {activeTab === 'floorplan' && (
@@ -335,7 +461,11 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
                   <img
                     src={tower.salesPolicyImages[policyIndex]?.originalUrl}
                     alt={tower.salesPolicyImages[policyIndex]?.description || `Chính sách ${policyIndex + 1}`}
-                    className="w-full"
+                    className="w-full cursor-pointer"
+                    onClick={() => {
+                      setPolicyViewerImages((tower.salesPolicyImages ?? []).map(img => img.originalUrl || ''));
+                      setPolicyViewerIndex(policyIndex);
+                    }}
                   />
                 </div>
                 {tower.salesPolicyImages.length > 1 && (
@@ -363,18 +493,30 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
         )}
       </div>
     </div>
+
+    {/* Policy image viewer */}
+    <ImageLightbox
+      isOpen={policyViewerImages.length > 0}
+      images={policyViewerImages}
+      currentIndex={policyViewerIndex}
+      onClose={() => setPolicyViewerImages([])}
+      onImageChange={setPolicyViewerIndex}
+    />
+    </>
   );
 }
 
 // ─── Share Modal ────────────────────────────────────────────────────────────
 
 function ShareModal({
+  isOpen,
   product,
   unitCode,
   name,
   subdivisionName,
   onClose,
 }: {
+  isOpen: boolean;
   product: PortalProduct | null;
   unitCode?: string;
   name?: string;
@@ -382,7 +524,6 @@ function ShareModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const backdropRef = useRef<HTMLDivElement>(null);
 
   const fp = (val?: number | null) => {
     if (!val) return 'Liên hệ';
@@ -440,48 +581,35 @@ function ShareModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', h);
-    return () => document.removeEventListener('keydown', h);
-  }, [onClose]);
-
-  const content = (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
-      style={{ zIndex: 100000 }}
-      onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
+  return (
+    <SlidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      width="md"
+      zIndex={100000}
+      headerContent={
+        <div className="flex-1 flex items-center justify-between">
+          <h2 className="text-base font-bold text-gray-900">Chia sẻ thông tin sản phẩm</h2>
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              copied ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+            }`}
+          >
+            {copied ? (
+              <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Đã sao chép</>
+            ) : (
+              <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>Sao chép</>
+            )}
+          </button>
+        </div>
+      }
     >
-      <div className="relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
-          <h2 className="text-sm font-bold text-gray-900">Chia sẻ thông tin sản phẩm</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopy}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                copied ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-              }`}
-            >
-              {copied ? (
-                <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Đã sao chép</>
-              ) : (
-                <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>Sao chép</>
-              )}
-            </button>
-            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition" aria-label="Đóng">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800 bg-gray-50 rounded-xl p-4 select-all border border-gray-200">{shareText}</pre>
-        </div>
+      <div className="p-4">
+        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800 bg-gray-50 rounded-xl p-4 select-all border border-gray-200">{shareText}</pre>
       </div>
-    </div>
+    </SlidePanel>
   );
-
-  return createPortal(content, document.body);
 }
 
 // ─── Product Detail Dialog ────────────────────────────────────────────────────
@@ -506,7 +634,7 @@ function InfoCell({ label, value }: { label: string; value?: string | null }) {
 type ProductMediaTab = 'images' | 'video';
 
 function ProductDialog({
-  marker,
+  marker: _marker,
   productId,
   fallbackUnitCode,
   fallbackName,
@@ -514,7 +642,7 @@ function ProductDialog({
   towerName,
   onClose,
 }: {
-  marker: FloorPlanMarker;
+  marker?: FloorPlanMarker;
   productId?: string;
   fallbackUnitCode?: string;
   fallbackName?: string;
@@ -522,24 +650,20 @@ function ProductDialog({
   towerName: string;
   onClose: () => void;
 }) {
-  const backdropRef = useRef<HTMLDivElement>(null);
   const [product, setProduct] = useState<PortalProduct | null>(null);
   const [loading, setLoading] = useState(false);
   const [mediaTab, setMediaTab] = useState<ProductMediaTab>('images');
   const [imgIndex, setImgIndex] = useState(0);
-  const [mounted, setMounted] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingForm, setBookingForm] = useState({ saleName: '', agency: '', phone: '', notes: '' });
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const { user } = useAuth();
-
-  useEffect(() => { setMounted(true); }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
 
   // Fetch product details
   useEffect(() => {
@@ -563,7 +687,7 @@ function ProductDialog({
 
   const handleWishlist = useCallback(() => {
     if (!user) {
-      window.location.href = '/login';
+      setShowLoginDialog(true);
       return;
     }
     if (!productId) return;
@@ -584,44 +708,77 @@ function ProductDialog({
   const policyImages: PortalProductImage[] = product?.policyImageUrls ?? [];
   const docs: PortalProductDocument[] = product?.productDocuments ?? [];
 
-  const dialogContent = (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
-      style={{ zIndex: 99999 }}
-      onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
-    >
-      <div className="relative w-full sm:max-w-5xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productId || !WORKSPACE_ID) return;
+    setBookingLoading(true);
+    try {
+      await apiClient.post(`/portal/${WORKSPACE_ID}/products/${productId}/booking-request`, bookingForm);
+      setBookingSuccess(true);
+      setTimeout(() => {
+        setShowBooking(false);
+        setBookingSuccess(false);
+        setBookingForm({ saleName: '', agency: '', phone: '', notes: '' });
+      }, 2000);
+    } catch {
+      // silently ignore
+    } finally {
+      setBookingLoading(false);
+    }
+  };
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
-          <h2 className="text-base font-bold text-gray-900">Thông tin sản phẩm</h2>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleWishlist}
-              aria-label="Quan tâm"
-              className={`flex items-center gap-1.5 text-xs font-medium transition ${
-                isWishlisted ? 'text-rose-500' : 'text-gray-500 hover:text-gray-700'
-              }`}
+  return (
+    <>
+      <Dialog
+        isOpen
+        onClose={onClose}
+        maxWidth="5xl"
+        bodyClassName="flex flex-col overflow-hidden"
+        headerContent={
+          <div className="flex-1 flex items-center justify-between pr-3">
+            <h2 className="text-base font-bold text-gray-900">Thông tin sản phẩm</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleWishlist}
+                aria-label="Quan tâm"
+                className={`flex items-center gap-1.5 text-xs font-medium transition ${
+                  isWishlisted ? 'text-rose-500' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <svg className="w-4 h-4" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                Quan tâm
+              </button>
+              <button
+                onClick={() => setShowShare(true)}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                Chia sẻ
+              </button>
+            </div>
+          </div>
+        }
+        footer={
+          <div className="flex gap-3">
+            <a
+              href={product?.callPhone ? `tel:${product.callPhone}` : '#'}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-sm font-medium hover:bg-amber-50 transition"
             >
-              <svg className="w-4 h-4" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              Quan tâm
-            </button>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+              Liên hệ tư vấn
+            </a>
             <button
-              onClick={() => setShowShare(true)}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition"
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition"
+              onClick={() => setShowBooking(true)}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-              Chia sẻ
-            </button>
-            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition" aria-label="Đóng">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              Book căn
             </button>
           </div>
-        </div>
-
+        }
+      >
         {/* Body */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -629,8 +786,8 @@ function ProductDialog({
           </div>
         ) : (
           <>
-            {/* Two columns — fixed height so thumbnails & promo row align at same level */}
-            <div className="flex overflow-hidden shrink-0" style={{ height: '460px' }}>
+            {/* Two columns — reduced height, bottom strip handled separately */}
+            <div className="flex overflow-hidden shrink-0" style={{ height: '300px' }}>
 
               {/* LEFT: Media */}
               <div className="w-[52%] flex flex-col border-r border-gray-100 min-w-0">
@@ -663,7 +820,11 @@ function ProductDialog({
                           <img
                             src={policyImages[imgIndex]?.originalUrl}
                             alt={`Ảnh ${imgIndex + 1}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => {
+                              setViewerImages(policyImages.map(img => img.originalUrl || ''));
+                              setViewerIndex(imgIndex);
+                            }}
                           />
                           {policyImages.length > 1 && (
                             <>
@@ -681,18 +842,7 @@ function ProductDialog({
                         <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Chưa có hình ảnh</div>
                       )}
                     </div>
-                    {/* Thumbnails — pinned at column bottom */}
-                    {policyImages.length > 1 && (
-                      <div className="flex gap-1.5 p-2 overflow-x-auto shrink-0 border-t border-gray-100 bg-white">
-                        {policyImages.map((img, i) => (
-                          <button key={i} onClick={() => setImgIndex(i)} className={`flex-shrink-0 w-14 h-10 rounded overflow-hidden border-2 transition ${
-                            i === imgIndex ? 'border-amber-500' : 'border-transparent hover:border-gray-300'
-                          }`}>
-                            <img src={img.thumbnailUrl || img.originalUrl} alt={`thumb ${i}`} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {/* Thumbnails removed — moved to unified bottom strip */}
                   </div>
                 )}
 
@@ -743,36 +893,60 @@ function ProductDialog({
 
                   {/* Details */}
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <InfoCell label="LOẠI HÌNH" value={product?.propertyType} />
+                    <InfoCell label="LOẠI HÌNH" value={displayLabel(PROPERTY_TYPE_LABELS, product?.propertyType)} />
                     <InfoCell label="KHO HÀNG" value={product?.warehouse?.name} />
                     <InfoCell label="DIỆN TÍCH (M²)" value={product?.area ? `${product.area} m²` : undefined} />
-                    <InfoCell label="HƯỚNG" value={product?.direction} />
+                    <InfoCell label="HƯỚNG" value={displayLabel(DIRECTION_LABELS, product?.direction)} />
                     <InfoCell label="PHÂN KHU" value={product?.zone || subdivisionName} />
                     <InfoCell label="DÃY" value={product?.block ?? undefined} />
                   </div>
                 </div>
 
-                {/* Chương trình khuyến mãi — pinned at column bottom, aligns with thumbnails */}
-                {policyImages.length > 0 && (
-                  <div className="border-t border-gray-100 px-4 py-2.5 shrink-0">
-                    <p className="text-xs font-semibold text-gray-700 mb-1.5">Chương trình khuyến mãi</p>
-                    <div className="flex gap-2 overflow-x-auto pb-0.5">
-                      {policyImages.map((img, i) => (
-                        <button
-                          key={i}
-                          onClick={() => { setImgIndex(i); setMediaTab('images'); }}
-                          className={`flex-shrink-0 w-20 h-[52px] rounded-lg overflow-hidden border-2 transition ${
-                            mediaTab === 'images' && i === imgIndex ? 'border-amber-500' : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <img src={img.thumbnailUrl || img.originalUrl} alt={`KM ${i + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Unified bottom strip: thumbnails (left) + promo images (right) on same row */}
+            {policyImages.length > 0 && (
+              <div className="flex border-t border-gray-100 shrink-0">
+                <div className="w-[52%] border-r border-gray-100 px-4 py-2.5">
+                  <p className="text-xs font-semibold text-gray-700 mb-1.5">Hình ảnh sản phẩm</p>
+                  <div className="flex gap-2 overflow-x-auto pb-0.5">
+                    {policyImages.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setImgIndex(i); setMediaTab('images'); }}
+                        className={`flex-shrink-0 w-[88px] h-[88px] rounded-lg overflow-hidden border-2 transition ${
+                          mediaTab === 'images' && i === imgIndex ? 'border-amber-500' : 'border-transparent hover:border-gray-300'
+                        }`}
+                      >
+                        <img src={img.thumbnailUrl || img.originalUrl} alt={`thumb ${i}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 px-4 py-2.5">
+                  <p className="text-xs font-semibold text-gray-700 mb-1.5">Chương trình khuyến mãi</p>
+                  <div className="flex gap-2 overflow-x-auto pb-0.5">
+                    {policyImages.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setImgIndex(i);
+                          setMediaTab('images');
+                          setViewerImages(policyImages.map(img => img.originalUrl || ''));
+                          setViewerIndex(i);
+                        }}
+                        className={`flex-shrink-0 w-[88px] h-[88px] rounded-lg overflow-hidden border-2 transition ${
+                          mediaTab === 'images' && i === imgIndex ? 'border-amber-500' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <img src={img.thumbnailUrl || img.originalUrl} alt={`KM ${i + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Documents — full width row */}
             {docs.length > 0 && (
@@ -803,37 +977,133 @@ function ProductDialog({
           </>
         )}
 
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-100 flex gap-3 shrink-0">
-          <a
-            href={product?.callPhone ? `tel:${product.callPhone}` : '#'}
-            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-sm font-medium hover:bg-amber-50 transition"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-            Liên hệ tư vấn
-          </a>
-          <button className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            Book căn
-          </button>
+      </Dialog>
+
+      {/* Share slide panel */}
+      <ShareModal
+        isOpen={showShare}
+        product={product}
+        unitCode={unitCode}
+        name={name}
+        subdivisionName={subdivisionName}
+        onClose={() => setShowShare(false)}
+      />
+
+      {/* Booking slide panel */}
+      <SlidePanel
+        isOpen={showBooking}
+        title={`Đặt căn${unitCode ? `: ${unitCode}` : ''}`}
+        onClose={() => { setShowBooking(false); setBookingSuccess(false); }}
+        width="sm"
+        zIndex={100001}
+      >
+        {bookingSuccess ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3">
+              <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <p className="text-base font-semibold text-gray-900">Yêu cầu đã được gửi!</p>
+            <p className="text-sm text-gray-500 mt-1">Nhân viên sẽ liên hệ lại sớm.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleBookingSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Tên sale <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                value={bookingForm.saleName}
+                onChange={(e) => setBookingForm((f) => ({ ...f, saleName: e.target.value }))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+                placeholder="Nhập tên sale"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Đại lý</label>
+              <input
+                type="text"
+                value={bookingForm.agency}
+                onChange={(e) => setBookingForm((f) => ({ ...f, agency: e.target.value }))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+                placeholder="Nhập tên đại lý"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">SĐT <span className="text-red-500">*</span></label>
+              <input
+                type="tel"
+                required
+                value={bookingForm.phone}
+                onChange={(e) => setBookingForm((f) => ({ ...f, phone: e.target.value }))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+                placeholder="Nhập số điện thoại"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Thông tin yêu cầu</label>
+              <textarea
+                rows={4}
+                value={bookingForm.notes}
+                onChange={(e) => setBookingForm((f) => ({ ...f, notes: e.target.value }))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                placeholder="Nhập thông tin yêu cầu thêm..."
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={bookingLoading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-semibold transition"
+            >
+              {bookingLoading ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Đang gửi...</>
+              ) : 'Gửi yêu cầu đặt căn'}
+            </button>
+          </form>
+        )}
+      </SlidePanel>
+
+      {/* Login dialog */}
+      <Dialog
+        isOpen={showLoginDialog}
+        title="Đăng nhập để tiếp tục"
+        onClose={() => setShowLoginDialog(false)}
+        maxWidth="sm"
+        zIndex={100001}
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowLoginDialog(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
+            >
+              Để sau
+            </button>
+            <a
+              href="/login"
+              className="flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition"
+            >
+              Đăng nhập
+            </a>
+          </div>
+        }
+      >
+        <div className="px-5 py-6 text-center">
+          <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          </div>
+          <p className="text-sm text-gray-600">Bạn cần đăng nhập để lưu sản phẩm quan tâm.</p>
         </div>
-      </div>
+      </Dialog>
 
-      {/* Share overlay */}
-      {showShare && (
-        <ShareModal
-          product={product}
-          unitCode={unitCode}
-          name={name}
-          subdivisionName={subdivisionName}
-          onClose={() => setShowShare(false)}
-        />
-      )}
-    </div>
+      {/* Image viewer (full-screen lightbox) */}
+      <ImageLightbox
+        isOpen={viewerImages.length > 0}
+        images={viewerImages}
+        currentIndex={viewerIndex}
+        onClose={() => setViewerImages([])}
+        onImageChange={setViewerIndex}
+      />
+    </>
   );
-
-  if (!mounted) return null;
-  return createPortal(dialogContent, document.body);
 }
 
 // ─── Tower Row ────────────────────────────────────────────────────────────────

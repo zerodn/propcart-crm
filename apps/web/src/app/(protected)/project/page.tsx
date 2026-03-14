@@ -432,7 +432,8 @@ export default function ProjectPage() {
         ? sourceProject.progressUpdates.map((item) => ({
             label: item.label,
             detailHtml: item.detailHtml,
-            videoUrl: item.videoUrl,
+            videos: Array.isArray(item.videos) ? [...item.videos]
+              : item.videoUrl ? [{ url: item.videoUrl }] : undefined,
             images: Array.isArray(item.images) ? [...item.images] : item.images,
           }))
         : undefined,

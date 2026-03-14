@@ -513,7 +513,7 @@ model Project {
   videoDescription String? @db.Text             // Mô tả video (rich text)
   contacts        Json?                         // [{name, title, phone, zaloPhone, imageUrl}]
   planningStats   Json?                         // [{label, icon, value}]
-  progressUpdates Json?                         // [{label, detailHtml, videoUrl, images}]
+  progressUpdates Json?                         // [{label, detailHtml, videos: [{url, description}], images}]
   documentItems   Json?                         // [{icon, documentType, documentUrl}]
 
   createdByUserId String

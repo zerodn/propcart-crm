@@ -63,14 +63,14 @@ export class MailService {
   private async sendViaEmailService(
     to: string,
     subject: string,
-    htmlContent: string,
+    _htmlContent: string,
   ): Promise<boolean> {
     // TODO: Implement SendGrid or other service integration
     this.logger.log(`[SendGrid] Sending email to ${to}: subject=${subject}`);
     return true;
   }
 
-  private async sendViaSMTP(to: string, subject: string, htmlContent: string): Promise<boolean> {
+  private async sendViaSMTP(to: string, subject: string, _htmlContent: string): Promise<boolean> {
     // TODO: Implement Nodemailer SMTP integration
     this.logger.log(`[SMTP] Sending email to ${to}: subject=${subject}`);
     return true;
@@ -132,6 +132,57 @@ export class MailService {
         </body>
       </html>
     `;
+  }
+
+  async sendBookingRequestEmail(
+    to: string,
+    data: {
+      recipientName: string;
+      productName: string;
+      unitCode: string;
+      saleName: string;
+      agency?: string;
+      phone: string;
+      notes?: string;
+    },
+  ): Promise<boolean> {
+    try {
+      const subject = `[Yêu cầu đặt căn] ${data.unitCode} - ${data.productName}`;
+      const htmlContent = `
+        <!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+        <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#333;">
+          <div style="max-width:600px;margin:0 auto;padding:20px;">
+            <div style="background:#b45309;color:white;padding:20px;border-radius:8px 8px 0 0;">
+              <h1 style="margin:0;font-size:20px;">🏠 Yêu cầu đặt căn mới</h1>
+            </div>
+            <div style="background:#fffbeb;padding:20px;border-radius:0 0 8px 8px;border:1px solid #fde68a;">
+              <p>Xin chào <strong>${data.recipientName}</strong>,</p>
+              <p>Có một yêu cầu đặt căn hộ mới từ khách hàng:</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                <tr><td style="padding:8px;background:#fef3c7;font-weight:bold;">Căn hộ</td><td style="padding:8px;">${data.unitCode} — ${data.productName}</td></tr>
+                <tr><td style="padding:8px;background:#fef3c7;font-weight:bold;">Tên sale</td><td style="padding:8px;">${data.saleName}</td></tr>
+                ${data.agency ? `<tr><td style="padding:8px;background:#fef3c7;font-weight:bold;">Đại lý</td><td style="padding:8px;">${data.agency}</td></tr>` : ''}
+                <tr><td style="padding:8px;background:#fef3c7;font-weight:bold;">SĐT</td><td style="padding:8px;">${data.phone}</td></tr>
+                ${data.notes ? `<tr><td style="padding:8px;background:#fef3c7;font-weight:bold;">Yêu cầu</td><td style="padding:8px;">${data.notes}</td></tr>` : ''}
+              </table>
+              <p style="color:#92400e;font-size:13px;">Vui lòng liên hệ lại khách hàng sớm nhất có thể.</p>
+            </div>
+          </div>
+        </body></html>
+      `;
+      switch (this.mailProvider) {
+        case 'SENDGRID':
+          return await this.sendViaEmailService(to, subject, htmlContent);
+        case 'SMTP':
+          return await this.sendViaSMTP(to, subject, htmlContent);
+        case 'LOG':
+        default:
+          return this.logEmail(to, subject, htmlContent);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send booking request email to ${to}:`, error);
+      return false;
+    }
   }
 
   private generateEmailVerificationHTML(displayName: string, verifyUrl: string): string {

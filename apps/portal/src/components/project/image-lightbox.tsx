@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight, RotateCw, ZoomIn, ZoomOut } from 'lucide-react';
 
@@ -11,6 +12,7 @@ interface ImageLightboxProps {
   onClose: () => void;
   onImageChange: (index: number) => void;
   title?: string;
+  zIndex?: number;
 }
 
 export default function ImageLightbox({
@@ -20,6 +22,7 @@ export default function ImageLightbox({
   onClose,
   onImageChange,
   title,
+  zIndex = 999999,
 }: ImageLightboxProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -31,6 +34,9 @@ export default function ImageLightbox({
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!isOpen || !containerRef.current || images.length === 0) return;
@@ -164,13 +170,13 @@ export default function ImageLightbox({
     };
   }, [use360View, zoom]);
 
-  if (!isOpen || images.length === 0) return null;
+  if (!mounted || !isOpen || images.length === 0) return null;
 
   const validIndex = Math.max(0, Math.min(currentIndex, images.length - 1));
   const currentImage = images[validIndex];
 
-  return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+  return createPortal(
+    <div className="fixed inset-0 bg-black flex flex-col" style={{ zIndex }} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm h-16">
         <div className="flex items-center gap-4 flex-1">
@@ -306,5 +312,5 @@ export default function ImageLightbox({
         )}
       </div>
     </div>
-  );
+  , document.body);
 }

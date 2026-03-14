@@ -22,7 +22,8 @@ export interface PlanningStatItem {
 export interface ProgressUpdateItem {
   label: string;
   detailHtml?: string;
-  videoUrl?: string;
+  videoUrl?: string; // backward compat
+  videos?: { url: string; description?: string }[];
   images?: MediaItem[];
 }
 
@@ -38,6 +39,15 @@ export interface TowerFundProduct {
   name: string;
   warehouseId?: string;
   warehouseName?: string;
+  warehouse?: { id: string; name: string; code: string } | null;
+  priceWithVat?: number;
+  priceWithoutVat?: number;
+  isContactForPrice?: boolean;
+  area?: number;
+  direction?: string;
+  zone?: string;
+  propertyType?: string;
+  block?: string;
 }
 
 export interface PortalProductImage {
