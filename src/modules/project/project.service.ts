@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MinioService } from '../../common/storage/minio.service';
 import { CreateProjectDto, UpdateProjectDto, ListProjectDto } from './dto';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 
@@ -18,7 +19,10 @@ function toNullableJsonInput(
 
 @Injectable()
 export class ProjectService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly minioService: MinioService,
+  ) {}
 
   async create(workspaceId: string, dto: CreateProjectDto, user: JwtPayload) {
     const bannerItems =
@@ -184,5 +188,13 @@ export class ProjectService {
     await this.findById(workspaceId, id);
     await this.prisma.project.delete({ where: { id } });
     return { success: true };
+  }
+
+  async uploadImage(workspaceId: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Không có file để upload');
+    }
+    const result = await this.minioService.uploadPropertyImage(workspaceId, file);
+    return { url: result.fileUrl, fileName: file.originalname, size: file.size };
   }
 }

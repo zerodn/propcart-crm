@@ -39,3 +39,29 @@ export async function uploadFileToTemp(file: File, accessToken?: string): Promis
     return null;
   }
 }
+
+/**
+ * Upload project image to permanent storage
+ * Stored at {workspaceId}/properties/{date}/{uuid}.{ext} — never deleted by cleanup
+ */
+export async function uploadProjectImage(
+  workspaceId: string,
+  file: File,
+): Promise<string | null> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await apiClient.post<{ data: { url: string } }>(
+      `/workspaces/${workspaceId}/projects/upload-image`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+
+    const url = (res.data as { data?: { url?: string } })?.data?.url ?? null;
+    return typeof url === 'string' ? url : null;
+  } catch (err) {
+    console.error('Project image upload error:', err);
+    return null;
+  }
+}

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
-import { uploadFileToTemp } from '@/lib/api-upload';
+import { uploadFileToTemp, uploadProjectImage } from '@/lib/api-upload';
 import {
   Project,
   CreateProjectPayload,
@@ -248,7 +248,11 @@ export function ProjectForm({
 
   // ── Upload handler ────────────────────────────────────────
   const handleUploadFile = async (file: File): Promise<string | null> => {
-    // Always use temp upload flow for project wizard files.
+    // Use permanent project storage when workspaceId is available
+    if (workspaceId) {
+      return uploadProjectImage(workspaceId, file);
+    }
+    // Fallback to temp for pre-workspace scenarios
     return uploadFileToTemp(file, accessToken);
   };
 
@@ -428,6 +432,10 @@ export function ProjectForm({
           .map((item) => ({
             label: item.label.trim(),
             detailHtml: item.detailHtml || undefined,
+            videoUrl:
+              (!Array.isArray(item.videos) || item.videos.length === 0)
+                ? item.videoUrl?.trim() || undefined
+                : undefined,
             videos: Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
             images: item.images && item.images.length > 0 ? item.images : undefined,
           }))
@@ -480,6 +488,10 @@ export function ProjectForm({
             .map((item) => ({
               label: item.label.trim(),
               detailHtml: item.detailHtml || undefined,
+              videoUrl:
+                (!Array.isArray(item.videos) || item.videos.length === 0)
+                  ? item.videoUrl?.trim() || undefined
+                  : undefined,
               videos: Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
               images: item.images && item.images.length > 0 ? item.images : undefined,
             }))

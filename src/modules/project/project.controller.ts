@@ -7,8 +7,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
@@ -31,6 +34,16 @@ export class ProjectController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.projectService.create(workspaceId, dto, user);
+  }
+
+  @Post('upload-image')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadImage(
+    @Param('workspaceId') workspaceId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.projectService.uploadImage(workspaceId, file);
   }
 
   @Get()
