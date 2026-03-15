@@ -2372,7 +2372,7 @@ export function ProjectForm({
                   items={amenityItems}
                   onItemsChange={setAmenityItems}
                   uploadFn={handleUploadFile}
-                  maxFiles={10}
+                  maxFiles={Number.MAX_SAFE_INTEGER}
                   showMultiple={true}
                   onUploadingChange={handleUploadingChange}
                 />

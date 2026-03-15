@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as express from 'express';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -26,6 +27,10 @@ async function bootstrap() {
 
   // Global response interceptor — wraps responses in { data }
   app.useGlobalInterceptors(new ResponseInterceptor());
+
+  // Increase JSON body size limit (default 100kb is too small for projects with many images)
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // CORS
   app.enableCors({
