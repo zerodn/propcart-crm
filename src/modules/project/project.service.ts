@@ -243,7 +243,8 @@ export class ProjectService {
       await this.cacheManager.del(`portal:project:${workspaceId}:${projectId}`);
 
       // Pattern-delete all list-page cache entries for this workspace
-      const store = (this.cacheManager as Record<string, unknown>).store;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const store = (this.cacheManager as any).store;
       if (store?.client?.keys) {
         // Redis store: use KEYS to find all matching list-cache entries
         const keys: string[] = await store.client.keys(`portal:projects:${workspaceId}:*`);

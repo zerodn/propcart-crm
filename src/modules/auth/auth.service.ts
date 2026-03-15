@@ -505,7 +505,9 @@ export class AuthService {
     // These can be extended as needed for other combobox data sources
   }
 
-  private async issueTokenResponse(user: User, workspace: Workspace, deviceId: string) {
+  private async issueTokenResponse(user: User, workspace: Workspace | null, deviceId: string) {
+    if (!workspace)
+      throw new HttpException('Workspace not found', HttpStatus.INTERNAL_SERVER_ERROR);
     const membership = await this.prisma.workspaceMember.findFirst({
       where: { workspaceId: workspace.id, userId: user.id, status: 1 },
       include: { role: true },

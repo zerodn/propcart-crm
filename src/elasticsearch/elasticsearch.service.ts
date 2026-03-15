@@ -77,7 +77,8 @@ export class ElasticsearchService {
         return [];
       }
 
-      const response: Record<string, unknown> = await this.baseService.search({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response: any = await this.baseService.search({
         index: this.MEMBERS_INDEX,
         body: {
           query: {
@@ -303,14 +304,14 @@ export class ElasticsearchService {
       if (filters.projectType) filter.push({ term: { projectType: filters.projectType } });
       if (filters.province) filter.push({ term: { province: filters.province } });
 
-      const response: Record<string, unknown> = await this.baseService.search({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response: any = await this.baseService.search({
         index: this.PROJECTS_INDEX,
         body: { query: { bool: { must, filter } }, size: 200, _source: ['projectId'] },
       });
 
-      return (response.hits.hits || []).map(
-        (h: Record<string, unknown>) => h._source?.projectId as string,
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (response.hits.hits || []).map((h: any) => h._source?.projectId as string);
     } catch (error) {
       this.logger.error(`Project search failed: ${error.message}`);
       return []; // Caller falls back to DB
