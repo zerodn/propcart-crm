@@ -329,6 +329,8 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [docSearch, setDocSearch] = useState('');
   const [selectedProgressIndex, setSelectedProgressIndex] = useState(0);
   const [progressVideoIndex, setProgressVideoIndex] = useState(0);
+  const planningStatsRef = useRef<HTMLDivElement>(null);
+  const [sidebarTop, setSidebarTop] = useState(80);
 
 
   useEffect(() => {
@@ -337,6 +339,19 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     }
     return () => { document.title = 'PropCart Portal - Dự án Bất động sản'; };
   }, [project]);
+
+  useEffect(() => {
+    function updateSidebarTop() {
+      if (planningStatsRef.current) {
+        setSidebarTop(planningStatsRef.current.offsetHeight + 8);
+      } else {
+        setSidebarTop(80);
+      }
+    }
+    updateSidebarTop();
+    window.addEventListener('resize', updateSidebarTop);
+    return () => window.removeEventListener('resize', updateSidebarTop);
+  }, [project?.planningStats]);
 
   useEffect(() => {
     if (project) {
@@ -419,7 +434,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         <div>
           {/* ── Sticky Header with Planning Stats ── */}
           {project.planningStats && project.planningStats.length > 0 && (
-            <div className="sticky top-0 z-30 bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4 lg:mb-6 w-full">
+            <div ref={planningStatsRef} className="sticky top-0 z-50 bg-white rounded-xl border border-gray-100 shadow-md p-5 mb-4 lg:mb-6 w-full">
               <h3 className="font-bold text-amber-900 mb-4 text-lg">{project.name}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {project.planningStats.map((stat, i) => (
@@ -446,7 +461,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
           <div className="flex gap-6 items-start">
 
           {/* ── Left Tab Nav (desktop only) ── */}
-          <div className="hidden lg:block w-52 flex-shrink-0 sticky top-20">
+          <div className="hidden lg:block w-52 flex-shrink-0 sticky z-10" style={{ top: sidebarTop }}>
             <nav className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               {TABS.map(({ id, label, Icon }) => (
                 <button
@@ -467,11 +482,22 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
           {/* ── Center Content ── */}
           <div className="flex-1 min-w-0">
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-6">
+            <div className="z-0 bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-6 relative">
 
               {/* TỔNG QUAN */}
               {activeTab === 'overview' && (
                 <section className="space-y-8">
+
+                  {/* 1. Tổng quan dự án — HTML content from editor */}
+                  {project.overviewHtml && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 text-base border-b border-gray-100 pb-2">Tổng quan</h3>
+                      <div
+                        className="prose prose-sm max-w-none text-gray-700 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-gray-900 [&_h3]:mt-3 [&_h3]:mb-1.5 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-3 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:text-sm [&_li]:mb-1"
+                        dangerouslySetInnerHTML={{ __html: project.overviewHtml }}
+                      />
+                    </div>
+                  )}
 
                   {/* 2. Mặt bằng — list of names, click to show image */}
                   {project.zoneImages && project.zoneImages.length > 0 && (
@@ -882,7 +908,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
           </div>
 
           {/* ── Right Contact (desktop only) ── */}
-          <div className="hidden lg:block w-72 flex-shrink-0 sticky top-20">
+          <div className="hidden lg:block w-72 flex-shrink-0 sticky z-10" style={{ top: sidebarTop }}>
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3">
               <div className="pb-2 border-b border-gray-100">
                 <h3 className="font-bold text-gray-900 mb-0.5">Liên hệ tư vấn</h3>
