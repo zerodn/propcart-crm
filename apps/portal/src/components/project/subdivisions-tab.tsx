@@ -137,15 +137,13 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
   const [invPage, setInvPage] = useState(0);
   const INV_PAGE_SIZE = 10;
 
-  const overviewFields: { label: string; value?: string }[] = [
-    { label: 'Số tầng', value: tower.floorCount },
-    { label: 'Số căn', value: tower.unitCount },
-    { label: 'Số thang máy', value: tower.elevatorCount },
-    { label: 'Loại hình sở hữu', value: tower.ownershipType },
-    { label: 'Tiêu chuẩn bàn giao', value: tower.handoverStandard },
-    { label: 'Khởi công', value: tower.constructionStartDate },
-    { label: 'Hoàn thành', value: tower.completionDate },
-  ].filter((f) => f.value);
+  const infoRows: [{ label: string; value?: string }, { label: string; value?: string }][] = [
+    [{ label: 'Tên toà nhà', value: tower.name }, { label: 'Phân khu', value: subdivisionName }],
+    [{ label: 'Số tầng', value: tower.floorCount }, { label: 'Số căn hộ', value: tower.unitCount }],
+    [{ label: 'Số thang máy', value: tower.elevatorCount }, { label: 'Hình thức sở hữu', value: tower.ownershipType }],
+    [{ label: 'Tiêu chuẩn bàn giao', value: tower.handoverStandard }, { label: 'Tiến độ', value: tower.constructionProgress || 'Đang cập nhật' }],
+    [{ label: 'Thời điểm khởi công', value: tower.constructionStartDate }, { label: 'Thời điểm hoàn thành', value: tower.completionDate }],
+  ];
 
   const activeFpImage: FloorPlanImage | undefined = tower.floorPlanImages?.[fpIndex];
 
@@ -173,24 +171,26 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
         {/* ── Tổng quan ── */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
+            {/* Info table — 2-column key/value, matches screenshot */}
+            <div className="rounded-xl border border-gray-100 overflow-hidden">
+              {infoRows.map(([left, right], i) => (
+                <div key={i} className="grid grid-cols-2 border-b border-gray-100 last:border-b-0">
+                  <div className="px-4 py-3 flex items-center justify-between border-r border-gray-100">
+                    <span className="text-sm text-gray-500 flex-shrink-0 mr-2">{left.label}</span>
+                    <span className="text-sm font-semibold text-gray-900 text-right">{left.value ?? '—'}</span>
+                  </div>
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <span className="text-sm text-gray-500 flex-shrink-0 mr-2">{right.label}</span>
+                    <span className="text-sm font-semibold text-gray-900 text-right">{right.value ?? '—'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
             {tower.descriptionHtml && (
               <div
                 className="prose prose-sm max-w-none text-gray-700"
                 dangerouslySetInnerHTML={{ __html: tower.descriptionHtml }}
               />
-            )}
-            {overviewFields.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {overviewFields.map((f) => (
-                  <div key={f.label} className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-0.5">{f.label}</p>
-                    <p className="text-sm font-semibold text-gray-900">{f.value}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!tower.descriptionHtml && overviewFields.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-6">Chưa có thông tin tổng quan</p>
             )}
           </div>
         )}

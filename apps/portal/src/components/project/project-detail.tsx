@@ -30,6 +30,8 @@ function getEmbedUrl(url: string): string {
     if (u.hostname === 'drive.google.com') {
       const m = u.pathname.match(/\/file\/d\/([^/]+)/);
       if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+      const openId = u.searchParams.get('id');
+      if (openId) return `https://drive.google.com/file/d/${openId}/preview`;
     }
     // Vimeo
     if (u.hostname.includes('vimeo.com')) {
@@ -52,17 +54,18 @@ function isEmbeddable(url: string): boolean {
 function VideoCard({ url, title }: { url: string; title?: string }) {
   const embeddable = isEmbeddable(url);
   return (
-    <div className="relative rounded-xl overflow-hidden aspect-video bg-gray-900">
+    <div className="relative rounded-xl overflow-hidden bg-gray-900" style={{ aspectRatio: '16/9' }}>
       {embeddable ? (
         <iframe
           src={getEmbedUrl(url)}
           title={title || 'Video'}
-          className="w-full h-full"
+          className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
         />
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
           <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
             <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />

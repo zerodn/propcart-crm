@@ -52,6 +52,7 @@ export interface ProjectTower {
   elevatorCount?: string;
   ownershipType?: string;
   handoverStandard?: string;
+  constructionProgress?: string;
   constructionStartDate?: string;
   completionDate?: string;
   latitude?: string;

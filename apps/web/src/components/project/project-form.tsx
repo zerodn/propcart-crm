@@ -188,6 +188,7 @@ interface TowerFormState {
   elevatorCount: string;
   ownershipType: string;
   handoverStandard: string;
+  constructionProgress: string;
   constructionStartDate: string;
   completionDate: string;
   latitude: string;
@@ -350,6 +351,7 @@ export function ProjectForm({
     elevatorCount: '',
     ownershipType: '',
     handoverStandard: '',
+    constructionProgress: '',
     constructionStartDate: '',
     completionDate: '',
     latitude: '',
@@ -1010,6 +1012,7 @@ export function ProjectForm({
         elevatorCount: '',
         ownershipType: '',
         handoverStandard: '',
+        constructionProgress: '',
         constructionStartDate: '',
         completionDate: '',
         latitude: '',
@@ -1394,6 +1397,7 @@ export function ProjectForm({
       elevatorCount: '',
       ownershipType: '',
       handoverStandard: '',
+      constructionProgress: '',
       constructionStartDate: '',
       completionDate: '',
       latitude: editingProject?.latitude || '',
@@ -1472,6 +1476,7 @@ export function ProjectForm({
       elevatorCount: tower.elevatorCount || '',
       ownershipType: tower.ownershipType || '',
       handoverStandard: tower.handoverStandard || '',
+      constructionProgress: tower.constructionProgress || '',
       constructionStartDate: tower.constructionStartDate || '',
       completionDate: tower.completionDate || '',
       latitude: tower.latitude || '',
@@ -1518,6 +1523,7 @@ export function ProjectForm({
       elevatorCount: primaryTower?.elevatorCount || '',
       ownershipType: primaryTower?.ownershipType || subdivision.ownershipType || '',
       handoverStandard: primaryTower?.handoverStandard || subdivision.unitStandard || '',
+      constructionProgress: primaryTower?.constructionProgress || '',
       constructionStartDate: primaryTower?.constructionStartDate || '',
       completionDate: primaryTower?.completionDate || subdivision.handoverDate || '',
       latitude: primaryTower?.latitude || '',
@@ -1627,6 +1633,7 @@ export function ProjectForm({
         projectType === 'LOW_RISE'
           ? subdivisionForm.unitStandard.trim() || undefined
           : towerForm.handoverStandard.trim() || undefined,
+      constructionProgress: towerForm.constructionProgress.trim() || undefined,
       constructionStartDate: towerForm.constructionStartDate || undefined,
       completionDate:
         projectType === 'LOW_RISE'
@@ -4105,6 +4112,24 @@ export function ProjectForm({
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Tiến độ thi công
+                    </label>
+                    <input
+                      type="text"
+                      value={towerForm.constructionProgress}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, constructionProgress: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      placeholder="VD: 30%, Đang đổ móng..."
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
                       Thời điểm khởi công
                     </label>
                     <input
@@ -4117,21 +4142,20 @@ export function ProjectForm({
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Thời điểm hoàn thành
-                  </label>
-                  <input
-                    type="date"
-                    value={towerForm.completionDate}
-                    onChange={(e) =>
-                      setTowerForm((prev) => ({ ...prev, completionDate: e.target.value }))
-                    }
-                    disabled={towerDrawerMode === 'view'}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Thời điểm hoàn thành
+                    </label>
+                    <input
+                      type="date"
+                      value={towerForm.completionDate}
+                      onChange={(e) =>
+                        setTowerForm((prev) => ({ ...prev, completionDate: e.target.value }))
+                      }
+                      disabled={towerDrawerMode === 'view'}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                    />
+                  </div>
                 </div>
 
                 <div>
