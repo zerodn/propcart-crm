@@ -3396,97 +3396,162 @@ export function ProjectForm({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-gray-700">Videos</label>
-                {progressDrawerMode !== 'view' && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setProgressForm((prev) => ({
-                        ...prev,
-                        videos: [...prev.videos, { url: '', description: '' }],
-                      }))
-                    }
-                    className="text-xs text-amber-600 hover:text-amber-700 font-medium"
-                  >
-                    + Thêm video
-                  </button>
-                )}
-              </div>
-              {progressForm.videos.length === 0 ? (
-                progressDrawerMode !== 'view' ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setProgressForm((prev) => ({
-                        ...prev,
-                        videos: [{ url: '', description: '' }],
-                      }))
-                    }
-                    className="w-full rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-500 hover:border-amber-400 hover:text-amber-600 transition"
-                  >
-                    + Thêm video
-                  </button>
-                ) : (
-                  <p className="text-xs text-gray-400">Chưa có video</p>
-                )
-              ) : (
-                <div className="space-y-2">
-                  {progressForm.videos.map((v, vi) => (
-                    <div key={vi} className="rounded-lg border border-gray-200 p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={v.url}
-                          onChange={(e) =>
-                            setProgressForm((prev) => ({
-                              ...prev,
-                              videos: prev.videos.map((x, xi) =>
-                                xi === vi ? { ...x, url: e.target.value } : x,
-                              ),
-                            }))
-                          }
-                          disabled={progressDrawerMode === 'view'}
-                          placeholder="Link video (YouTube, TikTok, Drive...)"
-                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                        />
-                        {progressDrawerMode !== 'view' && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setProgressForm((prev) => ({
-                                ...prev,
-                                videos: prev.videos.filter((_, xi) => xi !== vi),
-                              }))
-                            }
-                            className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                            aria-label="Xóa video"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={v.description}
-                        onChange={(e) =>
-                          setProgressForm((prev) => ({
-                            ...prev,
-                            videos: prev.videos.map((x, xi) =>
-                              xi === vi ? { ...x, description: e.target.value } : x,
-                            ),
-                          }))
-                        }
-                        disabled={progressDrawerMode === 'view'}
-                        placeholder="Mô tả video (tùy chọn)"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                      />
-                    </div>
-                  ))}
+              <div className="rounded-xl border border-gray-200 bg-white">
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                  <h4 className="text-sm font-semibold text-gray-800">Videos</h4>
+                  {progressDrawerMode !== 'view' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProgressForm((prev) => ({
+                          ...prev,
+                          videos: [...prev.videos, { url: '', description: '' }],
+                        }))
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                    >
+                      <Plus className="h-4 w-4" /> Thêm video
+                    </button>
+                  )}
                 </div>
-              )}
+
+                <div className="px-4 py-3 text-sm text-gray-600">
+                  Có {progressForm.videos.length} video
+                </div>
+
+                <div className="border-t border-gray-200 p-4">
+                  {progressForm.videos.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">Chưa có video nào</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[900px]">
+                        <div className="grid grid-cols-[50px_200px_1fr_100px] gap-3 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                          <div></div>
+                          <div>Mô tả video</div>
+                          <div>URL video</div>
+                          <div>Thao tác</div>
+                        </div>
+
+                        <div className="mt-2 space-y-2">
+                          {progressForm.videos.map((item, index) => (
+                            <div
+                              key={`progress-video-${index}`}
+                              draggable
+                              onDragStart={(e) => {
+                                setDraggedProgressIndex(index);
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                if (draggedProgressIndex === null || draggedProgressIndex === index) {
+                                  setDraggedProgressIndex(null);
+                                  return;
+                                }
+
+                                setProgressForm((prev) => {
+                                  const updated = [...prev.videos];
+                                  const [draggedItem] = updated.splice(draggedProgressIndex, 1);
+                                  updated.splice(index, 0, draggedItem);
+                                  return { ...prev, videos: updated };
+                                });
+
+                                toast.success('Sắp xếp video thành công');
+                                setDraggedProgressIndex(null);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedProgressIndex(null);
+                              }}
+                              className={`grid grid-cols-[50px_200px_1fr_100px] gap-3 rounded-lg border px-3 py-3 transition-all ${
+                                draggedProgressIndex === index
+                                  ? 'cursor-move border-gray-300 bg-gray-100 opacity-50'
+                                  : 'cursor-move border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-center text-gray-400 hover:text-gray-600">
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+
+                              <div>
+                                <input
+                                  type="text"
+                                  value={item.description}
+                                  onChange={(e) =>
+                                    setProgressForm((prev) => ({
+                                      ...prev,
+                                      videos: prev.videos.map((x, xi) =>
+                                        xi === index ? { ...x, description: e.target.value } : x,
+                                      ),
+                                    }))
+                                  }
+                                  disabled={progressDrawerMode === 'view'}
+                                  placeholder="VD: Demo tiến độ"
+                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                                />
+                              </div>
+
+                              <div>
+                                <input
+                                  type="text"
+                                  value={item.url}
+                                  onChange={(e) =>
+                                    setProgressForm((prev) => ({
+                                      ...prev,
+                                      videos: prev.videos.map((x, xi) =>
+                                        xi === index ? { ...x, url: e.target.value } : x,
+                                      ),
+                                    }))
+                                  }
+                                  disabled={progressDrawerMode === 'view'}
+                                  placeholder="https://youtu.be/... hoặc https://drive.google.com/..."
+                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (item.url.trim()) {
+                                      const normalizedUrl = normalizeExternalUrl(item.url);
+                                      if (normalizedUrl) {
+                                        window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                    }
+                                  }}
+                                  disabled={!item.url.trim()}
+                                  className="rounded p-2 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                  title="Xem video"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                {progressDrawerMode !== 'view' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setProgressForm((prev) => ({
+                                        ...prev,
+                                        videos: prev.videos.filter((_, xi) => xi !== index),
+                                      }))
+                                    }
+                                    className="rounded p-2 text-red-600 hover:bg-red-50"
+                                    title="Xóa video"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <ProjectMediaUploadManager

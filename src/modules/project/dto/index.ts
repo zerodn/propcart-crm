@@ -263,6 +263,16 @@ export class ProjectContact {
   imageUrl?: string;
 }
 
+export class ProgressVideoDto {
+  @IsString()
+  @IsNotEmpty()
+  url: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+}
+
 export class ProjectProgressUpdateDto {
   @IsString()
   @IsNotEmpty()
@@ -275,6 +285,12 @@ export class ProjectProgressUpdateDto {
   @IsString()
   @IsOptional()
   videoUrl?: string;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ProgressVideoDto)
+  videos?: ProgressVideoDto[];
 
   @IsArray()
   @IsOptional()
