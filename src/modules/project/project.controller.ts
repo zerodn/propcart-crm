@@ -12,6 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { multerDiskStorage } from '../../common/storage/multer-disk-storage';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
@@ -38,7 +39,9 @@ export class ProjectController {
 
   @Post('upload-image')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', { storage: multerDiskStorage, limits: { fileSize: 50 * 1024 * 1024 } }),
+  )
   uploadImage(
     @Param('workspaceId') workspaceId: string,
     @UploadedFile() file: Express.Multer.File,

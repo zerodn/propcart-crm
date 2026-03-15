@@ -15,6 +15,7 @@ import { GoogleAuthDto } from './dto/google-auth.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SwitchWorkspaceDto } from './dto/switch-workspace.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import type { User, Workspace } from '@prisma/client';
 
 interface OtpRecord {
   code: string;
@@ -352,13 +353,25 @@ export class AuthService {
   // LOGOUT
   // ============================================================
 
-  async logout(refreshToken: string) {
-    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+  async logout(accessToken: string, refreshToken: string) {
+    // 1. Blacklist the access token in Redis so JwtStrategy rejects it immediately
+    //    Decode without verify — we only need jti + exp (already trusted since it's being used)
+    const decoded = this.jwtService.decode(accessToken) as { jti?: string; exp?: number } | null;
+    if (decoded?.jti && decoded?.exp) {
+      const remainingMs = decoded.exp * 1000 - Date.now();
+      if (remainingMs > 0) {
+        await this.cacheManager.set(`blacklist:${decoded.jti}`, 1, remainingMs);
+      }
+    }
 
-    await this.prisma.refreshToken.updateMany({
-      where: { tokenHash, revoked: false },
-      data: { revoked: true },
-    });
+    // 2. Revoke the refresh token in DB
+    if (refreshToken) {
+      const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+      await this.prisma.refreshToken.updateMany({
+        where: { tokenHash, revoked: false },
+        data: { revoked: true },
+      });
+    }
 
     return { data: { message: 'Logged out successfully' } };
   }
@@ -492,7 +505,7 @@ export class AuthService {
     // These can be extended as needed for other combobox data sources
   }
 
-  private async issueTokenResponse(user: any, workspace: any, deviceId: string) {
+  private async issueTokenResponse(user: User, workspace: Workspace, deviceId: string) {
     const membership = await this.prisma.workspaceMember.findFirst({
       where: { workspaceId: workspace.id, userId: user.id, status: 1 },
       include: { role: true },
@@ -532,7 +545,9 @@ export class AuthService {
   }
 
   async issueTokens(payload: JwtPayload, deviceId: string, workspaceId: string) {
-    const accessToken = this.jwtService.sign(payload);
+    // Embed jti so we can blacklist this specific token on logout
+    const jti = uuidv4();
+    const accessToken = this.jwtService.sign({ ...payload, jti });
 
     // Refresh token: raw UUID → SHA-256 stored in DB
     const rawRefreshToken = uuidv4();

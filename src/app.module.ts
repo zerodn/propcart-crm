@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
+
 import { APP_GUARD } from '@nestjs/core';
 
 import configuration from './config/configuration';
@@ -14,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { WorkspaceModule } from './modules/workspace/workspace.module';
 import { MailModule } from './common/mail/mail.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { NotificationQueueModule } from './common/queues/notification-queue.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { RoleModule } from './modules/role/role.module';
@@ -39,10 +42,42 @@ import { PortalModule } from './modules/portal/portal.module';
       { name: 'default', ttl: 60000, limit: 120 }, // API: 120 req/min
     ]),
 
-    // In-memory cache (dev mode — replace with Redis in production)
-    CacheModule.register({
+    // Cache: Redis in production, in-memory in dev
+    CacheModule.registerAsync({
       isGlobal: true,
-      ttl: 120000, // default 120s
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        if (configService.get<string>('nodeEnv') === 'production') {
+          const { redisStore } = await import('cache-manager-ioredis-yet');
+          return {
+            store: await redisStore({
+              host: configService.get<string>('redis.host') || 'localhost',
+              port: configService.get<number>('redis.port') || 6379,
+            }),
+            ttl: 300_000, // 5 min default
+          };
+        }
+        return { ttl: 300_000 }; // in-memory for dev
+      },
+      inject: [ConfigService],
+    }),
+
+    // BullMQ — global Redis connection shared by all queues
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('redis.host') || 'localhost',
+          port: configService.get<number>('redis.port') || 6379,
+        },
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        },
+      }),
+      inject: [ConfigService],
     }),
 
     // Task scheduling (cron jobs)
@@ -59,6 +94,7 @@ import { PortalModule } from './modules/portal/portal.module';
     AuthModule,
     WorkspaceModule,
     NotificationModule,
+    NotificationQueueModule,
     CatalogModule,
     DepartmentModule,
     MailModule,

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find apps:*)",
+      "Bash(grep -rl \"Tiếp tục\\\\|update.*project\\\\|wizard\" apps/web/src --include=*.tsx --include=*.ts)",
+      "Bash(node -e \"const s = require\\(''sanitize-html''\\); console.log\\(typeof s, typeof s.default\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(for module:*)",
+      "Bash(do)",
+      "Bash(echo \"=== MODULE: $module ===\")",
+      "Read(//Users/macbook/Documents/DuAn/Resdii/Source/PropCartCRM/src/modules/**)",
+      "Bash(done)",
+      "Bash(find /Users/macbook/Documents/DuAn/Resdii/Source/PropCartCRM -maxdepth 1 -name .env* -o -name *.env)",
+      "Bash(ls -la /Users/macbook/Documents/DuAn/Resdii/Source/PropCartCRM/src/common/*/)"
+    ]
+  }
+}

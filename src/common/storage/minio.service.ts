@@ -3,12 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { Client } from 'minio';
 import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
+import * as fs from 'fs';
 
 interface UploadFile {
   originalname: string;
   mimetype: string;
   size: number;
-  buffer: Buffer;
+  /** In-memory buffer (memoryStorage). Use path instead when possible. */
+  buffer?: Buffer;
+  /** Disk path from diskStorage — preferred to avoid loading file into RAM. */
+  path?: string;
 }
 
 @Injectable()
@@ -78,7 +82,7 @@ export class MinioService implements OnModuleInit {
       : `documents/users/${userId}/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+      await this.client.putObject(this.bucket, objectKey, this.toStream(file), file.size, {
         'Content-Type': file.mimetype,
         'X-Original-Name': encodeURIComponent(file.originalname),
       });
@@ -88,12 +92,11 @@ export class MinioService implements OnModuleInit {
         code: 'DOCUMENT_UPLOAD_FAILED',
         message: 'Cannot upload document right now',
       });
+    } finally {
+      this.cleanupDisk(file);
     }
 
-    return {
-      objectKey,
-      fileUrl: this.buildObjectUrl(objectKey),
-    };
+    return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
   }
 
   async uploadMemberDocument(workspaceId: string, file: UploadFile) {
@@ -104,7 +107,7 @@ export class MinioService implements OnModuleInit {
     const objectKey = `${workspaceId}/documents/members/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+      await this.client.putObject(this.bucket, objectKey, this.toStream(file), file.size, {
         'Content-Type': file.mimetype,
         'X-Original-Name': encodeURIComponent(file.originalname),
       });
@@ -114,12 +117,11 @@ export class MinioService implements OnModuleInit {
         code: 'DOCUMENT_UPLOAD_FAILED',
         message: 'Cannot upload document right now',
       });
+    } finally {
+      this.cleanupDisk(file);
     }
 
-    return {
-      objectKey,
-      fileUrl: this.buildObjectUrl(objectKey),
-    };
+    return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
   }
 
   async uploadAvatar(workspaceId: string, userId: string, file: UploadFile) {
@@ -130,7 +132,7 @@ export class MinioService implements OnModuleInit {
     const objectKey = `${workspaceId}/avatars/${userId}/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+      await this.client.putObject(this.bucket, objectKey, this.toStream(file), file.size, {
         'Content-Type': file.mimetype,
       });
     } catch (error) {
@@ -139,12 +141,11 @@ export class MinioService implements OnModuleInit {
         code: 'AVATAR_UPLOAD_FAILED',
         message: 'Cannot upload avatar right now',
       });
+    } finally {
+      this.cleanupDisk(file);
     }
 
-    return {
-      objectKey,
-      fileUrl: this.buildObjectUrl(objectKey),
-    };
+    return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
   }
 
   async uploadPropertyImage(workspaceId: string, file: UploadFile) {
@@ -155,7 +156,7 @@ export class MinioService implements OnModuleInit {
     const objectKey = `${workspaceId}/properties/${date}/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+      await this.client.putObject(this.bucket, objectKey, this.toStream(file), file.size, {
         'Content-Type': file.mimetype,
       });
     } catch (error) {
@@ -164,12 +165,11 @@ export class MinioService implements OnModuleInit {
         code: 'IMAGE_UPLOAD_FAILED',
         message: 'Cannot upload image right now',
       });
+    } finally {
+      this.cleanupDisk(file);
     }
 
-    return {
-      objectKey,
-      fileUrl: this.buildObjectUrl(objectKey),
-    };
+    return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
   }
 
   async uploadTemporaryFile(workspaceId: string, file: UploadFile) {
@@ -179,7 +179,7 @@ export class MinioService implements OnModuleInit {
     const objectKey = `${workspaceId}/temp/${randomUUID()}${ext}`;
 
     try {
-      await this.client.putObject(this.bucket, objectKey, file.buffer, file.size, {
+      await this.client.putObject(this.bucket, objectKey, this.toStream(file), file.size, {
         'Content-Type': file.mimetype,
         'X-Original-Name': encodeURIComponent(file.originalname),
       });
@@ -189,12 +189,11 @@ export class MinioService implements OnModuleInit {
         code: 'TEMP_UPLOAD_FAILED',
         message: 'Cannot upload temporary file right now',
       });
+    } finally {
+      this.cleanupDisk(file);
     }
 
-    return {
-      objectKey,
-      fileUrl: this.buildObjectUrl(objectKey),
-    };
+    return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
   }
 
   async deleteObject(objectKey: string) {
@@ -315,6 +314,30 @@ export class MinioService implements OnModuleInit {
         code: 'DOCUMENT_DOWNLOAD_FAILED',
         message: 'Cannot download document right now',
       });
+    }
+  }
+
+  /**
+   * Returns a Readable stream from a disk path (diskStorage) or a buffer (memoryStorage).
+   * Prefer disk path — avoids holding the entire file in RAM.
+   */
+  private toStream(file: UploadFile): Readable {
+    if (file.path) return fs.createReadStream(file.path);
+    if (file.buffer) return Readable.from(file.buffer);
+    throw new InternalServerErrorException({
+      code: 'UPLOAD_SOURCE_MISSING',
+      message: 'No file source available',
+    });
+  }
+
+  /** Deletes the temp disk file written by Multer diskStorage. */
+  private cleanupDisk(file: UploadFile): void {
+    if (file.path) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {
+        /* already gone or never existed */
+      }
     }
   }
 

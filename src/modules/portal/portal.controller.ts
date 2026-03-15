@@ -2,22 +2,36 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Post,
   Query,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationService } from '../notification/notification.service';
-import { MailService } from '../../common/mail/mail.service';
+import { ElasticsearchService } from '../../elasticsearch/elasticsearch.service';
+import {
+  NOTIFICATION_QUEUE,
+  NotificationJobType,
+  SendEmailJob,
+  CreateNotificationJob,
+} from '../../common/queues/notification.queue';
+
+const TTL_PROJECT = 5 * 60 * 1000; // 5 min — project detail + list
+const TTL_META = 10 * 60 * 1000; // 10 min — types, provinces, catalogs
 
 @Controller('portal')
 export class PortalController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationService: NotificationService,
-    private readonly mailService: MailService,
+    private readonly esService: ElasticsearchService,
+    @InjectQueue(NOTIFICATION_QUEUE) private readonly notificationQueue: Queue,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   @Get(':workspaceId/projects')
@@ -31,17 +45,33 @@ export class PortalController {
   ) {
     const pageNum = Number(page) || 1;
     const limitNum = Math.min(Number(limit) || 20, 200);
-    const skip = (pageNum - 1) * limitNum;
 
-    const where: Record<string, unknown> = { workspaceId, displayStatus: { not: 'HIDDEN' } };
+    const cacheKey = `portal:projects:${workspaceId}:${pageNum}:${limitNum}:${search ?? ''}:${projectType ?? ''}:${province ?? ''}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
+    const skip = (pageNum - 1) * limitNum;
+    const baseWhere: Record<string, unknown> = { workspaceId, displayStatus: { not: 'HIDDEN' } };
+    if (projectType) baseWhere.projectType = projectType;
+    if (province) baseWhere.province = province;
+
+    let where = { ...baseWhere };
+
+    // Use Elasticsearch full-text search when a query is provided.
+    // Falls back to DB LIKE when ES returns no results (e.g. ES is down or cold index).
     if (search) {
-      where.name = { contains: search };
-    }
-    if (projectType) {
-      where.projectType = projectType;
-    }
-    if (province) {
-      where.province = province;
+      const esIds = await this.esService.searchProjects(workspaceId, search, {
+        projectType,
+        province,
+        displayStatus: 'not-HIDDEN', // handled by baseWhere filter below
+      });
+
+      if (esIds.length > 0) {
+        where = { ...baseWhere, id: { in: esIds } } as Record<string, unknown>;
+      } else {
+        // Fallback: DB LIKE (handles cold ES index or empty result gracefully)
+        where = { ...baseWhere, name: { contains: search } };
+      }
     }
 
     const [total, items] = await Promise.all([
@@ -71,99 +101,113 @@ export class PortalController {
       }),
     ]);
 
-    return { data: items, meta: { total, page: pageNum, limit: limitNum } };
+    const result = { data: items, meta: { total, page: pageNum, limit: limitNum } };
+    await this.cacheManager.set(cacheKey, result, TTL_PROJECT);
+    return result;
   }
 
   @Get(':workspaceId/projects/:id')
   async getProject(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
-    const project = await this.prisma.project.findFirst({
-      where: { id, workspaceId },
-    });
+    // Cache only the static project data (WITHOUT live prices).
+    // Live prices change frequently and must always be fresh.
+    const cacheKey = `portal:project:${workspaceId}:${id}`;
+    let project = await this.cacheManager.get<Record<string, unknown>>(cacheKey);
 
     if (!project) {
-      throw new NotFoundException('Dự án không tìm thấy');
+      const row = await this.prisma.project.findFirst({ where: { id, workspaceId } });
+      if (!row) throw new NotFoundException('Dự án không tìm thấy');
+      project = row as unknown as Record<string, unknown>;
+      await this.cacheManager.set(cacheKey, project, TTL_PROJECT);
     }
 
-    // Enrich fundProducts in subdivisions with live price data from propertyProduct table
-    const subdivisions = project.subdivisions as Record<string, unknown>[] | null;
-    if (Array.isArray(subdivisions) && subdivisions.length > 0) {
-      // Collect all productIds across all towers in all subdivisions
-      const productIds: string[] = [];
-      for (const sub of subdivisions) {
-        if (Array.isArray(sub['towers'])) {
-          for (const tower of sub['towers'] as Record<string, unknown>[]) {
-            if (Array.isArray(tower['fundProducts'])) {
-              for (const fp of tower['fundProducts'] as Record<string, unknown>[]) {
-                if (fp['productId']) productIds.push(fp['productId'] as string);
-              }
-            }
-          }
-        }
-      }
-
-      if (productIds.length > 0) {
-        const products = await this.prisma.propertyProduct.findMany({
-          where: { id: { in: productIds }, workspaceId, isHidden: false },
-          select: {
-            id: true,
-            priceWithVat: true,
-            priceWithoutVat: true,
-            isContactForPrice: true,
-            area: true,
-            direction: true,
-            propertyType: true,
-            zone: true,
-            block: true,
-            warehouse: { select: { id: true, name: true, code: true } },
-          },
-        });
-        const productMap = new Map(products.map((p) => [p.id, p]));
-
-        // Merge enriched data back into fundProducts
-        for (const sub of subdivisions) {
-          if (Array.isArray(sub['towers'])) {
-            for (const tower of sub['towers'] as Record<string, unknown>[]) {
-              if (Array.isArray(tower['fundProducts'])) {
-                tower['fundProducts'] = (tower['fundProducts'] as Record<string, unknown>[]).map(
-                  (fp) => {
-                    const live = productMap.get(fp['productId'] as string);
-                    if (!live) return fp;
-                    return {
-                      ...fp,
-                      priceWithVat: live.priceWithVat ? Number(live.priceWithVat) : null,
-                      priceWithoutVat: live.priceWithoutVat ? Number(live.priceWithoutVat) : null,
-                      isContactForPrice: live.isContactForPrice,
-                      area: live.area ? Number(live.area) : (fp.area ?? null),
-                      direction: live.direction ?? fp.direction ?? null,
-                      propertyType: live.propertyType ?? fp.propertyType ?? null,
-                      zone: live.zone ?? fp.zone ?? null,
-                      block: live.block ?? fp.block ?? null,
-                      warehouse: live.warehouse ?? fp.warehouse ?? null,
-                    };
-                  },
-                );
-              }
-            }
-          }
-        }
-      }
-    }
+    // Always fetch live prices — never serve stale prices from cache
+    const subdivisions = await this.enrichWithLivePrices(
+      project['subdivisions'] as Record<string, unknown>[] | null,
+      workspaceId,
+    );
 
     return { data: { ...project, subdivisions } };
+  }
+
+  /** Merges live propertyProduct prices into fundProducts without mutating the cached project. */
+  private async enrichWithLivePrices(
+    subdivisions: Record<string, unknown>[] | null,
+    workspaceId: string,
+  ): Promise<Record<string, unknown>[] | null> {
+    if (!Array.isArray(subdivisions) || subdivisions.length === 0) return subdivisions;
+
+    // Deep-clone so the cached object stays pristine
+    const cloned: Record<string, unknown>[] = JSON.parse(JSON.stringify(subdivisions));
+
+    const productIds: string[] = [];
+    for (const sub of cloned) {
+      for (const tower of (sub['towers'] as Record<string, unknown>[] | undefined) ?? []) {
+        for (const fp of (tower['fundProducts'] as Record<string, unknown>[] | undefined) ?? []) {
+          if (fp['productId']) productIds.push(fp['productId'] as string);
+        }
+      }
+    }
+
+    if (productIds.length === 0) return cloned;
+
+    const products = await this.prisma.propertyProduct.findMany({
+      where: { id: { in: productIds }, workspaceId, isHidden: false },
+      select: {
+        id: true,
+        priceWithVat: true,
+        priceWithoutVat: true,
+        isContactForPrice: true,
+        area: true,
+        direction: true,
+        propertyType: true,
+        zone: true,
+        block: true,
+        warehouse: { select: { id: true, name: true, code: true } },
+      },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    for (const sub of cloned) {
+      for (const tower of (sub['towers'] as Record<string, unknown>[] | undefined) ?? []) {
+        if (!Array.isArray(tower['fundProducts'])) continue;
+        tower['fundProducts'] = (tower['fundProducts'] as Record<string, unknown>[]).map((fp) => {
+          const live = productMap.get(fp['productId'] as string);
+          if (!live) return fp;
+          return {
+            ...fp,
+            priceWithVat: live.priceWithVat ? Number(live.priceWithVat) : null,
+            priceWithoutVat: live.priceWithoutVat ? Number(live.priceWithoutVat) : null,
+            isContactForPrice: live.isContactForPrice,
+            area: live.area ? Number(live.area) : (fp['area'] ?? null),
+            direction: live.direction ?? fp['direction'] ?? null,
+            propertyType: live.propertyType ?? fp['propertyType'] ?? null,
+            zone: live.zone ?? fp['zone'] ?? null,
+            block: live.block ?? fp['block'] ?? null,
+            warehouse: live.warehouse ?? fp['warehouse'] ?? null,
+          };
+        });
+      }
+    }
+
+    return cloned;
   }
 
   /** Public: project types from catalog or fallback */
   @Get(':workspaceId/project-types')
   async getProjectTypes(@Param('workspaceId') workspaceId: string) {
+    const cacheKey = `portal:meta:${workspaceId}:types`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const catalog = await this.prisma.catalog.findFirst({
       where: { workspaceId, type: 'PROJECT_TYPE' },
       include: { values: { orderBy: { order: 'asc' } } },
     });
 
     if (catalog && catalog.values.length > 0) {
-      return {
-        data: catalog.values.map((v) => ({ value: v.value, label: v.label })),
-      };
+      const result = { data: catalog.values.map((v) => ({ value: v.value, label: v.label })) };
+      await this.cacheManager.set(cacheKey, result, TTL_META);
+      return result;
     }
 
     // Fallback: derive from actual project data
@@ -178,17 +222,23 @@ export class PortalController {
       LOW_RISE: 'Thấp tầng',
     };
 
-    return {
+    const result = {
       data: types.map((t) => ({
         value: t.projectType,
         label: labelMap[t.projectType] ?? t.projectType,
       })),
     };
+    await this.cacheManager.set(cacheKey, result, TTL_META);
+    return result;
   }
 
   /** Public: distinct provinces from projects */
   @Get(':workspaceId/provinces')
   async getProvinces(@Param('workspaceId') workspaceId: string) {
+    const cacheKey = `portal:meta:${workspaceId}:provinces`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const rows = await this.prisma.project.findMany({
       where: { workspaceId, displayStatus: { not: 'HIDDEN' }, province: { not: null } },
       select: { province: true },
@@ -196,7 +246,9 @@ export class PortalController {
       orderBy: { province: 'asc' },
     });
 
-    return { data: rows.map((r) => r.province).filter(Boolean) };
+    const result = { data: rows.map((r) => r.province).filter(Boolean) };
+    await this.cacheManager.set(cacheKey, result, TTL_META);
+    return result;
   }
 
   /** Public: catalog option values by type list */
@@ -205,16 +257,22 @@ export class PortalController {
     @Param('workspaceId') workspaceId: string,
     @Query('types') types?: string,
   ) {
+    const cacheKey = `portal:meta:${workspaceId}:catalogs:${types ?? ''}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const typeList = types?.split(',').filter(Boolean) ?? [];
     const catalogs = await this.prisma.catalog.findMany({
       where: typeList.length > 0 ? { workspaceId, type: { in: typeList } } : { workspaceId },
       include: { values: { orderBy: { order: 'asc' } } },
     });
-    const result: Record<string, { value: string; label: string }[]> = {};
+    const data: Record<string, { value: string; label: string }[]> = {};
     for (const cat of catalogs) {
-      result[cat.type] = cat.values.map((v) => ({ value: v.value, label: v.label }));
+      data[cat.type] = cat.values.map((v) => ({ value: v.value, label: v.label }));
     }
-    return { data: result };
+    const result = { data };
+    await this.cacheManager.set(cacheKey, result, TTL_META);
+    return result;
   }
 
   /** Public: submit booking request for a product */
@@ -257,14 +315,23 @@ export class PortalController {
       notes: body.notes,
     };
 
-    await Promise.all([
-      ...users.map((u) =>
-        this.notificationService.create(u.id, 'BOOKING_REQUEST', notificationPayload),
-      ),
-      ...users
-        .filter((u) => u.email)
-        .map((u) =>
-          this.mailService.sendBookingRequestEmail(u.email!, {
+    // Enqueue jobs — response returns immediately, worker handles delivery async
+    const jobs: Promise<unknown>[] = [];
+
+    for (const u of users) {
+      jobs.push(
+        this.notificationQueue.add(NotificationJobType.CREATE_NOTIFICATION, {
+          userId: u.id,
+          notificationType: 'BOOKING_REQUEST',
+          payload: notificationPayload,
+        } satisfies CreateNotificationJob),
+      );
+
+      if (u.email) {
+        jobs.push(
+          this.notificationQueue.add(NotificationJobType.SEND_EMAIL, {
+            type: 'booking-request',
+            to: u.email,
             recipientName: u.fullName || 'Sales',
             productName: product.name,
             unitCode: product.unitCode,
@@ -272,9 +339,12 @@ export class PortalController {
             agency: body.agency,
             phone: body.phone,
             notes: body.notes,
-          }),
-        ),
-    ]);
+          } satisfies SendEmailJob),
+        );
+      }
+    }
+
+    await Promise.all(jobs);
 
     return { data: { success: true, notified: users.length } };
   }

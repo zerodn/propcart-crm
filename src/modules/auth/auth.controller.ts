@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { SendOtpDto } from './dto/send-otp.dto';
@@ -59,10 +59,15 @@ export class AuthController {
   }
 
   // POST /auth/logout — Requires JWT
+  // Blacklists the current access token and revokes the refresh token
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  logout(@Body('refresh_token') refreshToken: string) {
-    return this.authService.logout(refreshToken);
+  logout(
+    @Headers('authorization') authorization: string,
+    @Body('refresh_token') refreshToken: string,
+  ) {
+    const accessToken = authorization?.replace(/^Bearer\s+/i, '') ?? '';
+    return this.authService.logout(accessToken, refreshToken);
   }
 
   // GET /auth/email/verify?token=... — Public

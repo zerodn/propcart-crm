@@ -10,10 +10,12 @@ export class UploadService {
    * Files in /temp are auto-deleted after 24 hours by cleanup service
    */
   async uploadToTemp(workspaceId: string, file: Express.Multer.File) {
+    // Prefer disk path (diskStorage) over buffer (memoryStorage) to avoid RAM spike
     const uploadFile = {
       originalname: file.originalname,
       mimetype: file.mimetype,
       size: file.size,
+      path: file.path,
       buffer: file.buffer,
     };
 

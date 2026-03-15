@@ -10,10 +10,23 @@ interface MemberDocument {
   searchText?: string; // Unified search field: "phone email name"
 }
 
+export interface ProjectDocument {
+  projectId: string;
+  workspaceId: string;
+  name: string;
+  address?: string | null;
+  province?: string | null;
+  district?: string | null;
+  projectType?: string | null;
+  displayStatus: string;
+  saleStatus: string;
+}
+
 @Injectable()
 export class ElasticsearchService {
   private readonly logger = new Logger(ElasticsearchService.name);
   private readonly MEMBERS_INDEX = 'workspace-members';
+  private readonly PROJECTS_INDEX = 'workspace-projects';
 
   constructor(private readonly baseService: BaseElasticsearchService) {}
 
@@ -64,7 +77,7 @@ export class ElasticsearchService {
         return [];
       }
 
-      const response: any = await this.baseService.search({
+      const response: Record<string, unknown> = await this.baseService.search({
         index: this.MEMBERS_INDEX,
         body: {
           query: {
@@ -176,9 +189,137 @@ export class ElasticsearchService {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // PROJECT INDEX
+  // ─────────────────────────────────────────────────────────────
+
+  async initializeProjectIndex() {
+    try {
+      const exists = await this.baseService.indices.exists({ index: this.PROJECTS_INDEX });
+      if (exists) return;
+
+      await this.baseService.indices.create({
+        index: this.PROJECTS_INDEX,
+        body: {
+          settings: {
+            number_of_shards: 1,
+            number_of_replicas: 0,
+            analysis: {
+              analyzer: {
+                ngram_analyzer: {
+                  type: 'custom',
+                  tokenizer: 'ngram_tokenizer',
+                  filter: ['lowercase'],
+                },
+              },
+              tokenizer: {
+                ngram_tokenizer: {
+                  type: 'ngram',
+                  min_gram: 2,
+                  max_gram: 20,
+                  token_chars: ['letter', 'digit'],
+                },
+              },
+            },
+          },
+          mappings: {
+            properties: {
+              projectId: { type: 'keyword' },
+              workspaceId: { type: 'keyword' },
+              displayStatus: { type: 'keyword' },
+              saleStatus: { type: 'keyword' },
+              projectType: { type: 'keyword' },
+              province: { type: 'keyword' },
+              district: { type: 'keyword' },
+              name: {
+                type: 'text',
+                analyzer: 'ngram_analyzer',
+                search_analyzer: 'standard',
+                fields: { keyword: { type: 'keyword' } },
+              },
+              address: {
+                type: 'text',
+                analyzer: 'ngram_analyzer',
+                search_analyzer: 'standard',
+              },
+              indexedAt: { type: 'date' },
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Created index: ${this.PROJECTS_INDEX}`);
+    } catch (error) {
+      this.logger.error(`Failed to initialize project index: ${error.message}`);
+    }
+  }
+
+  async indexProject(doc: ProjectDocument) {
+    try {
+      await this.baseService.index({
+        index: this.PROJECTS_INDEX,
+        id: `${doc.workspaceId}-${doc.projectId}`,
+        body: { ...doc, indexedAt: new Date() },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to index project ${doc.projectId}: ${error.message}`);
+    }
+  }
+
+  async deleteProject(workspaceId: string, projectId: string) {
+    try {
+      await this.baseService.delete({
+        index: this.PROJECTS_INDEX,
+        id: `${workspaceId}-${projectId}`,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to delete project from index: ${error.message}`);
+    }
+  }
+
+  /**
+   * Full-text search projects for a workspace.
+   * Falls back to empty array on ES error — callers should fallback to DB LIKE search.
+   */
+  async searchProjects(
+    workspaceId: string,
+    query: string,
+    filters: { projectType?: string; province?: string; displayStatus?: string } = {},
+  ): Promise<string[]> {
+    try {
+      const must: object[] = [
+        {
+          multi_match: {
+            query: query.trim(),
+            fields: ['name^3', 'address'],
+            fuzziness: 'AUTO',
+            operator: 'or',
+          },
+        },
+      ];
+      const filter: object[] = [{ term: { workspaceId } }];
+
+      if (filters.displayStatus) filter.push({ term: { displayStatus: filters.displayStatus } });
+      if (filters.projectType) filter.push({ term: { projectType: filters.projectType } });
+      if (filters.province) filter.push({ term: { province: filters.province } });
+
+      const response: Record<string, unknown> = await this.baseService.search({
+        index: this.PROJECTS_INDEX,
+        body: { query: { bool: { must, filter } }, size: 200, _source: ['projectId'] },
+      });
+
+      return (response.hits.hits || []).map(
+        (h: Record<string, unknown>) => h._source?.projectId as string,
+      );
+    } catch (error) {
+      this.logger.error(`Project search failed: ${error.message}`);
+      return []; // Caller falls back to DB
+    }
+  }
+
   async bulkIndexMembers(workspaceId: string, members: MemberDocument[]) {
     try {
-      const operations: any[] = [];
+      const operations: Record<string, unknown>[] = [];
 
       members.forEach((member) => {
         const documentId = `${workspaceId}-${member.userId}`;

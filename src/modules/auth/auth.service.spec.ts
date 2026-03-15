@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import * as crypto from 'crypto';
 
 import { AuthService } from './auth.service';
@@ -90,10 +90,9 @@ const sha256 = (val: string) => crypto.createHash('sha256').update(val).digest('
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: any;
+  let prisma: jest.Mocked<PrismaService>;
   let userService: jest.Mocked<UserService>;
-  let cacheManager: jest.Mocked<any>;
-  let jwtService: jest.Mocked<JwtService>;
+  let cacheManager: jest.Mocked<Cache>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -167,7 +166,7 @@ describe('AuthService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key: string) => {
-              const config: Record<string, any> = {
+              const config: Record<string, string> = {
                 nodeEnv: 'development',
                 'google.clientId': 'test-google-client-id',
                 'jwt.tempExpires': '10m',
@@ -192,7 +191,6 @@ describe('AuthService', () => {
     prisma = module.get(PrismaService);
     userService = module.get(UserService);
     cacheManager = module.get(CACHE_MANAGER);
-    jwtService = module.get(JwtService);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -447,7 +445,7 @@ describe('AuthService', () => {
     it('should revoke refresh token and return success message', async () => {
       prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
-      const result = await service.logout('raw-refresh-token-uuid');
+      const result = await service.logout('', 'raw-refresh-token-uuid');
 
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({ data: { revoked: true } }),

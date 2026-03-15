@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PortalController } from './portal.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { NotificationModule } from '../notification/notification.module';
-import { MailModule } from '../../common/mail/mail.module';
+import { ElasticsearchModule } from '../../elasticsearch/elasticsearch.module';
+import { NotificationQueueModule } from '../../common/queues/notification-queue.module';
 
 @Module({
-  imports: [PrismaModule, NotificationModule, MailModule],
+  imports: [PrismaModule, ElasticsearchModule, NotificationQueueModule],
   controllers: [PortalController],
 })
 export class PortalModule {}
