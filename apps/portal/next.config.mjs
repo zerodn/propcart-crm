@@ -19,6 +19,11 @@ const nextConfig = {
         hostname: 'static-test.resdii.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
     ],
   },
 };
