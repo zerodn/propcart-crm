@@ -416,7 +416,34 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
           ))}
         </div>
 
-        <div className="flex gap-6 items-start">
+        <div>
+          {/* ── Sticky Header with Planning Stats ── */}
+          {project.planningStats && project.planningStats.length > 0 && (
+            <div className="sticky top-0 z-30 bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4 lg:mb-6 w-full">
+              <h3 className="font-bold text-amber-900 mb-4 text-lg">{project.name}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {project.planningStats.map((stat, i) => (
+                  <div key={i} className="bg-gray-100 border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4">
+                    <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
+                      {stat.icon ? (
+                        <span className="text-3xl leading-none select-none">{stat.icon}</span>
+                      ) : (
+                        <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 mb-1 font-medium">{stat.label}</p>
+                      <p className="text-xl font-bold text-amber-800">{stat.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-6 items-start">
 
           {/* ── Left Tab Nav (desktop only) ── */}
           <div className="hidden lg:block w-52 flex-shrink-0 sticky top-20">
@@ -445,32 +472,6 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
               {/* TỔNG QUAN */}
               {activeTab === 'overview' && (
                 <section className="space-y-8">
-
-                  {/* 1. Tổng quan dự án — planning stats */}
-                  {project.planningStats && project.planningStats.length > 0 && (
-                    <div>
-                      <h3 className="font-bold text-amber-900 mb-4 text-lg">{project.name}</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {project.planningStats.map((stat, i) => (
-                          <div key={i} className="bg-gray-100 border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4">
-                            <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
-                              {stat.icon ? (
-                                <span className="text-3xl leading-none select-none">{stat.icon}</span>
-                              ) : (
-                                <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-700 mb-1 font-medium">{stat.label}</p>
-                              <p className="text-xl font-bold text-amber-800">{stat.value}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* 2. Mặt bằng — list of names, click to show image */}
                   {project.zoneImages && project.zoneImages.length > 0 && (
@@ -665,7 +666,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
               {/* PHÂN KHU */}
               {activeTab === 'subdivisions' && (
                 <section>
-                  <SubdivisionsTab subdivisions={project.subdivisions ?? []} />
+                  <SubdivisionsTab subdivisions={project.subdivisions ?? []} progressUpdates={project.progressUpdates} />
                 </section>
               )}
 
@@ -823,11 +824,11 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                                   {/* Player */}
                                   <div className="relative">
                                     <VideoCard key={progressVideoIndex} url={activeVid.url} title={activeVid.description || `Video ${progressVideoIndex + 1}`} />
-                                    {/* Prev / Next arrows */}
+                                    {/* Prev / Next arrows — ORANGE/AMBER COLORED */}
                                     <button
                                       onClick={() => setProgressVideoIndex(p => Math.max(0, p - 1))}
                                       disabled={progressVideoIndex === 0}
-                                      className="absolute left-2 top-[40%] -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition disabled:opacity-20"
+                                      className="absolute left-2 top-[40%] -translate-y-1/2 bg-amber-600 hover:bg-amber-700 text-white p-2 rounded-full transition disabled:opacity-20 disabled:bg-amber-400"
                                       aria-label="Video trước"
                                     >
                                       <ChevronLeft className="w-4 h-4" />
@@ -835,7 +836,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                                     <button
                                       onClick={() => setProgressVideoIndex(p => Math.min(videos.length - 1, p + 1))}
                                       disabled={progressVideoIndex >= videos.length - 1}
-                                      className="absolute right-2 top-[40%] -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition disabled:opacity-20"
+                                      className="absolute right-2 top-[40%] -translate-y-1/2 bg-amber-600 hover:bg-amber-700 text-white p-2 rounded-full transition disabled:opacity-20 disabled:bg-amber-400"
                                       aria-label="Video tiếp"
                                     >
                                       <ChevronRight className="w-4 h-4" />
@@ -982,6 +983,8 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
               <p className="text-xs text-gray-400">Chưa có thông tin chuyên viên.</p>
             )}
           </div>
+        </div>
+
         </div>
 
       </main>

@@ -274,9 +274,9 @@ export function ProjectForm({
   const [wards, setWards] = useState<LocationItem[]>([]);
   const [locationLoading, setLocationLoading] = useState(false);
   const [wardLoading, setWardLoading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState('');
-  const [overviewHtml, setOverviewHtml] = useState('');
-  const [videoDescription, setVideoDescription] = useState('');
+  const [videoUrl, setVideoUrl] = useState(editingProject?.videoUrl ?? '');
+  const [overviewHtml, setOverviewHtml] = useState(editingProject?.overviewHtml ?? '');
+  const [videoDescription, setVideoDescription] = useState(editingProject?.videoDescription ?? '');
 
   // Media items
   const [bannerItems, setBannerItems] = useState<MediaItem[]>([]);
@@ -464,6 +464,43 @@ export function ProjectForm({
     locationDescriptionHtml: locationDescriptionHtml || undefined,
   });
 
+  // Build only the fields specific to the Overview step (exclude subdivisions, progressUpdates, documentItems)
+  const buildOverviewStepPayload = (): Partial<CreateProjectPayload> => {
+    const sanitizedContacts = contacts
+      .map((contact) => ({
+        name: (contact.name ?? '').trim(),
+        title: contact.title?.trim() || undefined,
+        phone: contact.phone?.trim() || undefined,
+        zaloPhone: contact.zaloPhone?.trim() || contact.phone?.trim() || undefined,
+        imageUrl: contact.imageUrl?.trim() || undefined,
+      }))
+      .filter((contact) => contact.name.length > 0);
+
+    return {
+      name: name.trim(),
+      projectType,
+      ownerId: ownerId || undefined,
+      displayStatus,
+      saleStatus,
+      bannerUrl: bannerItems[0]?.originalUrl || undefined,
+      bannerUrls: toCollectionField(bannerItems),
+      // Always include overviewHtml and videoDescription (even when empty) so backend always persists the current value
+      overviewHtml: overviewHtml || null,
+      zoneImageUrl: zoneItems[0]?.originalUrl || undefined,
+      zoneImages: toCollectionField(zoneItems),
+      productImageUrl: productItems[0]?.originalUrl || undefined,
+      productImages: toCollectionField(productItems),
+      amenityImageUrl: amenityItems[0]?.originalUrl || undefined,
+      amenityImages: toCollectionField(amenityItems),
+      videoUrl: videoUrl || undefined,
+      videoDescription: videoDescription || null,
+      contacts: toCollectionField(sanitizedContacts),
+      planningStats: toCollectionField(planningStats.filter((s) => s.label && s.value)),
+      // NOTE: DO NOT include subdivisions, progressUpdates, documentItems here
+      // Those are handled by their respective steps
+    };
+  };
+
   const buildFormPayload = (): CreateProjectPayload => ({
     ...buildOverviewPayload(),
     ...buildLocationPayload(),
@@ -471,7 +508,7 @@ export function ProjectForm({
 
   const getStepPayload = (step: number): Partial<CreateProjectPayload> => {
     if (step === 0) {
-      return buildOverviewPayload();
+      return buildOverviewStepPayload();
     }
     if (step === 1) {
       return buildLocationPayload();
@@ -515,6 +552,19 @@ export function ProjectForm({
     }
     return {};
   };
+
+  // Re-sync only overviewHtml and videoDescription when editingProject updates mid-session
+  // (after a silent save, editingProject gets updated with latest from server)
+  // This runs whenever editingProject changes but does NOT reset currentStep.
+  useEffect(() => {
+    if (!isOpen || !editingProject) return;
+    if (editingProject.overviewHtml !== null && editingProject.overviewHtml !== undefined) {
+      setOverviewHtml(editingProject.overviewHtml);
+    }
+    if (editingProject.videoDescription !== null && editingProject.videoDescription !== undefined) {
+      setVideoDescription(editingProject.videoDescription);
+    }
+  }, [editingProject]);
 
   // Sync editing project into form only when dialog opens or target project changes.
   // Avoid re-initializing on each successful save, because that resets currentStep.
@@ -1234,7 +1284,10 @@ export function ProjectForm({
 
   // ── Form Submit ────────────────────────────────────────────
   const handleSubmit = async () => {
-    const payload = buildFormPayload();
+    // On the final step (documents), only save documentItems
+    // This follows the requirement: "Lưu thay đổi chỉ lưu dữ liệu của tab Tài liệu"
+    // All other step data has been auto-saved during navigation
+    const payload = isLastStep ? getStepPayload(currentStep) : buildFormPayload();
     const saved = await onSubmit(payload, {
       closeAfterSave: true,
       projectId: draftProjectId ?? undefined,
@@ -1270,6 +1323,21 @@ export function ProjectForm({
     }
 
     setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1));
+  };
+
+  const handlePrevStep = async () => {
+    if (draftProjectId) {
+      const payload = getStepPayload(currentStep);
+      const saved = await onSubmit(payload, {
+        closeAfterSave: false,
+        projectId: draftProjectId,
+        silent: true,
+      });
+
+      if (!saved) return;
+    }
+
+    setCurrentStep((s) => Math.max(0, s - 1));
   };
 
   if (!isOpen) return null;
@@ -1754,6 +1822,13 @@ export function ProjectForm({
     setTowerCurrentStep(0);
   };
 
+  const handleTowerPrevStep = async () => {
+    const ok = await persistTowerStep();
+    if (!ok) return;
+
+    setTowerCurrentStep((step) => Math.max(0, step - 1));
+  };
+
   const removeTowerFromSubdivision = (index: number) => {
     if (selectedSubdivisionIndex === null) return;
 
@@ -2073,7 +2148,7 @@ export function ProjectForm({
         {!isFirstStep && (
           <button
             type="button"
-            onClick={() => setCurrentStep((s) => s - 1)}
+            onClick={handlePrevStep}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" /> Quay lại
@@ -3817,7 +3892,9 @@ export function ProjectForm({
               {towerDrawerMode !== 'view' && towerCurrentStep > 0 && (
                 <button
                   type="button"
-                  onClick={() => setTowerCurrentStep((step) => Math.max(0, step - 1))}
+                  onClick={() => {
+                    void handleTowerPrevStep();
+                  }}
                   className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   <ChevronLeft className="h-4 w-4" /> Quay lại

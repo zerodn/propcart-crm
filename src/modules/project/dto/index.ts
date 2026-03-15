@@ -114,6 +114,10 @@ export class ProjectTower {
 
   @IsString()
   @IsOptional()
+  constructionProgress?: string;
+
+  @IsString()
+  @IsOptional()
   constructionStartDate?: string;
 
   @IsString()

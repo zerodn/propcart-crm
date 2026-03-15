@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import type { SubdivisionItem, TowerItem, FloorPlanImage, FloorPlanMarker, TowerFundProduct, PortalProduct, PortalProductImage, PortalProductDocument } from '@/types/project';
+import type { SubdivisionItem, TowerItem, FloorPlanImage, FloorPlanMarker, TowerFundProduct, PortalProduct, PortalProductImage, PortalProductDocument, ProgressUpdateItem } from '@/types/project';
 import { FloorPlanViewer } from './floor-plan-viewer';
 import apiClient from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog } from '../common/dialog';
 import { SlidePanel } from '../common/slide-panel';
 import ImageLightbox from './image-lightbox';
+import '@photo-sphere-viewer/core/index.css';
 
 const WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID || '';
 
@@ -125,7 +126,7 @@ const TOWER_TABS: { id: TowerTabId; label: string }[] = [
   { id: 'policy', label: 'Chính sách bán' },
 ];
 
-function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivisionName: string }) {
+function TowerDetail({ tower, subdivisionName, progressUpdates }: { tower: TowerItem; subdivisionName: string; progressUpdates?: ProgressUpdateItem[] }) {
   const [activeTab, setActiveTab] = useState<TowerTabId>('overview');
   const [cam360Index, setCam360Index] = useState(0);
   const [fpIndex, setFpIndex] = useState(0);
@@ -137,11 +138,16 @@ function TowerDetail({ tower, subdivisionName }: { tower: TowerItem; subdivision
   const [invPage, setInvPage] = useState(0);
   const INV_PAGE_SIZE = 10;
 
+  // Extract latest progress update for display
+  const latestProgress = progressUpdates && progressUpdates.length > 0 
+    ? progressUpdates[progressUpdates.length - 1]
+    : null;
+
   const infoRows: [{ label: string; value?: string }, { label: string; value?: string }][] = [
     [{ label: 'Tên toà nhà', value: tower.name }, { label: 'Phân khu', value: subdivisionName }],
     [{ label: 'Số tầng', value: tower.floorCount }, { label: 'Số căn hộ', value: tower.unitCount }],
     [{ label: 'Số thang máy', value: tower.elevatorCount }, { label: 'Hình thức sở hữu', value: tower.ownershipType }],
-    [{ label: 'Tiêu chuẩn bàn giao', value: tower.handoverStandard }, { label: 'Tiến độ', value: tower.constructionProgress || 'Đang cập nhật' }],
+    [{ label: 'Tiêu chuẩn bàn giao', value: tower.handoverStandard }, { label: 'Tiến độ', value: latestProgress?.label || tower.constructionProgress || 'Đang cập nhật' }],
     [{ label: 'Thời điểm khởi công', value: tower.constructionStartDate }, { label: 'Thời điểm hoàn thành', value: tower.completionDate }],
   ];
 
@@ -1108,7 +1114,7 @@ function ProductDialog({
 
 // ─── Tower Row ────────────────────────────────────────────────────────────────
 
-function TowerRow({ tower, subdivisionName }: { tower: TowerItem; subdivisionName: string }) {
+function TowerRow({ tower, subdivisionName, progressUpdates }: { tower: TowerItem; subdivisionName: string; progressUpdates?: ProgressUpdateItem[] }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -1141,7 +1147,7 @@ function TowerRow({ tower, subdivisionName }: { tower: TowerItem; subdivisionNam
       {/* Tower detail */}
       {expanded && (
         <div className="px-4 pb-4">
-          <TowerDetail tower={tower} subdivisionName={subdivisionName} />
+          <TowerDetail tower={tower} subdivisionName={subdivisionName} progressUpdates={progressUpdates} />
         </div>
       )}
     </div>
@@ -1150,7 +1156,7 @@ function TowerRow({ tower, subdivisionName }: { tower: TowerItem; subdivisionNam
 
 // ─── Subdivision Card ─────────────────────────────────────────────────────────
 
-function SubdivisionCard({ sub, index }: { sub: SubdivisionItem; index: number }) {
+function SubdivisionCard({ sub, index, progressUpdates }: { sub: SubdivisionItem; index: number; progressUpdates?: ProgressUpdateItem[] }) {
   const [expanded, setExpanded] = useState(index === 0);
 
   const towers = sub.towers ?? [];
@@ -1191,7 +1197,7 @@ function SubdivisionCard({ sub, index }: { sub: SubdivisionItem; index: number }
         <div className="bg-white px-4 pt-3 pb-4 space-y-3">
           {towers.length > 0 ? (
             towers.map((tower, ti) => (
-              <TowerRow key={`${sub.name}-${ti}`} tower={tower} subdivisionName={sub.name} />
+              <TowerRow key={`${sub.name}-${ti}`} tower={tower} subdivisionName={sub.name} progressUpdates={progressUpdates} />
             ))
           ) : (
             <p className="text-sm text-gray-400 text-center py-4">Chưa có thông tin toà nhà</p>
@@ -1206,9 +1212,10 @@ function SubdivisionCard({ sub, index }: { sub: SubdivisionItem; index: number }
 
 interface SubdivisionsTabProps {
   subdivisions: SubdivisionItem[];
+  progressUpdates?: ProgressUpdateItem[];
 }
 
-export function SubdivisionsTab({ subdivisions }: SubdivisionsTabProps) {
+export function SubdivisionsTab({ subdivisions, progressUpdates }: SubdivisionsTabProps) {
   if (subdivisions.length === 0) {
     return (
       <p className="text-sm text-gray-400 text-center py-10">Chưa có thông tin phân khu</p>
@@ -1218,7 +1225,7 @@ export function SubdivisionsTab({ subdivisions }: SubdivisionsTabProps) {
   return (
     <div className="space-y-4">
       {subdivisions.map((sub, i) => (
-        <SubdivisionCard key={`${sub.name}-${i}`} sub={sub} index={i} />
+        <SubdivisionCard key={`${sub.name}-${i}`} sub={sub} index={i} progressUpdates={progressUpdates} />
       ))}
     </div>
   );
