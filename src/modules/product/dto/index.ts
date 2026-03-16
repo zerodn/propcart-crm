@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -25,6 +26,28 @@ class ProductDocumentDto {
   @IsString()
   @IsUrl({ require_tld: false }, { message: 'fileUrl khong hop le' })
   fileUrl: string;
+}
+
+export class ProductContact {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  zaloPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 }
 
 class ProductImageDto {
@@ -125,6 +148,12 @@ export class CreateProductDto {
   contactMemberIds?: string[];
 
   @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductContact)
+  contacts?: ProductContact[];
+
+  @IsOptional()
   @IsString()
   transactionStatus?: string;
 
@@ -218,6 +247,12 @@ export class UpdateProductDto {
   @IsArray()
   @IsString({ each: true })
   contactMemberIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductContact)
+  contacts?: ProductContact[];
 
   @IsOptional()
   @IsString()

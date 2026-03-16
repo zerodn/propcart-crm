@@ -692,7 +692,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
               {/* PHÂN KHU */}
               {activeTab === 'subdivisions' && (
                 <section>
-                  <SubdivisionsTab subdivisions={project.subdivisions ?? []} progressUpdates={project.progressUpdates} />
+                  <SubdivisionsTab subdivisions={project.subdivisions ?? []} progressUpdates={project.progressUpdates} projectType={project.projectType} />
                 </section>
               )}
 

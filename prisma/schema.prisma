@@ -455,6 +455,7 @@ model PropertyProduct {
   callPhone          String?
   zaloPhone          String?
   contactMemberIds   Json? // string[] (workspaceMember.userId)
+  contacts           Json? // [{name, title, phone, zaloPhone, imageUrl}]
 
   // 6) Trạng thái giao dịch
   transactionStatus  String   @default("AVAILABLE") // AVAILABLE | BOOKED

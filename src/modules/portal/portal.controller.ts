@@ -363,6 +363,60 @@ export class PortalController {
       throw new NotFoundException('Sản phẩm không tìm thấy');
     }
 
-    return { data: product };
+    // Fetch contact members info
+    let contactMembers: Array<Record<string, unknown>> = [];
+
+    // Use new contacts field (full objects) if available
+    const rawContacts = Array.isArray((product as Record<string, unknown>).contacts)
+      ? ((product as Record<string, unknown>).contacts as Array<Record<string, unknown>>)
+      : [];
+    if (rawContacts.length > 0) {
+      contactMembers = rawContacts.map((c: Record<string, unknown>, i: number) => ({
+        id: String(i),
+        userId: null,
+        name: c.name || 'Nhân viên',
+        title: c.title || null,
+        phone: c.phone || null,
+        zaloPhone: c.zaloPhone || null,
+        imageUrl: c.imageUrl || null,
+      }));
+    } else {
+      // Fallback to legacy contactMemberIds lookup
+      const contactIds = Array.isArray(product.contactMemberIds)
+        ? (product.contactMemberIds as string[])
+        : [];
+
+      if (contactIds.length > 0) {
+        const wsMembers = await this.prisma.workspaceMember.findMany({
+          where: {
+            userId: { in: contactIds },
+            workspaceId,
+          },
+          select: {
+            id: true,
+            userId: true,
+            user: { select: { fullName: true } },
+            displayName: true,
+          },
+        });
+
+        contactMembers = wsMembers.map((m) => ({
+          id: m.id,
+          userId: m.userId,
+          name: m.displayName || m.user?.fullName || 'Nhân viên',
+          title: null,
+          phone: null,
+          zaloPhone: null,
+          imageUrl: null,
+        }));
+      }
+    }
+
+    return {
+      data: {
+        ...product,
+        contactMembers,
+      },
+    };
   }
 }

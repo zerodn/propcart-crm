@@ -1643,13 +1643,24 @@ export function ProjectForm({
         towers: [{ ...tower }],
       };
 
-      if (selectedSubdivisionIndex === null) {
-        return [...subdivisions, normalizedSubdivision];
+      // FIX: Mirrors HIGH_RISE fix pattern.
+      // Edit mode: always update at the tracked index (never append).
+      if (towerDrawerMode === 'edit' && selectedSubdivisionIndex !== null) {
+        return subdivisions.map((item, idx) =>
+          idx === selectedSubdivisionIndex ? normalizedSubdivision : item,
+        );
       }
 
-      return subdivisions.map((item, idx) =>
-        idx === selectedSubdivisionIndex ? normalizedSubdivision : item,
-      );
+      // Create mode step 2+: selectedSubdivisionIndex was set after first-step save,
+      // so update the tracked index instead of appending a new record.
+      if (selectedSubdivisionIndex !== null) {
+        return subdivisions.map((item, idx) =>
+          idx === selectedSubdivisionIndex ? normalizedSubdivision : item,
+        );
+      }
+
+      // Create mode step 0 (first save): append new subdivision.
+      return [...subdivisions, normalizedSubdivision];
     }
 
     if (selectedSubdivisionIndex === null) {
@@ -1800,6 +1811,15 @@ export function ProjectForm({
       setSubdivisions(saved.subdivisions ?? nextSubdivisions);
       if (saved.id && saved.id !== draftProjectId) {
         setDraftProjectId(saved.id);
+      }
+
+      // FIX for LOW_RISE create mode: after the first-step save, track the index of the
+      // newly created subdivision so subsequent steps update it instead of appending again.
+      if (projectType === 'LOW_RISE' && towerDrawerMode === 'create' && selectedSubdivisionIndex === null) {
+        const savedSubs = saved.subdivisions ?? nextSubdivisions;
+        if (savedSubs.length > 0) {
+          setSelectedSubdivisionIndex(savedSubs.length - 1);
+        }
       }
 
       return true;
@@ -2967,10 +2987,18 @@ export function ProjectForm({
                             </div>
 
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              {item.towerCount && (
-                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                  {item.towerCount} tòa
-                                </span>
+                              {projectType === 'LOW_RISE' ? (
+                                item.unitCount && (
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                    {item.unitCount} căn hộ
+                                  </span>
+                                )
+                              ) : (
+                                item.towerCount && (
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                    {item.towerCount} toà
+                                  </span>
+                                )
                               )}
                             </div>
 

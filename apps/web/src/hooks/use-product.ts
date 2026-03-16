@@ -38,6 +38,13 @@ export interface PropertyProduct {
   callPhone?: string;
   zaloPhone?: string;
   contactMemberIds?: string[];
+  contacts?: Array<{
+    name: string;
+    title?: string;
+    phone?: string;
+    zaloPhone?: string;
+    imageUrl?: string;
+  }>;
   transactionStatus: string;
   note?: string;
   createdByUserId: string;

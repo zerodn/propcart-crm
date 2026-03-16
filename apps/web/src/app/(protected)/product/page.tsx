@@ -68,6 +68,10 @@ export default function ProductPage() {
       members.map((m) => ({
         value: m.userId,
         label: m.displayName || m.user.fullName || m.workspacePhone || m.user.phone || 'N/A',
+        phone: m.workspacePhone || m.user.phone || undefined,
+        email: m.workspaceEmail || m.user.email || undefined,
+        avatarUrl: m.avatarUrl || undefined,
+        title: m.role?.name || undefined,
       })),
     [members],
   );

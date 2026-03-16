@@ -662,6 +662,7 @@ function ProductDialog({
   const [imgIndex, setImgIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -739,10 +740,10 @@ function ProductDialog({
         isOpen
         onClose={onClose}
         maxWidth="5xl"
-        bodyClassName="flex flex-col overflow-hidden"
+        bodyClassName="flex-1 overflow-y-auto"
         headerContent={
           <div className="flex-1 flex items-center justify-between pr-3">
-            <h2 className="text-base font-bold text-gray-900">Thông tin sản phẩm</h2>
+            <h2 className="text-base font-bold text-gray-900">Thông tin sản phẩm{unitCode ? ` - ${unitCode}` : ''}</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleWishlist}
@@ -768,13 +769,13 @@ function ProductDialog({
         }
         footer={
           <div className="flex gap-3">
-            <a
-              href={product?.callPhone ? `tel:${product.callPhone}` : '#'}
+            <button
+              onClick={() => setShowContact(true)}
               className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-sm font-medium hover:bg-amber-50 transition"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
               Liên hệ tư vấn
-            </a>
+            </button>
             <button
               className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition"
               onClick={() => setShowBooking(true)}
@@ -818,37 +819,33 @@ function ProductDialog({
 
                 {/* Images */}
                 {mediaTab === 'images' && (
-                  <div className="flex-1 flex flex-col min-h-0">
-                    {/* Main image — stretches to fill */}
-                    <div className="flex-1 relative bg-gray-100 min-h-0 overflow-hidden">
-                      {policyImages.length > 0 ? (
-                        <>
-                          <img
-                            src={policyImages[imgIndex]?.originalUrl}
-                            alt={`Ảnh ${imgIndex + 1}`}
-                            className="w-full h-full object-cover cursor-pointer"
-                            onClick={() => {
-                              setViewerImages(policyImages.map(img => img.originalUrl || ''));
-                              setViewerIndex(imgIndex);
-                            }}
-                          />
-                          {policyImages.length > 1 && (
-                            <>
-                              <button onClick={() => setImgIndex((i) => (i - 1 + policyImages.length) % policyImages.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full transition">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                              </button>
-                              <button onClick={() => setImgIndex((i) => (i + 1) % policyImages.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full transition">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                              </button>
-                              <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">{imgIndex + 1}/{policyImages.length}</span>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Chưa có hình ảnh</div>
-                      )}
-                    </div>
-                    {/* Thumbnails removed — moved to unified bottom strip */}
+                  <div className="flex-1 relative bg-gray-100 overflow-hidden">
+                    {policyImages.length > 0 ? (
+                      <>
+                        <img
+                          src={policyImages[imgIndex]?.originalUrl}
+                          alt={`Ảnh ${imgIndex + 1}`}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => {
+                            setViewerImages(policyImages.map(img => img.originalUrl || ''));
+                            setViewerIndex(imgIndex);
+                          }}
+                        />
+                        {policyImages.length > 1 && (
+                          <>
+                            <button onClick={() => setImgIndex((i) => (i - 1 + policyImages.length) % policyImages.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full transition">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <button onClick={() => setImgIndex((i) => (i + 1) % policyImages.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full transition">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                            <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">{imgIndex + 1}/{policyImages.length}</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Chưa có hình ảnh</div>
+                    )}
                   </div>
                 )}
 
@@ -870,48 +867,41 @@ function ProductDialog({
               </div>
 
               {/* RIGHT: Info */}
-              <div className="flex-1 flex flex-col min-h-0">
-                {/* Scrollable info */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-                  {unitCode && (
-                    <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">MÃ SẢN PHẨM: {unitCode}</p>
-                  )}
-                  {product?.transactionStatus === 'BOOKED' && (
-                    <span className="inline-block bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">ĐÃ GIỮ CHỖ</span>
-                  )}
-                  <h3 className="text-xl font-bold text-gray-900 leading-tight">{name || 'Sản phẩm'}</h3>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {product?.transactionStatus === 'BOOKED' && (
+                  <span className="inline-block bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">ĐÃ GIỮ CHỖ</span>
+                )}
+                <h3 className="text-xl font-bold text-gray-900 leading-tight">{name || 'Sản phẩm'}</h3>
 
-                  {/* Price */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-0.5">GIÁ BÁN (CHƯA VAT)</p>
-                      <p className="text-sm font-bold text-gray-900">
-                        {product?.isContactForPrice ? 'Liên hệ' : formatPrice(product?.priceWithoutVat)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-0.5">GIÁ BÁN (GỒM VAT)</p>
-                      <p className="text-sm font-bold text-gray-900">
-                        {product?.isContactForPrice ? 'Liên hệ' : formatPrice(product?.priceWithVat)}
-                      </p>
-                    </div>
+                {/* Price */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">GIÁ BÁN (CHƯA VAT)</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {product?.isContactForPrice ? 'Liên hệ' : formatPrice(product?.priceWithoutVat)}
+                    </p>
                   </div>
-
-                  {/* Details */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <InfoCell label="LOẠI HÌNH" value={displayLabel(PROPERTY_TYPE_LABELS, product?.propertyType)} />
-                    <InfoCell label="KHO HÀNG" value={product?.warehouse?.name} />
-                    <InfoCell label="DIỆN TÍCH (M²)" value={product?.area ? `${product.area} m²` : undefined} />
-                    <InfoCell label="HƯỚNG" value={displayLabel(DIRECTION_LABELS, product?.direction)} />
-                    <InfoCell label="PHÂN KHU" value={product?.zone || subdivisionName} />
-                    <InfoCell label="DÃY" value={product?.block ?? undefined} />
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">GIÁ BÁN (GỒM VAT)</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {product?.isContactForPrice ? 'Liên hệ' : formatPrice(product?.priceWithVat)}
+                    </p>
                   </div>
                 </div>
 
+                {/* Details */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <InfoCell label="LOẠI HÌNH" value={displayLabel(PROPERTY_TYPE_LABELS, product?.propertyType)} />
+                  <InfoCell label="KHO HÀNG" value={product?.warehouse?.name} />
+                  <InfoCell label="DIỆN TÍCH (M²)" value={product?.area ? `${product.area} m²` : undefined} />
+                  <InfoCell label="HƯỚNG" value={displayLabel(DIRECTION_LABELS, product?.direction)} />
+                  <InfoCell label="PHÂN KHU" value={product?.zone || subdivisionName} />
+                  <InfoCell label="DÃY" value={product?.block ?? undefined} />
+                </div>
               </div>
             </div>
 
-            {/* Unified bottom strip: thumbnails (left) + promo images (right) on same row */}
+            {/* Row 1: Hình ảnh sản phẩm (left) | Chương trình khuyến mãi (right) */}
             {policyImages.length > 0 && (
               <div className="flex border-t border-gray-100 shrink-0">
                 <div className="w-[52%] border-r border-gray-100 px-4 py-2.5">
@@ -954,9 +944,9 @@ function ProductDialog({
               </div>
             )}
 
-            {/* Documents — full width row */}
+            {/* Row 2: Tài liệu — full width, only if docs exist */}
             {docs.length > 0 && (
-              <div className="border-t border-gray-100 px-5 py-3 shrink-0">
+              <div className="border-t border-gray-100 px-4 py-3 shrink-0">
                 <p className="text-xs font-semibold text-gray-700 mb-2">Tài liệu</p>
                 <div className="flex flex-wrap gap-2">
                   {docs.map((doc, i) => (
@@ -980,10 +970,101 @@ function ProductDialog({
                 </div>
               </div>
             )}
+
+            {/* Row 3: Mô tả — full width */}
+            {product?.note && (
+              <div className="border-t border-gray-100 px-4 py-3 shrink-0">
+                <p className="text-xs font-semibold text-gray-700 mb-1.5">Mô tả</p>
+                <div
+                  className="text-sm text-gray-600 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: product.note }}
+                />
+              </div>
+            )}
           </>
         )}
 
       </Dialog>
+
+      {/* Contact slide panel */}
+      <SlidePanel
+        isOpen={showContact}
+        title="Liên hệ tư vấn"
+        onClose={() => setShowContact(false)}
+        width="sm"
+        zIndex={100001}
+      >
+        {(product?.callPhone || product?.zaloPhone || (product as any)?.contactMembers?.length > 0) ? (
+          <div className="space-y-3 p-1">
+            {(product as any)?.contactMembers?.map((contact: any) => (
+              <div key={contact.id} className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50">
+                {contact.imageUrl ? (
+                  <img
+                    src={contact.imageUrl}
+                    alt={contact.name}
+                    className="w-10 h-10 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0 text-xs font-bold text-amber-700">
+                    {contact.name?.charAt(0).toUpperCase() || 'C'}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{contact.name}</p>
+                  {contact.title && (
+                    <p className="text-xs text-gray-500 mt-0.5">{contact.title}</p>
+                  )}
+                  {(contact.phone || product?.callPhone) && (
+                    <a href={`tel:${contact.phone || product?.callPhone}`} className="text-xs text-amber-600 hover:text-amber-700 mt-1 block">
+                      📞 {contact.phone || product?.callPhone}
+                    </a>
+                  )}
+                  {(contact.zaloPhone || product?.zaloPhone) && (
+                    <a href={`https://zalo.me/${contact.zaloPhone || product?.zaloPhone}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-700 mt-0.5 block">
+                      💬 {contact.zaloPhone || product?.zaloPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+            {product?.callPhone && !((product as any)?.contactMembers?.length > 0) && (
+              <a
+                href={`tel:${product.callPhone}`}
+                className="flex items-center gap-3 p-4 rounded-xl border border-amber-100 bg-amber-50 hover:bg-amber-100 transition"
+              >
+                <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Gọi điện</p>
+                  <p className="text-sm font-semibold text-amber-700">{product.callPhone}</p>
+                </div>
+              </a>
+            )}
+            {product?.zaloPhone && !((product as any)?.contactMembers?.length > 0) && (
+              <a
+                href={`https://zalo.me/${product.zaloPhone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-4 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 transition"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-blue-700" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.975-1.418A9.956 9.956 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm4.98 13.87c-.21.59-1.23 1.12-1.69 1.19-.43.07-.98.1-1.58-.1-.36-.12-.83-.28-1.42-.55-2.49-1.08-4.12-3.6-4.24-3.77-.12-.17-.98-1.3-.98-2.49 0-1.18.62-1.77.84-2.01.22-.24.48-.3.64-.3.16 0 .32 0 .46.01.15.01.35-.06.55.42.21.49.71 1.73.77 1.86.06.13.1.28.02.45-.08.17-.12.28-.24.43-.12.15-.25.33-.36.44-.12.12-.24.25-.1.49.14.24.62.99 1.33 1.6.91.79 1.68 1.04 1.92 1.16.24.12.38.1.52-.06.14-.16.6-.7.76-.94.16-.24.32-.2.54-.12.22.08 1.4.66 1.64.78.24.12.4.18.46.28.06.1.06.57-.15 1.13z"/></svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Zalo</p>
+                  <p className="text-sm font-semibold text-blue-700">{product.zaloPhone}</p>
+                </div>
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400">
+            <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            <p className="text-sm">Chưa có thông tin liên hệ</p>
+          </div>
+        )}
+      </SlidePanel>
 
       {/* Share slide panel */}
       <ShareModal
@@ -1156,11 +1237,12 @@ function TowerRow({ tower, subdivisionName, progressUpdates }: { tower: TowerIte
 
 // ─── Subdivision Card ─────────────────────────────────────────────────────────
 
-function SubdivisionCard({ sub, index, progressUpdates }: { sub: SubdivisionItem; index: number; progressUpdates?: ProgressUpdateItem[] }) {
+function SubdivisionCard({ sub, index, projectType, progressUpdates }: { sub: SubdivisionItem; index: number; projectType?: string; progressUpdates?: ProgressUpdateItem[] }) {
   const [expanded, setExpanded] = useState(index === 0);
 
   const towers = sub.towers ?? [];
   const totalUnits = sub.unitCount;
+  const isLowRise = projectType === 'LOW_RISE';
 
   return (
     <div className="rounded-xl border border-amber-100 overflow-hidden shadow-sm">
@@ -1176,7 +1258,7 @@ function SubdivisionCard({ sub, index, progressUpdates }: { sub: SubdivisionItem
           <p className="font-bold text-amber-700 text-sm">{sub.name}</p>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600 mt-0.5">
             {totalUnits !== undefined && <span>Tổng căn hộ: <strong>{totalUnits}</strong></span>}
-            {sub.towerCount && <span>Số toà: <strong>{sub.towerCount}</strong></span>}
+            {!isLowRise && sub.towerCount && <span>Số toà: <strong>{sub.towerCount}</strong></span>}
             {sub.area && <span>Diện tích: <strong>{sub.area}</strong></span>}
           </div>
         </div>
@@ -1192,15 +1274,27 @@ function SubdivisionCard({ sub, index, progressUpdates }: { sub: SubdivisionItem
         </button>
       </div>
 
-      {/* Tower list */}
+      {/* Content */}
       {expanded && (
-        <div className="bg-white px-4 pt-3 pb-4 space-y-3">
-          {towers.length > 0 ? (
-            towers.map((tower, ti) => (
-              <TowerRow key={`${sub.name}-${ti}`} tower={tower} subdivisionName={sub.name} progressUpdates={progressUpdates} />
-            ))
+        <div className="bg-white px-4 pt-3 pb-4">
+          {isLowRise ? (
+            // Low-rise: show TowerDetail tabs directly (no tower header row)
+            towers.length > 0 ? (
+              <TowerDetail tower={towers[0]} subdivisionName={sub.name} progressUpdates={progressUpdates} />
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">Chưa có thông tin căn hộ</p>
+            )
           ) : (
-            <p className="text-sm text-gray-400 text-center py-4">Chưa có thông tin toà nhà</p>
+            // High-rise: show TowerRow list as before
+            <div className="space-y-3">
+              {towers.length > 0 ? (
+                towers.map((tower, ti) => (
+                  <TowerRow key={`${sub.name}-${ti}`} tower={tower} subdivisionName={sub.name} progressUpdates={progressUpdates} />
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">Chưa có thông tin toà nhà</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1213,9 +1307,10 @@ function SubdivisionCard({ sub, index, progressUpdates }: { sub: SubdivisionItem
 interface SubdivisionsTabProps {
   subdivisions: SubdivisionItem[];
   progressUpdates?: ProgressUpdateItem[];
+  projectType?: string;
 }
 
-export function SubdivisionsTab({ subdivisions, progressUpdates }: SubdivisionsTabProps) {
+export function SubdivisionsTab({ subdivisions, progressUpdates, projectType }: SubdivisionsTabProps) {
   if (subdivisions.length === 0) {
     return (
       <p className="text-sm text-gray-400 text-center py-10">Chưa có thông tin phân khu</p>
@@ -1225,7 +1320,7 @@ export function SubdivisionsTab({ subdivisions, progressUpdates }: SubdivisionsT
   return (
     <div className="space-y-4">
       {subdivisions.map((sub, i) => (
-        <SubdivisionCard key={`${sub.name}-${i}`} sub={sub} index={i} progressUpdates={progressUpdates} />
+        <SubdivisionCard key={`${sub.name}-${i}`} sub={sub} index={i} projectType={projectType} progressUpdates={progressUpdates} />
       ))}
     </div>
   );

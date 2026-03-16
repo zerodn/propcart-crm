@@ -147,14 +147,33 @@ export class DepartmentService {
     // If ES returns results, return them
     if (esResults.length > 0) {
       this.logger.debug(`Found ${esResults.length} results from Elasticsearch`);
+
+      // Enrich with avatarUrl and roleName from DB
+      const userIds = esResults.map((m) => m.userId);
+      const wsMembers = await this.prisma.workspaceMember.findMany({
+        where: { workspaceId, userId: { in: userIds } },
+        select: {
+          userId: true,
+          avatarUrl: true,
+          user: { select: { avatarUrl: true } },
+          role: { select: { name: true } },
+        },
+      });
+      const memberMap = new Map(wsMembers.map((m) => [m.userId, m]));
+
       return {
-        data: esResults.map((member) => ({
-          userId: member.userId,
-          phone: member.phone,
-          email: member.email,
-          name: member.name,
-          score: member.score,
-        })),
+        data: esResults.map((member) => {
+          const wsMember = memberMap.get(member.userId);
+          return {
+            userId: member.userId,
+            phone: member.phone,
+            email: member.email,
+            name: member.name,
+            avatarUrl: wsMember?.avatarUrl || wsMember?.user?.avatarUrl || null,
+            roleName: wsMember?.role?.name || null,
+            score: member.score,
+          };
+        }),
       };
     }
 
@@ -174,13 +193,18 @@ export class DepartmentService {
         },
         select: {
           displayName: true,
+          avatarUrl: true,
           user: {
             select: {
               id: true,
               phone: true,
               email: true,
               fullName: true,
+              avatarUrl: true,
             },
+          },
+          role: {
+            select: { name: true },
           },
         },
         take: 100, // Get more to filter client-side
@@ -215,6 +239,8 @@ export class DepartmentService {
           phone: member.user.phone,
           email: member.user.email,
           name: member.displayName || member.user.fullName,
+          avatarUrl: member.avatarUrl || member.user.avatarUrl || null,
+          roleName: member.role?.name || null,
           score: 0, // No score from database search
         })),
       };

@@ -123,6 +123,7 @@ export class ProductService {
         callPhone: dto.callPhone || null,
         zaloPhone: dto.zaloPhone || null,
         contactMemberIds: dto.contactMemberIds || null,
+        contacts: dto.contacts || null,
         transactionStatus: dto.transactionStatus || 'AVAILABLE',
         note: dto.note || null,
       };
@@ -291,6 +292,7 @@ export class ProductService {
       if (dto.callPhone !== undefined) data.callPhone = dto.callPhone || null;
       if (dto.zaloPhone !== undefined) data.zaloPhone = dto.zaloPhone || null;
       if (dto.contactMemberIds !== undefined) data.contactMemberIds = dto.contactMemberIds || null;
+      if (dto.contacts !== undefined) data.contacts = dto.contacts || null;
       if (dto.transactionStatus !== undefined) data.transactionStatus = dto.transactionStatus;
       if (dto.note !== undefined) data.note = dto.note || null;
 
