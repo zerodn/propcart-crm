@@ -7,12 +7,15 @@ import type { FloorPlanImage, FloorPlanMarker } from '@/types/project';
 interface FloorPlanViewerProps {
   image: FloorPlanImage;
   onMarkerClick: (marker: FloorPlanMarker) => void;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
+  height?: string;
 }
 
 const MIN_ZOOM = -5;
 const MAX_ZOOM = 3;
 
-export function FloorPlanViewer({ image, onMarkerClick }: FloorPlanViewerProps) {
+export function FloorPlanViewer({ image, onMarkerClick, onToggleFullscreen, isFullscreen = false, height = '480px' }: FloorPlanViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletType.Map | null>(null);
   const markersLayerRef = useRef<LeafletType.LayerGroup | null>(null);
@@ -131,7 +134,7 @@ export function FloorPlanViewer({ image, onMarkerClick }: FloorPlanViewerProps) 
   }, [image.originalUrl, image.markers]);
 
   return (
-    <div className="relative w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: '480px' }}>
+    <div className="relative w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height }}>
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-100">
           <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
@@ -151,18 +154,20 @@ export function FloorPlanViewer({ image, onMarkerClick }: FloorPlanViewerProps) 
           aria-label="Zoom out"
         >−</button>
         <button
-          onClick={() => {
-            const map = mapRef.current;
-            if (!map) return;
-            map.fitBounds(map.options.maxBounds as LeafletType.LatLngBounds, { animate: true });
-          }}
+          onClick={() => onToggleFullscreen?.()}
           className="w-8 h-8 bg-white border border-gray-200 rounded-lg shadow flex items-center justify-center text-gray-700 hover:bg-gray-50 transition"
-          aria-label="Reset view"
-          title="Fit toàn ảnh"
+          aria-label={isFullscreen ? 'Thu nhỏ' : 'Mở toàn màn hình'}
+          title={isFullscreen ? 'Thu nhỏ' : 'Mở toàn màn hình'}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
-          </svg>
+          {isFullscreen ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9L4 4m0 0h5m-5 0v5M15 9l5-5m0 0h-5m5 0v5M9 15l-5 5m0 0h5m-5 0v-5M15 15l5 5m0 0h-5m5 0v-5" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
+            </svg>
+          )}
         </button>
       </div>
       {/* Hint */}

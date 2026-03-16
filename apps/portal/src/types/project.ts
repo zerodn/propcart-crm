@@ -62,6 +62,16 @@ export interface PortalProductDocument {
   fileUrl: string;
 }
 
+export interface PortalProductContact {
+  id: string;
+  userId: string | null;
+  name: string;
+  title?: string | null;
+  phone?: string | null;
+  zaloPhone?: string | null;
+  imageUrl?: string | null;
+}
+
 export interface PortalProduct {
   id: string;
   workspaceId: string;
@@ -85,6 +95,7 @@ export interface PortalProduct {
   transactionStatus: string;
   note?: string;
   warehouse?: { id: string; name: string; code: string } | null;
+  contactMembers?: PortalProductContact[];
 }
 
 export interface FloorPlanMarker {

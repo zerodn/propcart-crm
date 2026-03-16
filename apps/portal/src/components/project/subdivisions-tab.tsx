@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
-import type { SubdivisionItem, TowerItem, FloorPlanImage, FloorPlanMarker, TowerFundProduct, PortalProduct, PortalProductImage, PortalProductDocument, ProgressUpdateItem } from '@/types/project';
+import type { SubdivisionItem, TowerItem, FloorPlanImage, FloorPlanMarker, TowerFundProduct, PortalProduct, PortalProductContact, PortalProductImage, PortalProductDocument, ProgressUpdateItem } from '@/types/project';
 import { FloorPlanViewer } from './floor-plan-viewer';
 import apiClient from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
@@ -130,6 +131,7 @@ function TowerDetail({ tower, subdivisionName, progressUpdates }: { tower: Tower
   const [activeTab, setActiveTab] = useState<TowerTabId>('overview');
   const [cam360Index, setCam360Index] = useState(0);
   const [fpIndex, setFpIndex] = useState(0);
+  const [isFpFullscreen, setIsFpFullscreen] = useState(false);
   const [policyIndex, setPolicyIndex] = useState(0);
   const [policyViewerImages, setPolicyViewerImages] = useState<string[]>([]);
   const [policyViewerIndex, setPolicyViewerIndex] = useState(0);
@@ -152,6 +154,19 @@ function TowerDetail({ tower, subdivisionName, progressUpdates }: { tower: Tower
   ];
 
   const activeFpImage: FloorPlanImage | undefined = tower.floorPlanImages?.[fpIndex];
+
+  // Handle ESC key to close fullscreen mode
+  useEffect(() => {
+    if (!isFpFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsFpFullscreen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFpFullscreen]);
 
   return (
     <>
@@ -437,6 +452,8 @@ function TowerDetail({ tower, subdivisionName, progressUpdates }: { tower: Tower
                   <FloorPlanViewer
                     image={activeFpImage}
                     onMarkerClick={(marker) => setSelectedMarker(marker)}
+                    onToggleFullscreen={() => setIsFpFullscreen(true)}
+                    isFullscreen={false}
                   />
                 )}
                 {/* Product detail dialog */}
@@ -450,6 +467,52 @@ function TowerDetail({ tower, subdivisionName, progressUpdates }: { tower: Tower
                     towerName={tower.name}
                     onClose={() => setSelectedMarker(null)}
                   />
+                )}
+                {/* Fullscreen overlay — rendered via portal so it escapes all stacking contexts */}
+                {isFpFullscreen && activeFpImage && typeof document !== 'undefined' && createPortal(
+                  <div className="fixed inset-0 flex flex-col bg-black" style={{ zIndex: 99990 }}>
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-900 flex-shrink-0">
+                      <span className="text-white text-sm font-semibold">{tower.name} — Vị trí quỹ hàng</span>
+                      {/* Floor selector in fullscreen */}
+                      {tower.floorPlanImages && tower.floorPlanImages.length > 1 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {tower.floorPlanImages.map((img, i) => (
+                            <button
+                              key={i}
+                              onClick={() => { setFpIndex(i); setSelectedMarker(null); }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                                i === fpIndex ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                              }`}
+                            >
+                              {img.description || img.fileName || `Tầng ${i + 1}`}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setIsFpFullscreen(false)}
+                        className="ml-auto w-8 h-8 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white flex-shrink-0 transition"
+                        aria-label="Thu nhỏ"
+                        title="Thu nhỏ"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    {/* Viewer fills remaining space */}
+                    <div className="flex-1 relative overflow-hidden">
+                      <FloorPlanViewer
+                        image={activeFpImage}
+                        onMarkerClick={(marker) => setSelectedMarker(marker)}
+                        isFullscreen={true}
+                        onToggleFullscreen={() => setIsFpFullscreen(false)}
+                        height="100%"
+                      />
+                    </div>
+                  </div>,
+                  document.body
                 )}
               </>
             ) : (
@@ -994,76 +1057,73 @@ function ProductDialog({
         width="sm"
         zIndex={100001}
       >
-        {(product?.callPhone || product?.zaloPhone || (product as any)?.contactMembers?.length > 0) ? (
-          <div className="space-y-3 p-1">
-            {(product as any)?.contactMembers?.map((contact: any) => (
-              <div key={contact.id} className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50">
-                {contact.imageUrl ? (
-                  <img
-                    src={contact.imageUrl}
-                    alt={contact.name}
-                    className="w-10 h-10 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0 text-xs font-bold text-amber-700">
-                    {contact.name?.charAt(0).toUpperCase() || 'C'}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{contact.name}</p>
-                  {contact.title && (
-                    <p className="text-xs text-gray-500 mt-0.5">{contact.title}</p>
-                  )}
-                  {(contact.phone || product?.callPhone) && (
-                    <a href={`tel:${contact.phone || product?.callPhone}`} className="text-xs text-amber-600 hover:text-amber-700 mt-1 block">
-                      📞 {contact.phone || product?.callPhone}
-                    </a>
-                  )}
-                  {(contact.zaloPhone || product?.zaloPhone) && (
-                    <a href={`https://zalo.me/${contact.zaloPhone || product?.zaloPhone}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-700 mt-0.5 block">
-                      💬 {contact.zaloPhone || product?.zaloPhone}
-                    </a>
-                  )}
-                </div>
+        {(() => {
+          const contactList: PortalProductContact[] = product?.contactMembers ?? [];
+          // Fallback: legacy callPhone/zaloPhone as a single contact entry
+          const legacyContact: PortalProductContact | null =
+            contactList.length === 0 && (product?.callPhone || product?.zaloPhone)
+              ? { id: 'legacy', userId: null, name: 'Liên hệ', phone: product?.callPhone, zaloPhone: product?.zaloPhone }
+              : null;
+          const list = legacyContact ? [legacyContact] : contactList;
+
+          if (list.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400">
+                <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                <p className="text-sm">Chưa có thông tin liên hệ</p>
               </div>
-            ))}
-            {product?.callPhone && !((product as any)?.contactMembers?.length > 0) && (
-              <a
-                href={`tel:${product.callPhone}`}
-                className="flex items-center gap-3 p-4 rounded-xl border border-amber-100 bg-amber-50 hover:bg-amber-100 transition"
-              >
-                <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            );
+          }
+
+          return (
+            <div className="space-y-3 p-1">
+              {list.map((contact) => (
+                <div key={contact.id} className="border border-gray-100 rounded-xl p-3">
+                  <div className="flex items-center gap-3 mb-3">
+                    {contact.imageUrl ? (
+                      <img
+                        src={contact.imageUrl}
+                        alt={contact.name}
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-amber-700 font-bold text-sm">{contact.name?.[0]?.toUpperCase() ?? '?'}</span>
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{contact.name}</p>
+                      {contact.title && <p className="text-xs text-gray-500 truncate">{contact.title}</p>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {contact.zaloPhone && (
+                      <a
+                        href={`https://zalo.me/${contact.zaloPhone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 border border-blue-300 text-blue-600 hover:bg-blue-50 text-sm font-medium py-2.5 rounded-lg transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        Zalo
+                      </a>
+                    )}
+                    {contact.phone && (
+                      <a
+                        href={`tel:${contact.phone}`}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-amber-700 hover:bg-amber-800 text-white text-sm font-medium py-2.5 rounded-lg transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        Gọi
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Gọi điện</p>
-                  <p className="text-sm font-semibold text-amber-700">{product.callPhone}</p>
-                </div>
-              </a>
-            )}
-            {product?.zaloPhone && !((product as any)?.contactMembers?.length > 0) && (
-              <a
-                href={`https://zalo.me/${product.zaloPhone}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-4 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 transition"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-blue-700" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.975-1.418A9.956 9.956 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm4.98 13.87c-.21.59-1.23 1.12-1.69 1.19-.43.07-.98.1-1.58-.1-.36-.12-.83-.28-1.42-.55-2.49-1.08-4.12-3.6-4.24-3.77-.12-.17-.98-1.3-.98-2.49 0-1.18.62-1.77.84-2.01.22-.24.48-.3.64-.3.16 0 .32 0 .46.01.15.01.35-.06.55.42.21.49.71 1.73.77 1.86.06.13.1.28.02.45-.08.17-.12.28-.24.43-.12.15-.25.33-.36.44-.12.12-.24.25-.1.49.14.24.62.99 1.33 1.6.91.79 1.68 1.04 1.92 1.16.24.12.38.1.52-.06.14-.16.6-.7.76-.94.16-.24.32-.2.54-.12.22.08 1.4.66 1.64.78.24.12.4.18.46.28.06.1.06.57-.15 1.13z"/></svg>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Zalo</p>
-                  <p className="text-sm font-semibold text-blue-700">{product.zaloPhone}</p>
-                </div>
-              </a>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400">
-            <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-            <p className="text-sm">Chưa có thông tin liên hệ</p>
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
       </SlidePanel>
 
       {/* Share slide panel */}
