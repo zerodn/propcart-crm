@@ -66,7 +66,14 @@ interface ProductFormProps {
   transactionStatusOptions: Array<{ value: string; label: string }>;
   tagOptions: Array<{ value: string; label: string; color?: string }>;
   documentTypeOptions: Array<{ value: string; label: string }>;
-  memberOptions: Array<{ value: string; label: string; phone?: string; email?: string; avatarUrl?: string; title?: string }>;
+  memberOptions: Array<{
+    value: string;
+    label: string;
+    phone?: string;
+    email?: string;
+    avatarUrl?: string;
+    title?: string;
+  }>;
   isSubmitting?: boolean;
   formId?: string;
   isReadOnly?: boolean;
@@ -267,14 +274,23 @@ export function ProductForm({
 
         const items = Array.isArray(data?.data) ? data.data : [];
         const mapped = items
-          .map((item: { userId?: string; name?: string; phone?: string; email?: string; avatarUrl?: string; roleName?: string }) => ({
-            value: item.userId || '',
-            label: item.name || item.phone || item.email || item.userId || 'N/A',
-            phone: item.phone,
-            email: item.email,
-            avatarUrl: item.avatarUrl || undefined,
-            title: item.roleName || undefined,
-          }))
+          .map(
+            (item: {
+              userId?: string;
+              name?: string;
+              phone?: string;
+              email?: string;
+              avatarUrl?: string;
+              roleName?: string;
+            }) => ({
+              value: item.userId || '',
+              label: item.name || item.phone || item.email || item.userId || 'N/A',
+              phone: item.phone,
+              email: item.email,
+              avatarUrl: item.avatarUrl || undefined,
+              title: item.roleName || undefined,
+            }),
+          )
           .filter((item: MemberSearchItem) => Boolean(item.value));
 
         setMemberResults(mapped);
@@ -1217,274 +1233,263 @@ export function ProductForm({
       <div className="border border-gray-200 rounded-lg p-3 space-y-3">
         <h3 className="text-sm font-semibold text-gray-900">Thông tin liên hệ</h3>
 
-              {/* Contact table */}
-              {contacts.length > 0 && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm table-fixed">
-                    <colgroup>
-                      <col className="w-[80px]" />
-                      <col className="w-[28%]" />
-                      <col className="w-[18%]" />
-                      <col className="w-[18%]" />
-                      <col className="w-[18%]" />
-                      <col className="w-[44px]" />
-                    </colgroup>
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-600">
-                          Hình đại diện
-                        </th>
-                        <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
-                          Tên liên hệ
-                        </th>
-                        <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
-                          Chức vụ
-                        </th>
-                        <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
-                          Số điện thoại
-                        </th>
-                        <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
-                          Zalo
-                        </th>
-                        <th className="w-8" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contacts.map((contact, i) => (
-                        <tr key={i} className="border-b border-gray-100 last:border-0">
-                          <td className="px-3 py-2.5">
-                            <div className="relative w-10 h-10 mx-auto">
-                              {contact.imageUrl ? (
-                                <img
-                                  src={contact.imageUrl}
-                                  alt={contact.name}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gray-200" />
-                              )}
-                              {!isReadOnly && (
-                                <label className="absolute -right-1 -bottom-1 inline-flex items-center justify-center w-6 h-6 rounded-full border border-white bg-amber-600 text-white shadow-sm hover:bg-amber-700 cursor-pointer">
-                                  {uploadingContactIndex === i ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <Camera className="w-3 h-3" />
-                                  )}
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0] ?? null;
-                                      void handleContactAvatarUpload(i, file);
-                                      e.currentTarget.value = '';
-                                    }}
-                                  />
-                                </label>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <input
-                              type="text"
-                              value={contact.name || ''}
-                              onChange={(e) => updateContact(i, 'name', e.target.value)}
-                              disabled={isReadOnly}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
-                              placeholder="Tên liên hệ"
-                            />
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <input
-                              type="text"
-                              value={contact.title || ''}
-                              onChange={(e) => updateContact(i, 'title', e.target.value)}
-                              disabled={isReadOnly}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
-                              placeholder="Chức vụ"
-                            />
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <input
-                              type="text"
-                              value={contact.phone || ''}
-                              onChange={(e) => updateContact(i, 'phone', e.target.value)}
-                              disabled={isReadOnly}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
-                              placeholder="Số điện thoại"
-                            />
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <input
-                              type="text"
-                              value={contact.zaloPhone || ''}
-                              onChange={(e) => updateContact(i, 'zaloPhone', e.target.value)}
-                              disabled={isReadOnly}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
-                              placeholder="Số zalo"
-                            />
-                          </td>
-                          <td className="px-3 py-2.5 text-center">
-                            {!isReadOnly && (
-                              <button
-                                type="button"
-                                onClick={() => setDeleteContactIndex(i)}
-                                className="text-red-400 hover:text-red-600"
-                                aria-label="Xóa"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Add contact form */}
-              {!isReadOnly && (
-                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Chọn nhân sự
-                      </label>
-                      <div className="relative" ref={memberDropdownRef}>
-                        <div className="rounded border border-gray-300 px-2 py-1.5 bg-white">
-                          <div className="flex items-center gap-2">
-                            <Search className="h-3.5 w-3.5 text-gray-400" />
-                            <input
-                              type="text"
-                              value={memberKeyword}
-                              onChange={(e) => {
-                                setMemberKeyword(e.target.value);
-                                setIsMemberDropdownOpen(true);
-                              }}
-                              onFocus={() => setIsMemberDropdownOpen(true)}
-                              placeholder="Tìm theo tên, SĐT, email để thêm"
-                              className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400 bg-white"
-                            />
-                            <ChevronDown
-                              className={cn(
-                                'h-3.5 w-3.5 text-gray-400 transition-transform flex-shrink-0',
-                                isMemberDropdownOpen && 'rotate-180',
-                              )}
-                            />
-                          </div>
-                        </div>
-
-                        {isMemberDropdownOpen && (
-                          <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
-                            {isSearchingMembers ? (
-                              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Đang tìm nhân sự...
-                              </div>
-                            ) : memberResults.length > 0 ? (
-                              memberResults.map((member) => {
-                                const exists = contacts.some(
-                                  (c) =>
-                                    (c.name || '').trim().toLowerCase() ===
-                                      member.label.trim().toLowerCase() &&
-                                    (c.phone || '').trim() === (member.phone || '').trim(),
-                                );
-
-                                return (
-                                  <button
-                                    key={member.value}
-                                    type="button"
-                                    onClick={() => addContactFromMember(member)}
-                                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
-                                  >
-                                    <div className="min-w-0">
-                                      <p className="truncate font-medium">{member.label}</p>
-                                      <p className="truncate text-xs text-gray-500">
-                                        SĐT: {member.phone || '---'} | Email:{' '}
-                                        {member.email || '---'}
-                                      </p>
-                                    </div>
-                                    {exists && (
-                                      <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />
-                                    )}
-                                  </button>
-                                );
-                              })
+        {/* Contact table */}
+        {contacts.length > 0 && (
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[80px]" />
+                <col className="w-[28%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[44px]" />
+              </colgroup>
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-600">
+                    Hình đại diện
+                  </th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                    Tên liên hệ
+                  </th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                    Chức vụ
+                  </th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">
+                    Số điện thoại
+                  </th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-600">Zalo</th>
+                  <th className="w-8" />
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.map((contact, i) => (
+                  <tr key={i} className="border-b border-gray-100 last:border-0">
+                    <td className="px-3 py-2.5">
+                      <div className="relative w-10 h-10 mx-auto">
+                        {contact.imageUrl ? (
+                          <img
+                            src={contact.imageUrl}
+                            alt={contact.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200" />
+                        )}
+                        {!isReadOnly && (
+                          <label className="absolute -right-1 -bottom-1 inline-flex items-center justify-center w-6 h-6 rounded-full border border-white bg-amber-600 text-white shadow-sm hover:bg-amber-700 cursor-pointer">
+                            {uploadingContactIndex === i ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <div className="px-3 py-2 text-sm text-gray-500">
-                                Không tìm thấy nhân sự phù hợp
-                              </div>
+                              <Camera className="w-3 h-3" />
                             )}
-                          </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] ?? null;
+                                void handleContactAvatarUpload(i, file);
+                                e.currentTarget.value = '';
+                              }}
+                            />
+                          </label>
                         )}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 py-1">
-                      <div className="h-px flex-1 bg-gray-200" />
-                      <span className="text-xs font-medium text-gray-500">Hoặc</span>
-                      <div className="h-px flex-1 bg-gray-200" />
-                    </div>
-
-                    <input
-                      type="text"
-                      value={newContactForm.name}
-                      onChange={(e) =>
-                        setNewContactForm({ ...newContactForm, name: e.target.value })
-                      }
-                      placeholder="Tên liên hệ"
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
-                    />
-                    <div className="grid grid-cols-4 gap-2">
+                    </td>
+                    <td className="px-3 py-2.5">
                       <input
                         type="text"
-                        value={newContactForm.title || ''}
-                        onChange={(e) =>
-                          setNewContactForm({ ...newContactForm, title: e.target.value })
-                        }
+                        value={contact.name || ''}
+                        onChange={(e) => updateContact(i, 'name', e.target.value)}
+                        disabled={isReadOnly}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
+                        placeholder="Tên liên hệ"
+                      />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <input
+                        type="text"
+                        value={contact.title || ''}
+                        onChange={(e) => updateContact(i, 'title', e.target.value)}
+                        disabled={isReadOnly}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
                         placeholder="Chức vụ"
-                        className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                       />
+                    </td>
+                    <td className="px-3 py-2.5">
                       <input
                         type="text"
-                        value={newContactForm.phone || ''}
-                        onChange={(e) =>
-                          setNewContactForm((prev) => {
-                            const prevPhone = (prev.phone || '').trim();
-                            const prevZalo = (prev.zaloPhone || '').trim();
-                            const nextPhone = e.target.value;
-                            const shouldSyncZalo = !prevZalo || prevZalo === prevPhone;
-                            return {
-                              ...prev,
-                              phone: nextPhone,
-                              ...(shouldSyncZalo ? { zaloPhone: nextPhone } : {}),
-                            };
-                          })
-                        }
+                        value={contact.phone || ''}
+                        onChange={(e) => updateContact(i, 'phone', e.target.value)}
+                        disabled={isReadOnly}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
                         placeholder="Số điện thoại"
-                        className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                       />
+                    </td>
+                    <td className="px-3 py-2.5">
                       <input
                         type="text"
-                        value={newContactForm.zaloPhone || ''}
-                        onChange={(e) =>
-                          setNewContactForm({ ...newContactForm, zaloPhone: e.target.value })
-                        }
+                        value={contact.zaloPhone || ''}
+                        onChange={(e) => updateContact(i, 'zaloPhone', e.target.value)}
+                        disabled={isReadOnly}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:bg-gray-50"
                         placeholder="Số zalo"
-                        className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                       />
-                      <button
-                        type="button"
-                        onClick={addContact}
-                        className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors flex items-center justify-center"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteContactIndex(i)}
+                          className="text-red-400 hover:text-red-600"
+                          aria-label="Xóa"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Add contact form */}
+        {!isReadOnly && (
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Chọn nhân sự</label>
+                <div className="relative" ref={memberDropdownRef}>
+                  <div className="rounded border border-gray-300 px-2 py-1.5 bg-white">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-3.5 w-3.5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={memberKeyword}
+                        onChange={(e) => {
+                          setMemberKeyword(e.target.value);
+                          setIsMemberDropdownOpen(true);
+                        }}
+                        onFocus={() => setIsMemberDropdownOpen(true)}
+                        placeholder="Tìm theo tên, SĐT, email để thêm"
+                        className="w-full border-none p-0 text-sm outline-none placeholder:text-gray-400 bg-white"
+                      />
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 text-gray-400 transition-transform flex-shrink-0',
+                          isMemberDropdownOpen && 'rotate-180',
+                        )}
+                      />
                     </div>
                   </div>
+
+                  {isMemberDropdownOpen && (
+                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
+                      {isSearchingMembers ? (
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang tìm nhân sự...
+                        </div>
+                      ) : memberResults.length > 0 ? (
+                        memberResults.map((member) => {
+                          const exists = contacts.some(
+                            (c) =>
+                              (c.name || '').trim().toLowerCase() ===
+                                member.label.trim().toLowerCase() &&
+                              (c.phone || '').trim() === (member.phone || '').trim(),
+                          );
+
+                          return (
+                            <button
+                              key={member.value}
+                              type="button"
+                              onClick={() => addContactFromMember(member)}
+                              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate font-medium">{member.label}</p>
+                                <p className="truncate text-xs text-gray-500">
+                                  SĐT: {member.phone || '---'} | Email: {member.email || '---'}
+                                </p>
+                              </div>
+                              {exists && <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          Không tìm thấy nhân sự phù hợp
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              <div className="flex items-center gap-2 py-1">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-xs font-medium text-gray-500">Hoặc</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+
+              <input
+                type="text"
+                value={newContactForm.name}
+                onChange={(e) => setNewContactForm({ ...newContactForm, name: e.target.value })}
+                placeholder="Tên liên hệ"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
+              />
+              <div className="grid grid-cols-4 gap-2">
+                <input
+                  type="text"
+                  value={newContactForm.title || ''}
+                  onChange={(e) => setNewContactForm({ ...newContactForm, title: e.target.value })}
+                  placeholder="Chức vụ"
+                  className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
+                />
+                <input
+                  type="text"
+                  value={newContactForm.phone || ''}
+                  onChange={(e) =>
+                    setNewContactForm((prev) => {
+                      const prevPhone = (prev.phone || '').trim();
+                      const prevZalo = (prev.zaloPhone || '').trim();
+                      const nextPhone = e.target.value;
+                      const shouldSyncZalo = !prevZalo || prevZalo === prevPhone;
+                      return {
+                        ...prev,
+                        phone: nextPhone,
+                        ...(shouldSyncZalo ? { zaloPhone: nextPhone } : {}),
+                      };
+                    })
+                  }
+                  placeholder="Số điện thoại"
+                  className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
+                />
+                <input
+                  type="text"
+                  value={newContactForm.zaloPhone || ''}
+                  onChange={(e) =>
+                    setNewContactForm({ ...newContactForm, zaloPhone: e.target.value })
+                  }
+                  placeholder="Số zalo"
+                  className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={addContact}
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors flex items-center justify-center"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <BaseImagePreviewDialog

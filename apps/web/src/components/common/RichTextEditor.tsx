@@ -47,8 +47,6 @@ import {
   Split,
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon,
-  Palette,
-  Eraser,
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -604,59 +602,59 @@ export function RichTextEditor({
         tippyOptions={{ duration: 100, placement: 'top' }}
         shouldShow={({ editor: ed }) => !isSourceMode && !ed.state.selection.empty}
       >
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1.5">
-            <span className="text-[10px] text-gray-400 mr-1 select-none">Màu:</span>
-            {TEXT_COLORS.map((item) => {
-              const isActive = item.value
-                ? (currentColor ?? '').toLowerCase() === item.value.toLowerCase()
-                : !currentColor;
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1.5">
+          <span className="text-[10px] text-gray-400 mr-1 select-none">Màu:</span>
+          {TEXT_COLORS.map((item) => {
+            const isActive = item.value
+              ? (currentColor ?? '').toLowerCase() === item.value.toLowerCase()
+              : !currentColor;
 
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    if (item.value) {
-                      editor.chain().focus().setColor(item.value).run();
-                    } else {
-                      editor.chain().focus().unsetColor().run();
-                    }
-                  }}
-                  disabled={disabled}
-                  className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isActive
-                      ? 'border-blue-400 ring-2 ring-blue-200 scale-110'
-                      : 'border-gray-200 hover:scale-110'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  title={`Màu chữ: ${item.label}`}
-                  aria-label={`Màu chữ: ${item.label}`}
-                  style={
-                    item.value ? { backgroundColor: item.value } : { backgroundColor: '#ffffff' }
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (item.value) {
+                    editor.chain().focus().setColor(item.value).run();
+                  } else {
+                    editor.chain().focus().unsetColor().run();
                   }
-                >
-                  {!item.value && <span className="text-[9px] font-bold text-gray-500">A</span>}
-                </button>
-              );
-            })}
-            {/* Divider */}
-            <div className="w-px h-5 bg-gray-200 mx-0.5" />
+                }}
+                disabled={disabled}
+                className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                  isActive
+                    ? 'border-blue-400 ring-2 ring-blue-200 scale-110'
+                    : 'border-gray-200 hover:scale-110'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title={`Màu chữ: ${item.label}`}
+                aria-label={`Màu chữ: ${item.label}`}
+                style={
+                  item.value ? { backgroundColor: item.value } : { backgroundColor: '#ffffff' }
+                }
+              >
+                {!item.value && <span className="text-[9px] font-bold text-gray-500">A</span>}
+              </button>
+            );
+          })}
+          {/* Divider */}
+          <div className="w-px h-5 bg-gray-200 mx-0.5" />
 
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                colorInputRef.current?.click();
-              }}
-              disabled={disabled}
-              className="h-6 w-6 rounded-full border-2 border-gray-200 hover:scale-110 flex items-center justify-center transition-all bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Chọn màu tùy chỉnh"
-              aria-label="Chọn màu tùy chỉnh"
-            >
-              <Paintbrush className="h-3 w-3 text-gray-500" />
-            </button>
-          </div>
-        </BubbleMenu>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              colorInputRef.current?.click();
+            }}
+            disabled={disabled}
+            className="h-6 w-6 rounded-full border-2 border-gray-200 hover:scale-110 flex items-center justify-center transition-all bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Chọn màu tùy chỉnh"
+            aria-label="Chọn màu tùy chỉnh"
+          >
+            <Paintbrush className="h-3 w-3 text-gray-500" />
+          </button>
+        </div>
+      </BubbleMenu>
 
       {/* Editor */}
       <div

@@ -433,7 +433,7 @@ export function ProjectForm({
             label: item.label.trim(),
             detailHtml: item.detailHtml || undefined,
             videoUrl:
-              (!Array.isArray(item.videos) || item.videos.length === 0)
+              !Array.isArray(item.videos) || item.videos.length === 0
                 ? item.videoUrl?.trim() || undefined
                 : undefined,
             videos: Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
@@ -485,7 +485,7 @@ export function ProjectForm({
       bannerUrl: bannerItems[0]?.originalUrl || undefined,
       bannerUrls: toCollectionField(bannerItems),
       // Always include overviewHtml and videoDescription (even when empty) so backend always persists the current value
-      overviewHtml: overviewHtml || null,
+      overviewHtml: overviewHtml || undefined,
       zoneImageUrl: zoneItems[0]?.originalUrl || undefined,
       zoneImages: toCollectionField(zoneItems),
       productImageUrl: productItems[0]?.originalUrl || undefined,
@@ -493,7 +493,7 @@ export function ProjectForm({
       amenityImageUrl: amenityItems[0]?.originalUrl || undefined,
       amenityImages: toCollectionField(amenityItems),
       videoUrl: videoUrl || undefined,
-      videoDescription: videoDescription || null,
+      videoDescription: videoDescription || undefined,
       contacts: toCollectionField(sanitizedContacts),
       planningStats: toCollectionField(planningStats.filter((s) => s.label && s.value)),
       // NOTE: DO NOT include subdivisions, progressUpdates, documentItems here
@@ -526,10 +526,11 @@ export function ProjectForm({
               label: item.label.trim(),
               detailHtml: item.detailHtml || undefined,
               videoUrl:
-                (!Array.isArray(item.videos) || item.videos.length === 0)
+                !Array.isArray(item.videos) || item.videos.length === 0
                   ? item.videoUrl?.trim() || undefined
                   : undefined,
-              videos: Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
+              videos:
+                Array.isArray(item.videos) && item.videos.length > 0 ? item.videos : undefined,
               images: item.images && item.images.length > 0 ? item.images : undefined,
             }))
             .filter((item) => item.label.length > 0),
@@ -597,7 +598,7 @@ export function ProjectForm({
             originalUrl: item.originalUrl,
             thumbnailUrl: item.thumbnailUrl || item.originalUrl,
             description: item.description,
-          }))
+          })),
         );
       } else if (editingProject.bannerUrl) {
         setBannerItems([
@@ -617,7 +618,7 @@ export function ProjectForm({
             originalUrl: item.originalUrl,
             thumbnailUrl: item.thumbnailUrl || item.originalUrl,
             description: item.description,
-          }))
+          })),
         );
       } else if (editingProject.zoneImageUrl) {
         setZoneItems([
@@ -1674,7 +1675,7 @@ export function ProjectForm({
       let nextTowers;
       if (towerDrawerMode === 'edit' && activeTowerIndex !== null) {
         nextTowers = currentTowers.map((existingTower, towerIdx) =>
-          towerIdx === activeTowerIndex ? tower : existingTower
+          towerIdx === activeTowerIndex ? tower : existingTower,
         );
       } else {
         // Prevent duplicate: check if tower with same name exists
@@ -1815,7 +1816,11 @@ export function ProjectForm({
 
       // FIX for LOW_RISE create mode: after the first-step save, track the index of the
       // newly created subdivision so subsequent steps update it instead of appending again.
-      if (projectType === 'LOW_RISE' && towerDrawerMode === 'create' && selectedSubdivisionIndex === null) {
+      if (
+        projectType === 'LOW_RISE' &&
+        towerDrawerMode === 'create' &&
+        selectedSubdivisionIndex === null
+      ) {
         const savedSubs = saved.subdivisions ?? nextSubdivisions;
         if (savedSubs.length > 0) {
           setSelectedSubdivisionIndex(savedSubs.length - 1);
@@ -1932,9 +1937,12 @@ export function ProjectForm({
     setProgressForm({
       label: item.label || '',
       detailHtml: item.detailHtml || '',
-      videos: Array.isArray(item.videos) && item.videos.length > 0
-        ? item.videos.map((v) => ({ url: v.url, description: v.description || '' }))
-        : item.videoUrl ? [{ url: item.videoUrl, description: '' }] : [],
+      videos:
+        Array.isArray(item.videos) && item.videos.length > 0
+          ? item.videos.map((v) => ({ url: v.url, description: v.description || '' }))
+          : item.videoUrl
+            ? [{ url: item.videoUrl, description: '' }]
+            : [],
       images: Array.isArray(item.images) ? item.images : [],
     });
     setIsProgressDrawerOpen(true);
@@ -2987,19 +2995,17 @@ export function ProjectForm({
                             </div>
 
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              {projectType === 'LOW_RISE' ? (
-                                item.unitCount && (
-                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                    {item.unitCount} căn hộ
-                                  </span>
-                                )
-                              ) : (
-                                item.towerCount && (
-                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                    {item.towerCount} toà
-                                  </span>
-                                )
-                              )}
+                              {projectType === 'LOW_RISE'
+                                ? item.unitCount && (
+                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                      {item.unitCount} căn hộ
+                                    </span>
+                                  )
+                                : item.towerCount && (
+                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                      {item.towerCount} toà
+                                    </span>
+                                  )}
                             </div>
 
                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -3209,7 +3215,9 @@ export function ProjectForm({
                               )}
                               {((item.videos && item.videos.length > 0) || item.videoUrl) && (
                                 <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                  {item.videos && item.videos.length > 1 ? `${item.videos.length} video` : 'Video'}
+                                  {item.videos && item.videos.length > 1
+                                    ? `${item.videos.length} video`
+                                    : 'Video'}
                                 </span>
                               )}
                             </div>
@@ -3550,7 +3558,10 @@ export function ProjectForm({
                               }}
                               onDrop={(e) => {
                                 e.preventDefault();
-                                if (draggedProgressIndex === null || draggedProgressIndex === index) {
+                                if (
+                                  draggedProgressIndex === null ||
+                                  draggedProgressIndex === index
+                                ) {
                                   setDraggedProgressIndex(null);
                                   return;
                                 }
@@ -4382,126 +4393,126 @@ export function ProjectForm({
                 ) : null}
                 {!isLoadingProjectLocation && (
                   <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                      Vĩ độ (Latitude) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={towerForm.latitude}
-                      onChange={(e) =>
-                        setTowerForm((prev) => ({ ...prev, latitude: e.target.value }))
-                      }
-                      disabled={towerDrawerMode === 'view'}
-                      placeholder="Nhập vĩ độ"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                      Kinh độ (Longitude) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={towerForm.longitude}
-                      onChange={(e) =>
-                        setTowerForm((prev) => ({ ...prev, longitude: e.target.value }))
-                      }
-                      disabled={towerDrawerMode === 'view'}
-                      placeholder="Nhập kinh độ"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
-                  {towerCoordinatePreviewUrl ? (
-                    <iframe
-                      title="Tower coordinate preview"
-                      src={towerCoordinatePreviewUrl}
-                      className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
-                    />
-                  ) : (
-                    <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
-                        <MapPinned className="h-7 w-7 text-amber-500" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                          Vĩ độ (Latitude) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={towerForm.latitude}
+                          onChange={(e) =>
+                            setTowerForm((prev) => ({ ...prev, latitude: e.target.value }))
+                          }
+                          disabled={towerDrawerMode === 'view'}
+                          placeholder="Nhập vĩ độ"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                        />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          Chưa có tọa độ để hiển thị bản đồ
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Nhập vĩ độ và kinh độ để xem vị trí tòa nhà.
-                        </p>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                          Kinh độ (Longitude) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={towerForm.longitude}
+                          onChange={(e) =>
+                            setTowerForm((prev) => ({ ...prev, longitude: e.target.value }))
+                          }
+                          disabled={towerDrawerMode === 'view'}
+                          placeholder="Nhập kinh độ"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Google Mymap
-                  </label>
-                  <input
-                    type="text"
-                    value={towerForm.googleMapUrl}
-                    onChange={(e) =>
-                      setTowerForm((prev) => ({ ...prev, googleMapUrl: e.target.value }))
-                    }
-                    disabled={towerDrawerMode === 'view'}
-                    placeholder="Nhập link bản đồ"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
-                  />
-                </div>
-
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
-                  {towerGoogleMapPreviewUrl ? (
-                    <iframe
-                      title="Tower Google MyMap preview"
-                      src={towerGoogleMapPreviewUrl}
-                      className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
-                    />
-                  ) : (
-                    <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
-                        <MapPinned className="h-7 w-7 text-amber-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          Nhập link để hiển thị Google MyMap
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.
-                        </p>
-                      </div>
-                      {towerGoogleMapExternalUrl && (
-                        <a
-                          href={towerGoogleMapExternalUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                        >
-                          Mở liên kết bản đồ <ExternalLink className="h-4 w-4" />
-                        </a>
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                      {towerCoordinatePreviewUrl ? (
+                        <iframe
+                          title="Tower coordinate preview"
+                          src={towerCoordinatePreviewUrl}
+                          className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                        />
+                      ) : (
+                        <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                            <MapPinned className="h-7 w-7 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              Chưa có tọa độ để hiển thị bản đồ
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Nhập vĩ độ và kinh độ để xem vị trí tòa nhà.
+                            </p>
+                          </div>
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Mô tả vị trí
-                  </label>
-                  <RichTextEditor
-                    value={towerForm.locationDescriptionHtml}
-                    onChange={(value) =>
-                      setTowerForm((prev) => ({ ...prev, locationDescriptionHtml: value }))
-                    }
-                    placeholder="Nhập mô tả"
-                    disabled={towerDrawerMode === 'view'}
-                  />
-                </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        Google Mymap
+                      </label>
+                      <input
+                        type="text"
+                        value={towerForm.googleMapUrl}
+                        onChange={(e) =>
+                          setTowerForm((prev) => ({ ...prev, googleMapUrl: e.target.value }))
+                        }
+                        disabled={towerDrawerMode === 'view'}
+                        placeholder="Nhập link bản đồ"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
+                      />
+                    </div>
+
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 min-h-[220px] overflow-hidden">
+                      {towerGoogleMapPreviewUrl ? (
+                        <iframe
+                          title="Tower Google MyMap preview"
+                          src={towerGoogleMapPreviewUrl}
+                          className="h-[190px] w-full rounded-lg border border-gray-200 bg-white"
+                        />
+                      ) : (
+                        <div className="flex h-[190px] flex-col items-center justify-center gap-3 text-center text-gray-500">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                            <MapPinned className="h-7 w-7 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              Nhập link để hiển thị Google MyMap
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Hỗ trợ tốt nhất với link chia sẻ hoặc embed của Google My Maps.
+                            </p>
+                          </div>
+                          {towerGoogleMapExternalUrl && (
+                            <a
+                              href={towerGoogleMapExternalUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                            >
+                              Mở liên kết bản đồ <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        Mô tả vị trí
+                      </label>
+                      <RichTextEditor
+                        value={towerForm.locationDescriptionHtml}
+                        onChange={(value) =>
+                          setTowerForm((prev) => ({ ...prev, locationDescriptionHtml: value }))
+                        }
+                        placeholder="Nhập mô tả"
+                        disabled={towerDrawerMode === 'view'}
+                      />
+                    </div>
                   </>
                 )}
               </>

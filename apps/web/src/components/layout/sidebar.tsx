@@ -46,14 +46,16 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 border-r border-gray-200 bg-white flex flex-col h-full">
+    <aside className="w-64 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
             <Building2 className="h-4 w-4 text-white" />
           </div>
-          <span className="font-semibold text-gray-900 text-sm">PropCart CRM</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+            PropCart CRM
+          </span>
         </div>
       </div>
 
@@ -66,8 +68,8 @@ export function Sidebar() {
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
               pathname === href
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
             )}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
@@ -78,7 +80,7 @@ export function Sidebar() {
         {isAdminOrOwner && (
           <>
             <div className="pt-3 pb-1">
-              <p className="text-xs font-medium text-gray-400 px-3 uppercase tracking-wider">
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 px-3 uppercase tracking-wider">
                 {t('sidebar.management')}
               </p>
             </div>
@@ -89,8 +91,8 @@ export function Sidebar() {
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   pathname === href
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
                 )}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
@@ -102,10 +104,10 @@ export function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="p-3 border-t border-gray-200">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={() => logout()}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         >
           <LogOut className="h-4 w-4" />
           {t('sidebar.logout')}

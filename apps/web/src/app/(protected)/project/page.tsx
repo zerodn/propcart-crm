@@ -33,6 +33,18 @@ const SALE_STATUS_COLOR: Record<string, string> = {
   SOLD_OUT: 'bg-gray-100 text-gray-600',
 };
 
+const DISPLAY_STATUS_LABEL: Record<string, string> = {
+  PUBLISHED: 'Công khai',
+  DRAFT: 'Bản nháp',
+  HIDDEN: 'Ẩn',
+};
+
+const DISPLAY_STATUS_COLOR: Record<string, string> = {
+  PUBLISHED: 'bg-green-100 text-green-700',
+  DRAFT: 'bg-yellow-100 text-yellow-700',
+  HIDDEN: 'bg-red-100 text-red-700',
+};
+
 const PROJECT_TYPE_LABEL: Record<string, string> = {
   LOW_RISE: 'Dự án thấp tầng',
   HIGH_RISE: 'Dự án cao tầng',
@@ -52,6 +64,16 @@ function ProjectTypeBadge({ type }: { type: string }) {
   return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
       {PROJECT_TYPE_LABEL[type] ?? type}
+    </span>
+  );
+}
+
+function DisplayStatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      className={`text-xs font-medium px-2 py-0.5 rounded-full ${DISPLAY_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'}`}
+    >
+      {DISPLAY_STATUS_LABEL[status] ?? status}
     </span>
   );
 }
@@ -349,32 +371,23 @@ export default function ProjectPage() {
     // Deep copy all project data
     const payload: CreateProjectPayload = {
       projectType: sourceProject.projectType,
-      ownerId: sourceProject.ownerId,
+      ownerId: sourceProject.ownerId ?? undefined,
       saleStatus: sourceProject.saleStatus,
       displayStatus: sourceProject.displayStatus,
       name: newProjectName,
-      address: sourceProject.address,
-      province: sourceProject.province,
-      district: sourceProject.district,
-      ward: sourceProject.ward,
-      latitude: sourceProject.latitude,
-      longitude: sourceProject.longitude,
-      googleMapUrl: sourceProject.googleMapUrl,
-      locationDescriptionHtml: sourceProject.locationDescriptionHtml,
-      videoUrl: sourceProject.videoUrl,
-      overviewHtml: sourceProject.overviewHtml,
-      videoDescription: sourceProject.videoDescription,
-      bannerUrl: sourceProject.bannerUrl,
+      address: sourceProject.address ?? undefined,
+      province: sourceProject.province ?? undefined,
+      district: sourceProject.district ?? undefined,
+      ward: sourceProject.ward ?? undefined,
+      latitude: sourceProject.latitude ?? undefined,
+      longitude: sourceProject.longitude ?? undefined,
+      googleMapUrl: sourceProject.googleMapUrl ?? undefined,
+      locationDescriptionHtml: sourceProject.locationDescriptionHtml ?? undefined,
+      videoUrl: sourceProject.videoUrl ?? undefined,
+      overviewHtml: sourceProject.overviewHtml ?? undefined,
+      videoDescription: sourceProject.videoDescription ?? undefined,
+      bannerUrl: sourceProject.bannerUrl ?? undefined,
       // Deep copy arrays
-      amenities: sourceProject.amenities
-        ? sourceProject.amenities.map((item) => ({ ...item }))
-        : undefined,
-      zones: sourceProject.zones
-        ? sourceProject.zones.map((item) => ({ ...item }))
-        : undefined,
-      products: sourceProject.products
-        ? sourceProject.products.map((item) => ({ ...item }))
-        : undefined,
       amenityImages: sourceProject.amenityImages
         ? sourceProject.amenityImages.map((item) => ({ ...item }))
         : undefined,
@@ -432,8 +445,11 @@ export default function ProjectPage() {
         ? sourceProject.progressUpdates.map((item) => ({
             label: item.label,
             detailHtml: item.detailHtml,
-            videos: Array.isArray(item.videos) ? [...item.videos]
-              : item.videoUrl ? [{ url: item.videoUrl }] : undefined,
+            videos: Array.isArray(item.videos)
+              ? [...item.videos]
+              : item.videoUrl
+                ? [{ url: item.videoUrl }]
+                : undefined,
             images: Array.isArray(item.images) ? [...item.images] : item.images,
           }))
         : undefined,
@@ -516,6 +532,7 @@ export default function ProjectPage() {
                   <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
                     <SaleStatusBadge status={project.saleStatus} />
                     <ProjectTypeBadge type={project.projectType} />
+                    <DisplayStatusBadge status={project.displayStatus} />
                   </div>
 
                   <div className="absolute top-2 right-2">

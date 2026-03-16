@@ -28,6 +28,28 @@
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
   }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 217.2 32.6% 17.5%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217.2 32.6% 17.5%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 27.9% 33.3%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217.2 91.2% 59.8%;
+  }
 }
 
 @layer base {
@@ -38,3 +60,59 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* =================================================================
+   Global Dark Mode — auto-applies to ALL components using standard
+   Tailwind gray/white classes, no need to touch each component.
+   ================================================================= */
+
+/* Backgrounds */
+.dark .bg-white { background-color: rgb(17 24 39) !important; }       /* gray-900 */
+.dark .bg-gray-50 { background-color: rgb(11 15 25) !important; }     /* near gray-950 */
+.dark .bg-gray-100 { background-color: rgb(31 41 55) !important; }    /* gray-800 */
+.dark .bg-gray-200 { background-color: rgb(55 65 81) !important; }    /* gray-700 */
+
+/* Text */
+.dark .text-gray-900 { color: rgb(249 250 251) !important; }          /* gray-50 */
+.dark .text-gray-800 { color: rgb(243 244 246) !important; }          /* gray-100 */
+.dark .text-gray-700 { color: rgb(209 213 219) !important; }          /* gray-300 */
+.dark .text-gray-600 { color: rgb(156 163 175) !important; }          /* gray-400 */
+.dark .text-gray-500 { color: rgb(107 114 128) !important; }          /* gray-500 (neutral) */
+.dark .text-gray-400 { color: rgb(75 85 99) !important; }             /* gray-600 */
+
+/* Borders */
+.dark .border-gray-200 { border-color: rgb(55 65 81) !important; }    /* gray-700 */
+.dark .border-gray-100 { border-color: rgb(31 41 55) !important; }    /* gray-800 */
+.dark .border-gray-300 { border-color: rgb(75 85 99) !important; }    /* gray-600 */
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover { background-color: rgb(31 41 55) !important; }   /* gray-800 */
+.dark .hover\:bg-gray-100:hover { background-color: rgb(55 65 81) !important; }  /* gray-700 */
+.dark .hover\:text-gray-900:hover { color: rgb(249 250 251) !important; }
+
+/* Input / select / textarea */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark textarea,
+.dark select {
+  background-color: rgb(31 41 55);   /* gray-800 */
+  color: rgb(229 231 235);           /* gray-200 */
+  border-color: rgb(55 65 81);       /* gray-700 */
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(107 114 128);           /* gray-500 */
+}
+.dark input:focus:not([type="checkbox"]):not([type="radio"]),
+.dark textarea:focus,
+.dark select:focus {
+  outline-color: rgb(99 102 241);
+  border-color: rgb(99 102 241);
+}
+
+/* Dividers */
+.dark hr { border-color: rgb(55 65 81); }
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track { background: rgb(17 24 39); }
+.dark ::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }

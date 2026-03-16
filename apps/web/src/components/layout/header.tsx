@@ -6,6 +6,7 @@ import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 
 export function Header() {
@@ -16,12 +17,12 @@ export function Header() {
   const { t } = useI18n();
 
   return (
-    <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6">
+    <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 dark:border-gray-700 dark:bg-gray-900">
       <div>
-        <h1 className="text-sm font-semibold text-gray-900 max-w-[220px] sm:max-w-[320px] truncate">
+        <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100 max-w-[220px] sm:max-w-[320px] truncate">
           {workspace?.name}
         </h1>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {workspace?.type === 'COMPANY'
             ? t('header.workspaceCompany')
             : t('header.workspacePersonal')}
@@ -31,6 +32,8 @@ export function Header() {
       <div className="flex items-center gap-3">
         {/* Language switcher */}
         <LanguageSwitcher />
+        {/* Theme toggle */}
+        <ThemeToggle />
         {/* Notification bell */}
         <button
           aria-label="notifications"

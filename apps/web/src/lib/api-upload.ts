@@ -44,10 +44,7 @@ export async function uploadFileToTemp(file: File, accessToken?: string): Promis
  * Upload project image to permanent storage
  * Stored at {workspaceId}/properties/{date}/{uuid}.{ext} — never deleted by cleanup
  */
-export async function uploadProjectImage(
-  workspaceId: string,
-  file: File,
-): Promise<string | null> {
+export async function uploadProjectImage(workspaceId: string, file: File): Promise<string | null> {
   try {
     const formData = new FormData();
     formData.append('file', file);
