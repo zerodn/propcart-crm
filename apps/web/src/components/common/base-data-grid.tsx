@@ -163,37 +163,23 @@ export function BaseDataGrid<T extends object>({
     </div>
   ) : null;
 
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {headerSection}
-        <div className="animate-pulse">
-          <div className="h-12 bg-gray-100 border-b border-gray-200" />
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-14 bg-white border-b border-gray-100" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (data.length === 0 && !showTableWhenEmpty) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {headerSection}
-        <div className="p-12 text-center">
-          {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
-          <p className="text-gray-500 text-sm">{emptyMessage}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {headerSection}
+        {isLoading ? (
+          <div className="animate-pulse">
+            <div className="h-12 bg-gray-100 border-b border-gray-200" />
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-14 bg-white border-b border-gray-100" />
+            ))}
+          </div>
+        ) : data.length === 0 && !showTableWhenEmpty ? (
+          <div className="p-12 text-center">
+            {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
+            <p className="text-gray-500 text-sm">{emptyMessage}</p>
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -334,10 +320,11 @@ export function BaseDataGrid<T extends object>({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
           <div className="text-sm text-gray-600">
             Hiển thị{' '}
