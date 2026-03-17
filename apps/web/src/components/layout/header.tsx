@@ -4,14 +4,13 @@ import { useAuth } from '@/providers/auth-provider';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useI18n } from '@/providers/i18n-provider';
 import { usePageConfig } from '@/providers/page-provider';
-import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 
 export function Header() {
-  const { role } = useAuth();
+  const { workspace } = useAuth();
   const { unreadCount } = useNotifications();
   const { t } = useI18n();
   const { config } = usePageConfig();
@@ -69,16 +68,6 @@ export function Header() {
             </span>
           )}
         </button>
-        {role && (
-          <span
-            className={cn(
-              'text-xs font-medium px-2.5 py-1 rounded-full',
-              ROLE_COLORS[role] ?? 'bg-gray-100 text-gray-600',
-            )}
-          >
-            {ROLE_LABELS[role] ?? role}
-          </span>
-        )}
         <ProfileMenu />
       </div>
     </header>

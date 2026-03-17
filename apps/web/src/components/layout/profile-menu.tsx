@@ -5,10 +5,11 @@ import { ChevronDown, LogOut, UserCircle2, Building2, User } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import { useI18n } from '@/providers/i18n-provider';
+import { ROLE_LABELS } from '@/types';
 import Link from 'next/link';
 
 export function ProfileMenu() {
-  const { user, workspace, switchWorkspace, logout } = useAuth();
+  const { user, workspace, role, switchWorkspace, logout } = useAuth();
   const { workspaces } = useWorkspaces();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -70,6 +71,9 @@ export function ProfileMenu() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email || user?.phone}</p>
+                {role && (
+                  <p className="text-xs text-gray-400 mt-1">{ROLE_LABELS[role] ?? role}</p>
+                )}
               </div>
             </div>
           </div>

@@ -38,12 +38,11 @@ export function LanguageSwitcher() {
     <div ref={wrapperRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 hover:text-gray-900"
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm"
         aria-label="Toggle language menu"
         aria-expanded={isOpen}
       >
         <span className="text-lg">{currentLang?.flag}</span>
-        <span className="hidden sm:inline">{currentLang?.label}</span>
         <svg
           className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24"
