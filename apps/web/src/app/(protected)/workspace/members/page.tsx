@@ -75,13 +75,22 @@ export default function MembersPage() {
     title: t('members.title'),
     subtitle: t('members.subtitle'),
     actions: isAdminOrOwner ? (
-      <button
-        onClick={() => setShowInviteModal(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        <UserPlus className="h-4 w-4" />
-        {t('members.invite')}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setShowAddDialog(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <UserPlus className="h-4 w-4" />
+          Thêm nhân sự
+        </button>
+        <button
+          onClick={() => setShowInviteModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <UserPlus className="h-4 w-4" />
+          {t('members.invite')}
+        </button>
+      </div>
     ) : undefined,
   });
 
@@ -280,13 +289,6 @@ export default function MembersPage() {
         headerActions={
           isAdminOrOwner ? (
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAddDialog(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                Thêm nhân sự
-              </button>
               <button
                 onClick={() => setShowImportDialog(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
