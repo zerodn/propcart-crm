@@ -78,10 +78,48 @@
     "switchError": "Không thể chuyển workspace",
     "personal": "Cá nhân",
     "company": "Doanh nghiệp",
+    "personalType": "Cá nhân",
+    "companyType": "Doanh nghiệp",
     "createNew": "Tạo workspace mới"
+  },
+  "dashboard": {
+    "title": "Tổng quan",
+    "greeting": "Xin chào, {phone}",
+    "quickActionsTitle": "Thao tác nhanh",
+    "workspacesListLabel": "Workspace",
+    "workspacesListDesc": "Quản lý workspace của bạn",
+    "invitationsLabel": "Lời mời",
+    "invitationsDesc": "Xem lời mời tham gia",
+    "membersLabel": "Nhân sự",
+    "membersDesc": "Quản lý nhân sự workspace"
+  },
+  "workspaces": {
+    "title": "Workspace của tôi",
+    "subtitle": "Chuyển đổi giữa các workspace",
+    "emptyState": "Bạn chưa có workspace nào"
+  },
+  "permissions": {
+    "title": "Phân quyền",
+    "subtitle": "Quản lý phân quyền theo vai trò"
+  },
+  "department": {
+    "title": "Phòng ban",
+    "subtitle": "Quản lý phòng ban workspace",
+    "addBtn": "Tạo phòng ban",
+    "addTitle": "Tạo phòng ban mới",
+    "editTitle": "Sửa phòng ban"
+  },
+  "catalog": {
+    "title": "Danh mục",
+    "subtitle": "Quản lý danh mục hệ thống"
   },
   "invitations": {
     "title": "Lời mời",
+    "subtitle": "Lời mời tham gia workspace",
+    "emptyTitle": "Không có lời mời nào",
+    "emptyDesc": "Bạn chưa nhận được lời mời tham gia workspace nào",
+    "pendingTitle": "Đang chờ xử lý",
+    "historyTitle": "Lịch sử",
     "accept": "Chấp nhận",
     "decline": "Từ chối",
     "declineReasonPlaceholder": "Lý do từ chối (tùy chọn)",
