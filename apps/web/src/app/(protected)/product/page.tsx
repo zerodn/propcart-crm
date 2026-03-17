@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Loader2, Plus, Eye } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { useProduct, PropertyProduct } from '@/hooks/use-product';
 import { useWarehouse } from '@/hooks/use-warehouse';
 import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
@@ -48,6 +49,23 @@ export default function ProductPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
+
+  usePageSetup({
+    title: 'Quản lý sản phẩm',
+    subtitle: 'Quản lý danh sách sản phẩm bất động sản',
+    actions: (
+      <button
+        onClick={() => {
+          setEditingId(null);
+          setShowForm(true);
+        }}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <Plus className="h-4 w-4" />
+        Tạo sản phẩm
+      </button>
+    ),
+  });
 
   const editingProduct = products.find((p) => p.id === editingId);
   const detailsProduct = products.find((p) => p.id === detailsId);
@@ -254,28 +272,6 @@ export default function ProductPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <Box className="h-5 w-5 text-indigo-600" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">Quản lý sản phẩm</h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">Quản lý danh sách sản phẩm bất động sản</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingId(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Tạo sản phẩm
-        </button>
-      </div>
-
       <BaseDataGrid
         data={products}
         columns={columns}

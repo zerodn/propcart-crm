@@ -2,6 +2,7 @@
 
 import { Building2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import { WorkspaceCard } from '@/components/workspace/workspace-card';
 import { GridSkeleton } from '@/components/common/skeleton';
@@ -10,13 +11,10 @@ export default function WorkspacesPage() {
   const { t } = useI18n();
   const { workspaces, isLoading, error } = useWorkspaces();
 
+  usePageSetup({ title: t('workspaces.title'), subtitle: t('workspaces.subtitle') });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">{t('workspaces.title')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{t('workspaces.subtitle')}</p>
-      </div>
-
       {isLoading && <GridSkeleton cols={3} rows={1} />}
 
       {error && (

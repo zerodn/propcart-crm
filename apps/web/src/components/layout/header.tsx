@@ -3,6 +3,7 @@
 import { useAuth } from '@/providers/auth-provider';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageConfig } from '@/providers/page-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -10,38 +11,41 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 
 export function Header() {
-  const { workspace, role } = useAuth();
-
-  // TODO: wire language switcher + notifications
+  const { role } = useAuth();
   const { unreadCount } = useNotifications();
   const { t } = useI18n();
+  const { config } = usePageConfig();
 
   return (
-    <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 dark:border-gray-700 dark:bg-gray-900">
-      <div>
-        <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100 max-w-[220px] sm:max-w-[320px] truncate">
-          {workspace?.name}
-        </h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {workspace?.type === 'COMPANY'
-            ? t('header.workspaceCompany')
-            : t('header.workspacePersonal')}
-        </p>
+    <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 flex-shrink-0 dark:border-gray-700 dark:bg-gray-900">
+      {/* Left: Page title from context */}
+      <div className="min-w-0">
+        {config.title ? (
+          <>
+            <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+              {config.title}
+            </h1>
+            {config.subtitle && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{config.subtitle}</p>
+            )}
+          </>
+        ) : (
+          <div className="h-5" />
+        )}
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Language switcher */}
+      {/* Right: Utilities */}
+      <div className="flex items-center gap-3 flex-shrink-0">
         <LanguageSwitcher />
-        {/* Theme toggle */}
         <ThemeToggle />
         {/* Notification bell */}
         <button
-          aria-label="notifications"
-          className="relative p-1 rounded hover:bg-gray-100"
+          aria-label={t('sidebar.notifications')}
+          className="relative p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           onClick={() => (location.href = '/invitations')}
         >
           <svg
-            className="w-5 h-5 text-gray-600"
+            className="w-5 h-5 text-gray-600 dark:text-gray-400"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -59,9 +63,11 @@ export function Header() {
               strokeLinejoin="round"
             />
           </svg>
-          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-            {unreadCount}
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+              {unreadCount}
+            </span>
+          )}
         </button>
         {role && (
           <span

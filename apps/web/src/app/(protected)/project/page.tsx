@@ -14,6 +14,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { getAccessToken } from '@/lib/auth';
 import { useProject, Project, CreateProjectPayload } from '@/hooks/use-project';
 import { useCatalog } from '@/hooks/use-catalog';
@@ -280,6 +281,28 @@ export default function ProjectPage() {
     setShowTypeDialog(true);
   };
 
+  usePageSetup({
+    title: 'Dự án',
+    subtitle: 'Quản lý danh sách dự án bất động sản',
+    actions: (
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-800"
+        >
+          <Filter className="w-3.5 h-3.5" /> Bộ lọc
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenCreate}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Thêm mới
+        </button>
+      </div>
+    ),
+  });
+
   const handleTypeConfirm = (type: 'LOW_RISE' | 'HIGH_RISE') => {
     setEditingProject(draftByType[type] ?? null);
     setSelectedType(type);
@@ -474,92 +497,65 @@ export default function ProjectPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-        <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-gray-600" />
-          Dự án
-        </h1>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Thêm mới
-        </button>
-      </div>
-
-      <div className="flex items-center px-6 py-3 border-b border-gray-100 flex-shrink-0">
-        <button
-          type="button"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Filter className="w-3.5 h-3.5" /> Bộ lọc
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-60">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-gray-400 gap-3">
-            <FolderOpen className="w-12 h-12 text-gray-300" />
-            <p className="text-sm font-medium">Chưa có dự án nào</p>
-            <p className="text-xs">Nhấn "+ Thêm mới" để tạo dự án đầu tiên</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="relative h-44 bg-gray-100">
-                  {project.bannerUrl ? (
-                    <img
-                      src={project.bannerUrl}
-                      alt={project.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Building2 className="w-12 h-12 text-gray-300" />
-                    </div>
-                  )}
-
-                  <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
-                    <SaleStatusBadge status={project.saleStatus} />
-                    <ProjectTypeBadge type={project.projectType} />
-                    <DisplayStatusBadge status={project.displayStatus} />
+    <div className="space-y-6">
+      {isLoading ? (
+        <div className="flex items-center justify-center h-60">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-60 text-gray-400 gap-3">
+          <FolderOpen className="w-12 h-12 text-gray-300" />
+          <p className="text-sm font-medium">Chưa có dự án nào</p>
+          <p className="text-xs">Nhấn "+ Thêm mới" để tạo dự án đầu tiên</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="relative h-44 bg-gray-100">
+                {project.bannerUrl ? (
+                  <img
+                    src={project.bannerUrl}
+                    alt={project.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Building2 className="w-12 h-12 text-gray-300" />
                   </div>
+                )}
 
-                  <div className="absolute top-2 right-2">
-                    <CardMenu
-                      onView={() => {}}
-                      onEdit={() => handleOpenEdit(project)}
-                      onCopy={() => setCopyId(project.id)}
-                      onDelete={() => setDeleteId(project.id)}
-                    />
-                  </div>
+                <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
+                  <SaleStatusBadge status={project.saleStatus} />
+                  <ProjectTypeBadge type={project.projectType} />
+                  <DisplayStatusBadge status={project.displayStatus} />
                 </div>
 
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 text-sm truncate">{project.name}</h3>
-                  {(project.ward || project.district || project.province) && (
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">
-                      {[project.ward, project.district, project.province]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </p>
-                  )}
+                <div className="absolute top-2 right-2">
+                  <CardMenu
+                    onView={() => {}}
+                    onEdit={() => handleOpenEdit(project)}
+                    onCopy={() => setCopyId(project.id)}
+                    onDelete={() => setDeleteId(project.id)}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div className="p-4">
+                <h3 className="font-semibold text-gray-900 text-sm truncate">{project.name}</h3>
+                {(project.ward || project.district || project.province) && (
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    {[project.ward, project.district, project.province].filter(Boolean).join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!isLoading && projects.length > 0 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 flex-shrink-0">

@@ -4,12 +4,18 @@ import { Building2, Users, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { user, workspace, role, workspaceType } = useAuth();
   const { t } = useI18n();
+
+  usePageSetup({
+    title: t('dashboard.title'),
+    subtitle: t('dashboard.greeting', { phone: user?.phone ?? user?.email ?? '' }),
+  });
 
   const quickActions = [
     {
@@ -34,13 +40,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">{t('dashboard.title')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {t('dashboard.greeting', { phone: user?.phone ?? user?.email ?? '' })}
-        </p>
-      </div>
-
       {/* Workspace Info Card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-start justify-between">

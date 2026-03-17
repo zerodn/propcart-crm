@@ -16,6 +16,7 @@ import {
 import { DocumentTypeOption, DocumentTypeValue, useProfile } from '@/hooks/use-profile';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { BaseImagePreviewDialog } from '@/components/common/base-image-preview-dialog';
 import { DocumentPreviewDialog } from '@/components/common/document-preview-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -40,6 +41,11 @@ const EMPTY_FORM: FormState = {
 export default function ProfilePage() {
   const { t } = useI18n();
   const { refreshProfile } = useAuth();
+
+  usePageSetup({
+    title: 'Hồ sơ cá nhân',
+    subtitle: 'Cập nhật thông tin của bạn và xác thực email',
+  });
   const {
     profile,
     documents,
@@ -213,6 +219,11 @@ export default function ProfilePage() {
     if (!canVerifyEmail) return;
     setSendingVerify(true);
     try {
+      // If email was typed but not saved yet, save it first so backend can find it
+      if (form.email.trim() !== (profile?.email ?? '')) {
+        await updateProfile({ email: form.email.trim() });
+        await refreshProfile();
+      }
       await sendEmailVerification();
     } finally {
       setSendingVerify(false);
@@ -298,11 +309,6 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-7xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Hồ sơ cá nhân</h1>
-        <p className="text-sm text-gray-500 mt-1">Cập nhật thông tin của bạn và xác thực email</p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Cột trái: Form thông tin cá nhân */}
         <form

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Bell, CheckCircle, Mail, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { Skeleton } from '@/components/common/skeleton';
 import apiClient from '@/lib/api-client';
@@ -25,6 +26,11 @@ export default function NotificationsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
   const [isDeletingNotification, setIsDeletingNotification] = useState(false);
+
+  usePageSetup({
+    title: 'Thông báo',
+    subtitle: 'Quản lý tất cả thông báo của hệ thống',
+  });
 
   useEffect(() => {
     fetchNotifications();
@@ -107,17 +113,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-            <Bell className="h-5 w-5 text-indigo-600" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">Thông báo</h1>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">Quản lý tất cả thông báo của hệ thống</p>
-      </div>
-
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">

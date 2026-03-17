@@ -94,7 +94,6 @@ export function useProfile() {
       toast.success('Da gui email xac thuc. Vui long kiem tra hop thu');
     } catch {
       toast.error('Khong the gui email xac thuc');
-      throw new Error('send-verification-failed');
     }
   }, []);
 

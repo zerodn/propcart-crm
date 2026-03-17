@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ClipboardList, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { useCatalog } from '@/hooks/use-catalog';
 import { CatalogForm } from '@/components/catalog/catalog-form';
 import { CatalogValuesDialog } from '@/components/catalog/catalog-values-dialog';
@@ -22,6 +23,23 @@ export default function CatalogPage() {
   const [selectedType, setSelectedType] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  usePageSetup({
+    title: t('catalog.title'),
+    subtitle: t('catalog.subtitle'),
+    actions: (
+      <button
+        onClick={() => {
+          setEditingId(null);
+          setShowForm(true);
+        }}
+        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+      >
+        <Plus className="h-4 w-4" />
+        Thêm danh mục
+      </button>
+    ),
+  });
 
   const filteredItems = selectedType ? items.filter((item) => item.type === selectedType) : items;
   const editingItem = items.find((item) => item.id === editingId);
@@ -91,29 +109,6 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <ClipboardList className="h-5 w-5 text-blue-600" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">{t('catalog.title')}</h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">{t('catalog.subtitle')}</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingId(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4" />
-          Thêm danh mục
-        </button>
-      </div>
-
       {/* Form Modal */}
       <BaseDialog
         isOpen={showForm}

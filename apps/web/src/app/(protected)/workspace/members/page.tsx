@@ -25,6 +25,7 @@ import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import type { WorkspaceMember } from '@/hooks/use-workspace-members';
 import { TableSkeleton, Skeleton } from '@/components/common/skeleton';
 
@@ -58,6 +59,20 @@ export default function MembersPage() {
   const { roles } = useWorkspaceRoles(workspace?.id);
 
   const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
+
+  usePageSetup({
+    title: t('members.title'),
+    subtitle: t('members.subtitle'),
+    actions: isAdminOrOwner ? (
+      <button
+        onClick={() => setShowInviteModal(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <UserPlus className="h-4 w-4" />
+        {t('members.invite')}
+      </button>
+    ) : undefined,
+  });
 
   const handleCancel = (invId: string, phone: string) => {
     setInvitationToCancel({ id: invId, phone });
@@ -135,22 +150,6 @@ export default function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 break-words">{t('members.title')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t('members.subtitle')}</p>
-        </div>
-        {isAdminOrOwner && (
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            {t('members.invite')}
-          </button>
-        )}
-      </div>
-
       {/* Workspace members list */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">

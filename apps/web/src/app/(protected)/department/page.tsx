@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Building2, Plus, Edit2, Trash2, Users, Loader2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { useDepartment } from '@/hooks/use-department';
 import { DepartmentForm } from '@/components/department/department-form';
 import { DepartmentMembersDialog } from '@/components/department/department-members-dialog';
@@ -34,6 +35,23 @@ export default function DepartmentPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  usePageSetup({
+    title: t('department.title'),
+    subtitle: t('department.subtitle'),
+    actions: (
+      <button
+        onClick={() => {
+          setEditingId(null);
+          setShowForm(true);
+        }}
+        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+      >
+        <Plus className="h-4 w-4" />
+        {t('department.addBtn')}
+      </button>
+    ),
+  });
 
   // Handle ESC key for form dialog
   useEffect(() => {
@@ -93,29 +111,6 @@ export default function DepartmentPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 md:flex-row flex-col md:items-start">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-orange-600" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">{t('department.title')}</h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">{t('department.subtitle')}</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingId(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4" />
-          {t('department.addBtn')}
-        </button>
-      </div>
-
       {/* Form Dialog */}
       <BaseDialog
         isOpen={showForm}

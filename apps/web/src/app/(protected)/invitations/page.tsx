@@ -2,6 +2,7 @@
 
 import { Mail } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { useInvitations } from '@/hooks/use-invitations';
 import { InvitationCard } from '@/components/invitation/invitation-card';
 import { Skeleton } from '@/components/common/skeleton';
@@ -14,20 +15,13 @@ export default function InvitationsPage() {
     (i) => !(i.status === 0 && new Date(i.expiresAt) > new Date()),
   );
 
+  usePageSetup({
+    title: t('invitations.title'),
+    subtitle: t('invitations.subtitle'),
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">{t('invitations.title')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {t('invitations.subtitle')}
-          {pending.length > 0 && (
-            <span className="ml-2 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-              {pending.length}
-            </span>
-          )}
-        </p>
-      </div>
-
       {isLoading && (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (

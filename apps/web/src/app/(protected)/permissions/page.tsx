@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Shield, Loader2, Check, X } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { usePermissions } from '@/hooks/use-permissions';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { Skeleton } from '@/components/common/skeleton';
@@ -22,6 +23,11 @@ export default function PermissionsPage() {
     permissionName: string;
   } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+
+  usePageSetup({
+    title: t('permissions.title'),
+    subtitle: t('permissions.subtitle'),
+  });
 
   const groupedPermissions = permissions.reduce(
     (acc, perm) => {
@@ -77,17 +83,6 @@ export default function PermissionsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
-            <Shield className="h-5 w-5 text-violet-600" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">{t('permissions.title')}</h1>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">{t('permissions.subtitle')}</p>
-      </div>
-
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">

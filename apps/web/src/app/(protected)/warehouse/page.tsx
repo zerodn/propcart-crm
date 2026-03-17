@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Building2, Plus, MapPin, MapPinOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { usePageSetup } from '@/hooks/use-page-setup';
 import { useWarehouse, PropertyWarehouse } from '@/hooks/use-warehouse';
 import { useCatalog } from '@/hooks/use-catalog';
 import { WarehouseForm } from '@/components/warehouse/warehouse-form';
@@ -29,6 +30,23 @@ export default function WarehousePage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  usePageSetup({
+    title: 'Quản lý kho hàng',
+    subtitle: 'Quản lý các kho hàng bất động sản',
+    actions: (
+      <button
+        onClick={() => {
+          setEditingId(null);
+          setShowForm(true);
+        }}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <Plus className="h-4 w-4" />
+        Tạo kho hàng
+      </button>
+    ),
+  });
 
   const warehouseTypeCatalog = catalogs.find((c) => c.type === 'WAREHOUSE_TYPE');
   const warehouseTypes = warehouseTypeCatalog?.values
@@ -176,29 +194,6 @@ export default function WarehousePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-orange-600" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">Quản lý kho hàng</h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">Quản lý các kho hàng bất động sản</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingId(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Tạo kho hàng
-        </button>
-      </div>
-
       {/* Data Grid */}
       <BaseDataGrid
         data={warehouses}
