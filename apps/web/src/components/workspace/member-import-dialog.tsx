@@ -216,7 +216,7 @@ export function MemberImportDialog({
             (s === 'preview' && step === 'result');
           return (
             <div key={s} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
+              <div className={`flex flex-col items-center ${idx < 2 ? 'flex-1' : ''}`}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all ${
                     isActive
