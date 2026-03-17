@@ -145,7 +145,7 @@ export function BaseDataGrid<T extends object>({
           )}
         </h3>
       )}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 ml-auto">
         {onSearchChange !== undefined && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
