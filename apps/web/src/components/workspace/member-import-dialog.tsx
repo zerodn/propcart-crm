@@ -206,41 +206,43 @@ export function MemberImportDialog({
 
   // ── Step indicators ──
   const StepBar = () => (
-    <div className="flex items-center gap-0 mb-6">
-      {(['upload', 'preview', 'result'] as Step[]).map((s, idx) => {
-        const labels = ['Tải lên', 'Xem trước', 'Kết quả'];
-        const isActive = step === s;
-        const isDone =
-          (s === 'upload' && (step === 'preview' || step === 'result')) ||
-          (s === 'preview' && step === 'result');
-        return (
-          <div key={s} className="flex items-center flex-1">
-            <div className="flex flex-col items-center flex-1">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all ${
-                  isActive
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : isDone
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'bg-white border-gray-300 text-gray-400'
-                }`}
-              >
-                {isDone ? '✓' : idx + 1}
+    <div className="flex justify-center mb-6">
+      <div className="flex items-center gap-0 w-full max-w-md">
+        {(['upload', 'preview', 'result'] as Step[]).map((s, idx) => {
+          const labels = ['Tải lên', 'Xem trước', 'Kết quả'];
+          const isActive = step === s;
+          const isDone =
+            (s === 'upload' && (step === 'preview' || step === 'result')) ||
+            (s === 'preview' && step === 'result');
+          return (
+            <div key={s} className="flex items-center flex-1">
+              <div className="flex flex-col items-center flex-1">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all ${
+                    isActive
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : isDone
+                        ? 'bg-green-500 border-green-500 text-white'
+                        : 'bg-white border-gray-300 text-gray-400'
+                  }`}
+                >
+                  {isDone ? '✓' : idx + 1}
+                </div>
+                <span
+                  className={`text-xs mt-1 font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}
+                >
+                  {labels[idx]}
+                </span>
               </div>
-              <span
-                className={`text-xs mt-1 font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}
-              >
-                {labels[idx]}
-              </span>
+              {idx < 2 && (
+                <div
+                  className={`h-0.5 flex-1 mb-4 transition-all ${isDone ? 'bg-green-400' : 'bg-gray-200'}`}
+                />
+              )}
             </div>
-            {idx < 2 && (
-              <div
-                className={`h-0.5 flex-1 mb-4 transition-all ${isDone ? 'bg-green-400' : 'bg-gray-200'}`}
-              />
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 
