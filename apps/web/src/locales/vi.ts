@@ -241,4 +241,31 @@ export const vi = {
     title: 'Quản lý Danh mục',
     subtitle: 'Quản lý các danh mục được sử dụng trong hệ thống',
   },
+  dashboard: {
+    title: 'Tổng quan',
+    greeting: 'Xin chào, {phone}',
+    quickActionsTitle: 'Thao tác nhanh',
+    workspacesListLabel: 'Workspace',
+    workspacesListDesc: 'Quản lý workspace của bạn',
+    invitationsLabel: 'Lời mời',
+    invitationsDesc: 'Xem lời mời tham gia',
+    membersLabel: 'Nhân sự',
+    membersDesc: 'Quản lý nhân sự workspace',
+  },
+  workspaces: {
+    title: 'Workspace của tôi',
+    subtitle: 'Chuyển đổi giữa các workspace',
+    emptyState: 'Bạn chưa có workspace nào',
+  },
+  permissions: {
+    title: 'Phân quyền',
+    subtitle: 'Quản lý phân quyền theo vai trò',
+  },
+  department: {
+    title: 'Phòng ban',
+    subtitle: 'Quản lý phòng ban workspace',
+    addBtn: 'Tạo phòng ban',
+    addTitle: 'Tạo phòng ban mới',
+    editTitle: 'Sửa phòng ban',
+  },
 } as const;

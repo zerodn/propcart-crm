@@ -241,4 +241,31 @@ export const en = {
     title: 'Catalog Management',
     subtitle: 'Manage catalogs used in the system',
   },
+  dashboard: {
+    title: 'Overview',
+    greeting: 'Hello, {phone}',
+    quickActionsTitle: 'Quick Actions',
+    workspacesListLabel: 'Workspaces',
+    workspacesListDesc: 'Manage your workspaces',
+    invitationsLabel: 'Invitations',
+    invitationsDesc: 'View pending invitations',
+    membersLabel: 'Members',
+    membersDesc: 'Manage workspace members',
+  },
+  workspaces: {
+    title: 'My Workspaces',
+    subtitle: 'Switch between your workspaces',
+    emptyState: 'You have no workspaces yet',
+  },
+  permissions: {
+    title: 'Permissions',
+    subtitle: 'Manage role-based permissions',
+  },
+  department: {
+    title: 'Departments',
+    subtitle: 'Manage workspace departments',
+    addBtn: 'Create department',
+    addTitle: 'Create new department',
+    editTitle: 'Edit department',
+  },
 } as const;
