@@ -195,10 +195,18 @@ export class ProductService {
       where.isHidden = false;
     }
 
+    const usePagination = opts?.page !== undefined || opts?.limit !== undefined;
+    const resolvedPage = opts?.page ?? 1;
+    const resolvedLimit = opts?.limit ?? 20;
+    const skip = usePagination ? (resolvedPage - 1) * resolvedLimit : undefined;
+    const take = usePagination ? resolvedLimit : undefined;
+
     const [items, total] = await Promise.all([
       this.prisma.propertyProduct.findMany({
         where,
         orderBy: { createdAt: 'desc' },
+        skip,
+        take,
         include: {
           warehouse: {
             select: {
@@ -220,7 +228,16 @@ export class ProductService {
       this.prisma.propertyProduct.count({ where }),
     ]);
 
-    return { data: items, meta: { total } };
+    const meta = usePagination
+      ? {
+          total,
+          page: resolvedPage,
+          limit: resolvedLimit,
+          totalPages: Math.ceil(total / resolvedLimit),
+        }
+      : { total };
+
+    return { data: items, meta };
   }
 
   async findById(id: string, workspaceId: string, user: JwtPayload) {

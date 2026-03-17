@@ -61,20 +61,33 @@ export function useWarehouse(workspaceId: string) {
   const [warehouses, setWarehouses] = useState<PropertyWarehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
 
   const list = useCallback(
-    async (opts?: { search?: string; type?: string; status?: number }) => {
+    async (opts?: { search?: string; type?: string; status?: number; page?: number; limit?: number }) => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await apiClient.get<{ data: PropertyWarehouse[] }>(
+        const response = await apiClient.get<{ data: PropertyWarehouse[]; meta?: Record<string, number> }>(
           `/workspaces/${workspaceId}/warehouses`,
           { params: opts },
         );
+        const rawData = response.data as unknown as Record<string, unknown>;
         const rawItems = (
-          Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+          Array.isArray(rawData) ? rawData : ((rawData?.data ?? []) as unknown[])
         ) as unknown[];
         const items = rawItems.map((item) => normalizeWarehouse(item as UnknownRecord));
+        const rawMeta = rawData?.meta as Record<string, number> | undefined;
+        if (rawMeta) {
+          setMeta({
+            total: rawMeta.total ?? items.length,
+            page: rawMeta.page ?? 1,
+            limit: rawMeta.limit ?? items.length,
+            totalPages: rawMeta.totalPages ?? 1,
+          });
+        } else {
+          setMeta({ total: items.length, page: 1, limit: items.length, totalPages: 1 });
+        }
         setWarehouses(items);
         return items;
       } catch (err) {
@@ -144,5 +157,5 @@ export function useWarehouse(workspaceId: string) {
     [workspaceId],
   );
 
-  return { warehouses, isLoading, error, list, create, update, delete: delete_ };
+  return { warehouses, isLoading, error, meta, list, create, update, delete: delete_ };
 }

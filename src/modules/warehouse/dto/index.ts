@@ -110,4 +110,17 @@ export class ListWarehouseDto {
   @IsOptional()
   @IsInt()
   status?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== '' ? parseInt(value, 10) : undefined))
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== '' ? parseInt(value, 10) : undefined))
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

@@ -22,6 +22,7 @@ export class WarehouseService {
       );
 
       // Build data object carefully, only including provided fields
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = {
         workspaceId,
         createdByUserId: userId,
@@ -80,32 +81,39 @@ export class WarehouseService {
 
       this.logger.log(`[Warehouse Create] SUCCESS - Warehouse created: ${result.id}`);
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        code?: string;
+        meta?: { target?: string[] };
+        message?: string;
+        stack?: string;
+      };
       this.logger.error(`[Warehouse Create] ERROR:`, {
-        message: error.message,
-        code: error.code,
-        meta: error.meta,
-        stack: error.stack,
+        message: err.message,
+        code: err.code,
+        meta: err.meta,
+        stack: err.stack,
       });
 
-      if (error.code === 'P2002') {
-        const target = error.meta?.target?.[0] || 'unknown';
+      if (err.code === 'P2002') {
+        const target = err.meta?.target?.[0] || 'unknown';
         throw new BadRequestException(`Mã kho hàng đã tồn tại trong workspace này (${target})`);
       }
-      if (error.code === 'P2003') {
+      if (err.code === 'P2003') {
         throw new BadRequestException('Workspace hoặc User không tồn tại');
       }
-      if (error.code === 'P2014') {
+      if (err.code === 'P2014') {
         throw new BadRequestException('Foreign key constraint failed');
       }
 
-      throw new InternalServerErrorException(`Failed to create warehouse: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to create warehouse: ${err.message}`);
     }
   }
 
   async list(workspaceId: string, opts?: ListWarehouseDto) {
-    const { search, type, status } = opts || {};
+    const { search, type, status, page, limit } = opts || {};
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { workspaceId };
     if (search) {
       where.OR = [
@@ -117,10 +125,18 @@ export class WarehouseService {
     if (type) where.type = type;
     if (status !== undefined) where.status = status;
 
+    const usePagination = page !== undefined || limit !== undefined;
+    const resolvedPage = page ?? 1;
+    const resolvedLimit = limit ?? 20;
+    const skip = usePagination ? (resolvedPage - 1) * resolvedLimit : undefined;
+    const take = usePagination ? resolvedLimit : undefined;
+
     const [items, total] = await Promise.all([
       this.prisma.propertyWarehouse.findMany({
         where,
         orderBy: { createdAt: 'desc' },
+        skip,
+        take,
         include: {
           createdBy: {
             select: {
@@ -135,7 +151,16 @@ export class WarehouseService {
       this.prisma.propertyWarehouse.count({ where }),
     ]);
 
-    return { data: items, meta: { total } };
+    const meta = usePagination
+      ? {
+          total,
+          page: resolvedPage,
+          limit: resolvedLimit,
+          totalPages: Math.ceil(total / resolvedLimit),
+        }
+      : { total };
+
+    return { data: items, meta };
   }
 
   async findById(id: string, workspaceId: string) {
@@ -156,6 +181,7 @@ export class WarehouseService {
 
   async update(id: string, workspaceId: string, dto: UpdateWarehouseDto) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {};
 
       if (dto.name !== undefined) updateData.name = dto.name;
@@ -192,21 +218,22 @@ export class WarehouseService {
 
       this.logger.debug(`Warehouse updated:`, result);
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
       this.logger.error(`Error updating warehouse:`, error);
 
-      if (error.code === 'P2002') {
+      if (err.code === 'P2002') {
         throw new BadRequestException('Mã kho hàng đã tồn tại trong workspace này');
       }
-      if (error.code === 'P2025') {
+      if (err.code === 'P2025') {
         throw new BadRequestException('Kho hàng không tồn tại');
       }
 
-      throw new InternalServerErrorException(`Failed to update warehouse: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to update warehouse: ${err.message}`);
     }
   }
 
-  async delete(id: string, workspaceId: string) {
+  async delete(id: string, _workspaceId: string) {
     return this.prisma.propertyWarehouse.delete({
       where: { id },
     });

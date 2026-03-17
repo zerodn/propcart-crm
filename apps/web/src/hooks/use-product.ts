@@ -152,20 +152,33 @@ export function useProduct(workspaceId: string) {
   const [products, setProducts] = useState<PropertyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
 
   const list = useCallback(
-    async (opts?: { search?: string; warehouseId?: string; transactionStatus?: string }) => {
+    async (opts?: { search?: string; warehouseId?: string; transactionStatus?: string; page?: number; limit?: number }) => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await apiClient.get<{ data: PropertyProduct[] }>(
+        const response = await apiClient.get<{ data: PropertyProduct[]; meta?: Record<string, number> }>(
           `/workspaces/${workspaceId}/products`,
           { params: opts },
         );
+        const rawData = response.data as unknown as Record<string, unknown>;
         const rawItems = (
-          Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+          Array.isArray(rawData) ? rawData : ((rawData?.data ?? []) as unknown[])
         ) as unknown[];
         const items = rawItems.map((item) => normalizeProduct(item as UnknownRecord));
+        const rawMeta = rawData?.meta as Record<string, number> | undefined;
+        if (rawMeta) {
+          setMeta({
+            total: rawMeta.total ?? items.length,
+            page: rawMeta.page ?? 1,
+            limit: rawMeta.limit ?? items.length,
+            totalPages: rawMeta.totalPages ?? 1,
+          });
+        } else {
+          setMeta({ total: items.length, page: 1, limit: items.length, totalPages: 1 });
+        }
         setProducts(items);
         return items;
       } catch (err) {
@@ -258,5 +271,5 @@ export function useProduct(workspaceId: string) {
     [workspaceId],
   );
 
-  return { products, isLoading, error, list, create, update, delete: delete_, uploadFiles };
+  return { products, isLoading, error, meta, list, create, update, delete: delete_, uploadFiles };
 }

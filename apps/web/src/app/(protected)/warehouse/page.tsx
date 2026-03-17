@@ -17,6 +17,7 @@ export default function WarehousePage() {
   const {
     warehouses,
     isLoading,
+    meta: warehouseMeta,
     list,
     create,
     update,
@@ -30,6 +31,8 @@ export default function WarehousePage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [warehousePage, setWarehousePage] = useState(1);
+  const WAREHOUSE_PAGE_SIZE = 10;
 
   usePageSetup({
     title: 'Quản lý kho hàng',
@@ -57,9 +60,9 @@ export default function WarehousePage() {
 
   useEffect(() => {
     if (workspace?.id) {
-      list();
+      list({ page: warehousePage, limit: WAREHOUSE_PAGE_SIZE });
     }
-  }, [workspace?.id, list]);
+  }, [workspace?.id, warehousePage, list]);
 
   const handleSubmit = async (data: Record<string, unknown>) => {
     setIsSubmitting(true);
@@ -71,8 +74,7 @@ export default function WarehousePage() {
         await create(data);
       }
       setShowForm(false);
-      // Reload data to ensure fresh state from server
-      await list();
+      await list({ page: warehousePage, limit: WAREHOUSE_PAGE_SIZE });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,6 +92,7 @@ export default function WarehousePage() {
       await deleteWarehouse(deleteId);
       setShowDeleteConfirm(false);
       setDeleteId(null);
+      await list({ page: warehousePage, limit: WAREHOUSE_PAGE_SIZE });
     } finally {
       setIsDeleting(false);
     }
@@ -199,9 +202,12 @@ export default function WarehousePage() {
         data={warehouses}
         columns={columns}
         isLoading={isLoading}
-        pageSize={10}
+        pageSize={WAREHOUSE_PAGE_SIZE}
         emptyMessage="Chưa có kho hàng nào. Bắt đầu bằng cách tạo kho hàng đầu tiên."
         emptyIcon={<Building2 className="h-10 w-10 text-gray-300" />}
+        totalItems={warehouseMeta.total}
+        currentPage={warehousePage}
+        onPageChange={setWarehousePage}
         onEdit={(warehouse) => handleOpenEdit(warehouse.id)}
         onDelete={(warehouse) => handleDelete(warehouse.id)}
       />

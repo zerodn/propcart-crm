@@ -30,6 +30,7 @@ export default function ProductPage() {
   const {
     products,
     isLoading,
+    meta: productMeta,
     list,
     create,
     update,
@@ -49,6 +50,8 @@ export default function ProductPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [productPage, setProductPage] = useState(1);
+  const PRODUCT_PAGE_SIZE = 10;
 
   usePageSetup({
     title: 'Quản lý sản phẩm',
@@ -72,9 +75,9 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!workspaceId) return;
-    list();
+    list({ page: productPage, limit: PRODUCT_PAGE_SIZE });
     listWarehouses();
-  }, [workspaceId, list, listWarehouses]);
+  }, [workspaceId, productPage, list, listWarehouses]);
 
   const warehouseOptions = useMemo(
     () => warehouses.map((w) => ({ value: w.id, label: `${w.name} (${w.code})` })),
@@ -162,7 +165,7 @@ export default function ProductPage() {
         await create(data);
       }
       setShowForm(false);
-      await list();
+      await list({ page: productPage, limit: PRODUCT_PAGE_SIZE });
     } finally {
       setIsSubmitting(false);
     }
@@ -180,6 +183,7 @@ export default function ProductPage() {
       await deleteProduct(deleteId);
       setShowDeleteConfirm(false);
       setDeleteId(null);
+      await list({ page: productPage, limit: PRODUCT_PAGE_SIZE });
     } finally {
       setIsDeleting(false);
     }
@@ -277,9 +281,12 @@ export default function ProductPage() {
         columns={columns}
         actions={customActions}
         isLoading={isLoading}
-        pageSize={10}
+        pageSize={PRODUCT_PAGE_SIZE}
         emptyMessage="Chưa có sản phẩm nào."
         emptyIcon={<Box className="h-10 w-10 text-gray-300" />}
+        totalItems={productMeta.total}
+        currentPage={productPage}
+        onPageChange={setProductPage}
         onEdit={(row) => {
           setEditingId(row.id);
           setShowForm(true);
