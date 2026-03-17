@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
+import { Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical, Search } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 export interface DataGridColumn<T = object> {
@@ -34,6 +34,19 @@ export interface BaseDataGridProps<T = object> {
   onEdit?: (row: T, index: number) => void;
   onDelete?: (row: T, index: number) => void;
   rowClassName?: (row: T, index: number) => string;
+  // Header section
+  title?: string;
+  titleIcon?: React.ReactNode;
+  badgeCount?: number;
+  headerActions?: React.ReactNode;
+  // Search
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  // Server-side pagination (when provided, BaseDataGrid acts as a controlled component)
+  totalItems?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export function BaseDataGrid<T extends object>({
@@ -49,8 +62,22 @@ export function BaseDataGrid<T extends object>({
   onEdit,
   onDelete,
   rowClassName,
+  title,
+  titleIcon,
+  badgeCount,
+  headerActions,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  totalItems,
+  currentPage: externalPage,
+  onPageChange,
 }: BaseDataGridProps<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
+
+  // Server-side mode: parent controls page + total count
+  const isServerSide = totalItems !== undefined && onPageChange !== undefined;
+  const activePage = isServerSide ? (externalPage ?? 1) : internalPage;
 
   const renderDefaultCell = (value: unknown): React.ReactNode => {
     if (value === null || value === undefined || value === '') return '—';
@@ -60,10 +87,11 @@ export function BaseDataGrid<T extends object>({
   };
 
   // Pagination calculation
-  const totalPages = Math.ceil(data.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
+  const totalCount = isServerSide ? (totalItems ?? 0) : data.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const startIndex = (activePage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const currentData = data.slice(startIndex, endIndex);
+  const currentData = isServerSide ? data : data.slice(startIndex, endIndex);
 
   // Default actions from props
   const defaultActions: DataGridAction<T>[] = [];
@@ -89,20 +117,56 @@ export function BaseDataGrid<T extends object>({
   // Handle page change
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+      if (isServerSide) {
+        onPageChange!(page);
+      } else {
+        setInternalPage(page);
+      }
     }
   };
 
-  // Reset to page 1 if data changes and current page is out of bounds
+  // Reset to page 1 if data changes and current page is out of bounds (client-side only)
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
+    if (!isServerSide && internalPage > totalPages && totalPages > 0) {
+      setInternalPage(1);
     }
-  }, [data.length, currentPage, totalPages]);
+  }, [data.length, internalPage, totalPages]);
+
+  const headerSection = (title || onSearchChange !== undefined || headerActions) ? (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200">
+      {title && (
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          {titleIcon}
+          {title}
+          {badgeCount !== undefined && badgeCount > 0 && (
+            <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">
+              {badgeCount}
+            </span>
+          )}
+        </h3>
+      )}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+        {onSearchChange !== undefined && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={searchPlaceholder ?? 'Tìm kiếm...'}
+              value={searchValue ?? ''}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+        {headerActions}
+      </div>
+    </div>
+  ) : null;
 
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {headerSection}
         <div className="animate-pulse">
           <div className="h-12 bg-gray-100 border-b border-gray-200" />
           {[...Array(5)].map((_, i) => (
@@ -115,9 +179,12 @@ export function BaseDataGrid<T extends object>({
 
   if (data.length === 0 && !showTableWhenEmpty) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-        {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
-        <p className="text-gray-500 text-sm">{emptyMessage}</p>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {headerSection}
+        <div className="p-12 text-center">
+          {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
+          <p className="text-gray-500 text-sm">{emptyMessage}</p>
+        </div>
       </div>
     );
   }
@@ -126,6 +193,7 @@ export function BaseDataGrid<T extends object>({
     <div className="space-y-4">
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {headerSection}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -274,16 +342,16 @@ export function BaseDataGrid<T extends object>({
           <div className="text-sm text-gray-600">
             Hiển thị{' '}
             <span className="font-medium text-gray-900">
-              {startIndex + 1} - {Math.min(endIndex, data.length)}
+              {startIndex + 1} - {Math.min(endIndex, totalCount)}
             </span>{' '}
-            trong tổng số <span className="font-medium text-gray-900">{data.length}</span> bản ghi
+            trong tổng số <span className="font-medium text-gray-900">{totalCount}</span> bản ghi
           </div>
 
           <div className="flex items-center gap-2">
             {/* Previous Button */}
             <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => goToPage(activePage - 1)}
+              disabled={activePage === 1}
               className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -297,14 +365,14 @@ export function BaseDataGrid<T extends object>({
                 if (
                   page === 1 ||
                   page === totalPages ||
-                  (page >= currentPage - 1 && page <= currentPage + 1)
+                  (page >= activePage - 1 && page <= activePage + 1)
                 ) {
                   return (
                     <button
                       key={page}
                       onClick={() => goToPage(page)}
                       className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                        page === currentPage
+                        page === activePage
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
                       }`}
@@ -314,7 +382,7 @@ export function BaseDataGrid<T extends object>({
                   );
                 }
                 // Show ellipsis
-                if (page === currentPage - 2 || page === currentPage + 2) {
+                if (page === activePage - 2 || page === activePage + 2) {
                   return (
                     <span key={page} className="px-2 text-gray-400">
                       ...
@@ -327,8 +395,8 @@ export function BaseDataGrid<T extends object>({
 
             {/* Next Button */}
             <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => goToPage(activePage + 1)}
+              disabled={activePage === totalPages}
               className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
