@@ -207,7 +207,7 @@ export function MemberImportDialog({
   // ── Step indicators ──
   const StepBar = () => (
     <div className="flex justify-center mb-6">
-      <div className="flex items-center gap-0 w-full max-w-md">
+      <div className="flex items-center gap-0 w-full max-w-xl">
         {(['upload', 'preview', 'result'] as Step[]).map((s, idx) => {
           const labels = ['Tải lên', 'Xem trước', 'Kết quả'];
           const isActive = step === s;
