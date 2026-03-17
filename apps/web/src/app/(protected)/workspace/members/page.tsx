@@ -48,7 +48,7 @@ export default function MembersPage() {
   const [declinedPage, setDeclinedPage] = useState(1);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberPage, setMemberPage] = useState(1);
-  const MEMBER_PAGE_SIZE = 20;
+  const MEMBER_PAGE_SIZE = 10;
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [invitationToCancel, setInvitationToCancel] = useState<{
     id: string;
@@ -376,27 +376,61 @@ export default function MembersPage() {
 
         {/* Member pagination */}
         {membersMeta.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500">
-              Trang {membersMeta.page} / {membersMeta.totalPages} &bull; Tổng{' '}
-              {membersMeta.total} nhân sự
-            </p>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between px-4 py-3 mt-2 bg-white rounded-xl border border-gray-200">
+            <div className="text-sm text-gray-600">
+              Hiển thị{' '}
+              <span className="font-medium text-gray-900">
+                {(memberPage - 1) * MEMBER_PAGE_SIZE + 1} -{' '}
+                {Math.min(memberPage * MEMBER_PAGE_SIZE, membersMeta.total)}
+              </span>{' '}
+              trong tổng số{' '}
+              <span className="font-medium text-gray-900">{membersMeta.total}</span> bản ghi
+            </div>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
                 disabled={memberPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="h-3 w-3" />
-                Trước
+                <ChevronLeft className="h-4 w-4" />
               </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: membersMeta.totalPages }, (_, i) => i + 1).map((p) => {
+                  if (
+                    p === 1 ||
+                    p === membersMeta.totalPages ||
+                    (p >= memberPage - 1 && p <= memberPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setMemberPage(p)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          p === memberPage
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  }
+                  if (p === memberPage - 2 || p === memberPage + 2) {
+                    return (
+                      <span key={p} className="px-2 text-gray-400">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
               <button
                 onClick={() => setMemberPage((p) => Math.min(membersMeta.totalPages, p + 1))}
                 disabled={memberPage === membersMeta.totalPages}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Sau
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
