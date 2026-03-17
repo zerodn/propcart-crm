@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/providers/theme-provider';
 
@@ -12,20 +12,18 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light');
+  }, [theme, setTheme]);
+
   if (!mounted) {
     return <div className="w-9 h-9 rounded-md border border-gray-200 dark:border-gray-700" />;
   }
 
-  const toggleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
-
   const themeLabels: Record<string, string> = { light: 'Sáng', dark: 'Tối', system: 'Hệ thống' };
   const isDark =
     theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   return (
     <button
