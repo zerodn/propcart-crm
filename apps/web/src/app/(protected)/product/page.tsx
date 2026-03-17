@@ -51,6 +51,7 @@ export default function ProductPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [productPage, setProductPage] = useState(1);
+  const [productSearch, setProductSearch] = useState('');
   const PRODUCT_PAGE_SIZE = 10;
 
   usePageSetup({
@@ -75,9 +76,9 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!workspaceId) return;
-    list({ page: productPage, limit: PRODUCT_PAGE_SIZE });
+    list({ page: productPage, limit: PRODUCT_PAGE_SIZE, search: productSearch || undefined });
     listWarehouses();
-  }, [workspaceId, productPage, list, listWarehouses]);
+  }, [workspaceId, productPage, productSearch, list, listWarehouses]);
 
   const warehouseOptions = useMemo(
     () => warehouses.map((w) => ({ value: w.id, label: `${w.name} (${w.code})` })),
@@ -281,6 +282,12 @@ export default function ProductPage() {
         columns={columns}
         actions={customActions}
         isLoading={isLoading}
+        title="Danh sách sản phẩm"
+        titleIcon={<Box className="h-5 w-5" />}
+        badgeCount={productMeta.total}
+        searchValue={productSearch}
+        onSearchChange={(v) => { setProductSearch(v); setProductPage(1); }}
+        searchPlaceholder="Tìm kiếm sản phẩm..."
         pageSize={PRODUCT_PAGE_SIZE}
         emptyMessage="Chưa có sản phẩm nào."
         emptyIcon={<Box className="h-10 w-10 text-gray-300" />}

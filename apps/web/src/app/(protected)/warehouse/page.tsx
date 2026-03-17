@@ -32,6 +32,7 @@ export default function WarehousePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [warehousePage, setWarehousePage] = useState(1);
+  const [warehouseSearch, setWarehouseSearch] = useState('');
   const WAREHOUSE_PAGE_SIZE = 10;
 
   usePageSetup({
@@ -60,9 +61,9 @@ export default function WarehousePage() {
 
   useEffect(() => {
     if (workspace?.id) {
-      list({ page: warehousePage, limit: WAREHOUSE_PAGE_SIZE });
+      list({ page: warehousePage, limit: WAREHOUSE_PAGE_SIZE, search: warehouseSearch || undefined });
     }
-  }, [workspace?.id, warehousePage, list]);
+  }, [workspace?.id, warehousePage, warehouseSearch, list]);
 
   const handleSubmit = async (data: Record<string, unknown>) => {
     setIsSubmitting(true);
@@ -202,6 +203,12 @@ export default function WarehousePage() {
         data={warehouses}
         columns={columns}
         isLoading={isLoading}
+        title="Danh sách kho hàng"
+        titleIcon={<Building2 className="h-5 w-5" />}
+        badgeCount={warehouseMeta.total}
+        searchValue={warehouseSearch}
+        onSearchChange={(v) => { setWarehouseSearch(v); setWarehousePage(1); }}
+        searchPlaceholder="Tìm kiếm kho hàng..."
         pageSize={WAREHOUSE_PAGE_SIZE}
         emptyMessage="Chưa có kho hàng nào. Bắt đầu bằng cách tạo kho hàng đầu tiên."
         emptyIcon={<Building2 className="h-10 w-10 text-gray-300" />}
