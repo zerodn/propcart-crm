@@ -13,11 +13,15 @@ import {
   Edit2,
   MoreVertical,
   UserCog,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { InviteModal } from '@/components/workspace/invite-modal';
 import { MemberEditDialog } from '@/components/workspace/member-edit-dialog';
+import { MemberAddDialog } from '@/components/workspace/member-add-dialog';
+import { MemberImportDialog } from '@/components/workspace/member-import-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { useWorkspaceInvitations, useDeclinedInvitations } from '@/hooks/use-invitations';
 import { useWorkspaceMembers, useWorkspaceRoles } from '@/hooks/use-workspace-members';
@@ -35,6 +39,9 @@ export default function MembersPage() {
   const { invitations, isLoading: invLoading, refetch } = useWorkspaceInvitations(workspace?.id);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [editingMember, setEditingMember] = useState<WorkspaceMember | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
@@ -105,6 +112,30 @@ export default function MembersPage() {
     refetchMembers();
   };
 
+  const handleExport = async () => {
+    if (!workspace?.id) return;
+    setIsExporting(true);
+    try {
+      const response = await apiClient.get(`/workspaces/${workspace.id}/members/export`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(response.data);
+      const date = new Date().toISOString().split('T')[0];
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nhan-su-${date}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Đã xuất file Excel thành công');
+    } catch {
+      toast.error('Không thể xuất file Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleToggleMenu = (memberId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     if (openMenuId === memberId) {
       setOpenMenuId(null);
@@ -163,16 +194,45 @@ export default function MembersPage() {
             )}
           </h3>
 
-          {/* Search box */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm theo SĐT hoặc email..."
-              value={memberSearch}
-              onChange={(e) => setMemberSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Right: search + action buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Tìm theo SĐT hoặc email..."
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {isAdminOrOwner && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddDialog(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Thêm nhân sự
+                </button>
+                <button
+                  onClick={() => setShowImportDialog(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Import
+                </button>
+                <button
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors whitespace-nowrap"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -494,6 +554,29 @@ export default function MembersPage() {
           workspaceId={workspace?.id || ''}
           member={editingMember}
           availableRoles={Array.isArray(roles) ? roles : []}
+        />
+      )}
+
+      {showAddDialog && (
+        <MemberAddDialog
+          isOpen={showAddDialog}
+          onClose={() => setShowAddDialog(false)}
+          onSuccess={() => {
+            refetchMembers();
+          }}
+          workspaceId={workspace?.id || ''}
+          availableRoles={Array.isArray(roles) ? roles : []}
+        />
+      )}
+
+      {showImportDialog && (
+        <MemberImportDialog
+          isOpen={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+          onSuccess={() => {
+            refetchMembers();
+          }}
+          workspaceId={workspace?.id || ''}
         />
       )}
 

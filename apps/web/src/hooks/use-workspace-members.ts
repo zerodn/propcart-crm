@@ -10,6 +10,7 @@ export interface WorkspaceMember {
   roleId: string;
   status: number;
   joinedAt: string;
+  employeeCode?: string | null; // Mã nhân viên tự sinh
   displayName?: string | null; // Workspace-scoped display name
   workspaceEmail?: string | null; // Workspace-scoped email
   workspacePhone?: string | null; // Workspace-scoped phone
@@ -17,7 +18,9 @@ export interface WorkspaceMember {
   gender?: string | null; // Giới tính
   dateOfBirth?: string | null; // Ngày sinh
   workspaceCity?: string | null; // Thành phố/Tỉnh
-  workspaceAddress?: string | null; // Địa chỉ đầy đủ
+  workspaceAddress?: string | null; // Phường/Xã
+  addressLine?: string | null; // Địa chỉ cụ thể
+  contractType?: string | null; // Loại HĐLĐ
   attachmentUrl?: string | null; // Tệp đính kèm
   user: {
     id: string;

@@ -42,7 +42,15 @@ export class UpdateMemberDto {
 
   @IsOptional()
   @IsString()
-  workspaceAddress?: string; // Địa chỉ đầy đủ
+  workspaceAddress?: string; // Phường/Xã
+
+  @IsOptional()
+  @IsString()
+  addressLine?: string; // Địa chỉ cụ thể (số nhà, tên đường)
+
+  @IsOptional()
+  @IsString()
+  contractType?: string; // Loại HĐLĐ (từ catalog HDLD_TYPE)
 
   @IsOptional()
   @IsString()

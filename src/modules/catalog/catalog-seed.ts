@@ -248,5 +248,23 @@ export async function seedWorkspaceCatalogs(prisma: PrismaService, workspaceId: 
     ],
   });
 
+  // Create "Loại HĐLĐ" (Labor Contract Type) catalog
+  await prisma.catalog.create({
+    data: {
+      workspaceId,
+      type: 'HDLD_TYPE',
+      code: 'HDLD_TYPE',
+      name: 'Loại HĐLĐ',
+      parentId: null,
+      values: {
+        create: [
+          { value: 'THU_VIEC', label: 'Thử việc', order: 0 },
+          { value: 'BA_THANG', label: '3 tháng', order: 1 },
+          { value: 'SAU_THANG', label: '6 tháng', order: 2 },
+        ],
+      },
+    },
+  });
+
   return roleCatalog;
 }

@@ -253,6 +253,12 @@ export class InvitationService {
   async acceptInvitation(token: string, currentUser: JwtPayload) {
     const invitation = await this.findAndValidateInvitation(token, currentUser);
 
+    // Generate sequential employee code for this workspace: NV001, NV002, ...
+    const memberCount = await this.prisma.workspaceMember.count({
+      where: { workspaceId: invitation.workspaceId },
+    });
+    const employeeCode = `NV${String(memberCount + 1).padStart(3, '0')}`;
+
     // Create workspace member
     await this.prisma.workspaceMember.create({
       data: {
@@ -260,6 +266,7 @@ export class InvitationService {
         userId: currentUser.sub,
         roleId: invitation.roleId,
         status: 1,
+        employeeCode,
       },
     });
 

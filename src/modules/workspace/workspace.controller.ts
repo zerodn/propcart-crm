@@ -10,12 +10,15 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InvitationService } from './invitation.service';
 import { WorkspaceService } from './workspace.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { AddMemberDto } from './dto/add-member.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
@@ -50,6 +53,73 @@ export class WorkspaceController {
     @Query('search') search?: string,
   ) {
     return this.workspaceService.listWorkspaceMembers(workspaceId, search);
+  }
+
+  // POST /workspaces/:workspaceId/members — Directly add a member by phone
+  @Post('workspaces/:workspaceId/members')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
+  @RequirePermission('WORKSPACE_MEMBER_MANAGE')
+  addWorkspaceMember(@Param('workspaceId') workspaceId: string, @Body() dto: AddMemberDto) {
+    return this.workspaceService.addMember(workspaceId, dto);
+  }
+
+  // GET /workspaces/:workspaceId/members/export — Export members as Excel
+  @Get('workspaces/:workspaceId/members/export')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  async exportMembers(@Param('workspaceId') workspaceId: string, @Res() res: Response) {
+    const buffer = await this.workspaceService.exportMembersExcel(workspaceId);
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="nhan-su-${date}.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  // GET /workspaces/:workspaceId/members/template — Download import template
+  @Get('workspaces/:workspaceId/members/template')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  async getMembersTemplate(@Param('workspaceId') workspaceId: string, @Res() res: Response) {
+    const buffer = await this.workspaceService.getMembersTemplate(workspaceId);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="mau-nhap-nhan-su.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  // POST /workspaces/:workspaceId/members/import/preview — Preview import without saving
+  @Post('workspaces/:workspaceId/members/import/preview')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
+  @RequirePermission('WORKSPACE_MEMBER_MANAGE')
+  @UseInterceptors(FileInterceptor('file'))
+  async previewImportMembers(
+    @Param('workspaceId') workspaceId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      return { code: 'FILE_REQUIRED', message: 'Vui lòng chọn file Excel để xem trước' };
+    }
+    const result = await this.workspaceService.previewMembersImport(workspaceId, file.buffer);
+    return { data: result };
+  }
+
+  // POST /workspaces/:workspaceId/members/import — Import members from Excel
+  @Post('workspaces/:workspaceId/members/import')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
+  @RequirePermission('WORKSPACE_MEMBER_MANAGE')
+  @UseInterceptors(FileInterceptor('file'))
+  async importMembers(
+    @Param('workspaceId') workspaceId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      return { code: 'FILE_REQUIRED', message: 'Vui lòng chọn file Excel để import' };
+    }
+    const result = await this.workspaceService.importMembersExcel(workspaceId, file.buffer);
+    return { data: result };
   }
 
   // PATCH /workspaces/:workspaceId/members/:memberId — Update member info (role, status)

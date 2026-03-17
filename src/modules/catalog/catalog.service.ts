@@ -134,6 +134,15 @@ export class CatalogService {
       await this.initializeProjectSaleStatusCatalog(workspaceId);
     }
 
+    // Auto-initialize HDLD type catalog if it doesn't exist
+    const hdldTypeCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'HDLD_TYPE', code: 'HDLD_TYPE' },
+    });
+
+    if (!hdldTypeCatalogExists) {
+      await this.initializeHdldTypeCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -599,5 +608,27 @@ export class CatalogService {
     });
 
     return projectSaleStatusCatalog;
+  }
+
+  private async initializeHdldTypeCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'HDLD_TYPE',
+        code: 'HDLD_TYPE',
+        name: 'Loại HĐLĐ',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'THU_VIEC', label: 'Thử việc', order: 0 },
+        { catalogId: catalog.id, value: 'BA_THANG', label: '3 tháng', order: 1 },
+        { catalogId: catalog.id, value: 'SAU_THANG', label: '6 tháng', order: 2 },
+      ],
+    });
+
+    return catalog;
   }
 }

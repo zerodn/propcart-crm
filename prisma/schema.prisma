@@ -99,6 +99,7 @@ model WorkspaceMember {
   joinedAt    DateTime @default(now())
   
   // Workspace-scoped profile (override User fields for this workspace)
+  employeeCode     String?   // Mã nhân viên tự sinh: NV001, NV002, ...
   displayName      String?   // Override user.fullName for this workspace
   workspaceEmail   String?   // Override user.email for this workspace
   workspacePhone   String?   // Override user.phone for this workspace
@@ -106,7 +107,9 @@ model WorkspaceMember {
   gender           String?   // Giới tính (MALE, FEMALE, OTHER)
   dateOfBirth      DateTime? // Ngày sinh
   workspaceCity    String?   // Thành phố/Tỉnh
-  workspaceAddress String?   // Địa chỉ đầy đủ
+  workspaceAddress String?   // Phường/Xã
+  addressLine      String?   // Địa chỉ cụ thể (số nhà, tên đường)
+  contractType     String?   // Loại HĐLĐ (từ catalog HDLD_TYPE)
   attachmentUrl    String?   // Tệp đính kèm (URL)
 
   // Relations

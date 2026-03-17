@@ -26,6 +26,7 @@ interface MemberEditDialogProps {
     userId: string;
     roleId: string;
     status: number;
+    employeeCode?: string | null;
     displayName?: string | null;
     workspaceEmail?: string | null;
     workspacePhone?: string | null;
@@ -33,6 +34,8 @@ interface MemberEditDialogProps {
     dateOfBirth?: string | null;
     workspaceCity?: string | null;
     workspaceAddress?: string | null;
+    addressLine?: string | null;
+    contractType?: string | null;
     attachmentUrl?: string | null;
     avatarUrl?: string | null;
     user: {
@@ -60,12 +63,14 @@ export function MemberEditDialog({
   const [roleId, setRoleId] = useState(member.roleId);
   const [status, setStatus] = useState(member.status);
   const [displayName, setDisplayName] = useState(member.displayName || member.user.fullName || '');
+  const [contractType, setContractType] = useState(member.contractType || '');
   const [workspaceEmail, setWorkspaceEmail] = useState(
     member.workspaceEmail || member.user.email || '',
   );
   const [workspacePhone, setWorkspacePhone] = useState(
     member.workspacePhone || member.user.phone || '',
   );
+  const [addressLine, setAddressLine] = useState(member.addressLine || '');
   const [locationData, setLocationData] = useState<LocationFormData>({
     provinceCode: member.workspaceCity || '',
     provinceName: member.workspaceCity || '',
@@ -78,6 +83,7 @@ export function MemberEditDialog({
   const [attachmentType, setAttachmentType] = useState<'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER'>(
     'OTHER',
   );
+  const [hdldOptions, setHdldOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [attachmentDocuments, setAttachmentDocuments] = useState<AttachmentDocument[]>([]);
   const [avatarUrl, setAvatarUrl] = useState(member.avatarUrl || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -98,6 +104,25 @@ export function MemberEditDialog({
   // Ensure availableRoles is always an array
   const rolesArray = Array.isArray(availableRoles) ? availableRoles : [];
 
+  // Load HDLD_TYPE catalog options
+  useEffect(() => {
+    const loadHdldOptions = async () => {
+      try {
+        const { data } = await apiClient.get(`/workspaces/${workspaceId}/catalogs?type=HDLD_TYPE`);
+        const catalogs = Array.isArray(data?.data) ? data.data : [];
+        const hdldCatalog = catalogs.find((c: Record<string, unknown>) => c.code === 'HDLD_TYPE');
+        if (hdldCatalog && Array.isArray((hdldCatalog as Record<string, unknown>).values)) {
+          const values = (hdldCatalog as { values: Array<{ value: string; label: string }> })
+            .values;
+          setHdldOptions(values.map((v) => ({ value: v.value, label: v.label })));
+        }
+      } catch {
+        setHdldOptions([]);
+      }
+    };
+    if (workspaceId) loadHdldOptions();
+  }, [workspaceId]);
+
   useEffect(() => {
     console.log('[MemberEditDialog] availableRoles:', availableRoles);
     console.log('[MemberEditDialog] rolesArray:', rolesArray);
@@ -115,8 +140,10 @@ export function MemberEditDialog({
       setRoleId(member.roleId);
       setStatus(member.status);
       setDisplayName(member.displayName || member.user.fullName || '');
+      setContractType(member.contractType || '');
       setWorkspaceEmail(member.workspaceEmail || member.user.email || '');
       setWorkspacePhone(member.workspacePhone || member.user.phone || '');
+      setAddressLine(member.addressLine || '');
       setLocationData({
         provinceCode: member.workspaceCity || '',
         provinceName: member.workspaceCity || '',
@@ -388,6 +415,8 @@ export function MemberEditDialog({
           : null,
         workspaceCity: locationData.provinceName || null,
         workspaceAddress: locationData.wardName || null,
+        addressLine: addressLine || null,
+        contractType: contractType || null,
         attachmentUrl: attachmentUrl || null,
       });
       toast.success('Cập nhật thông tin nhân sự thành công');
@@ -531,6 +560,19 @@ export function MemberEditDialog({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Mã nhân viên
+                  </label>
+                  <input
+                    type="text"
+                    value={member.employeeCode || ''}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                    placeholder="Chưa có mã"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Email trong workspace
                   </label>
                   <input
@@ -578,6 +620,25 @@ export function MemberEditDialog({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Hợp đồng lao động
+                  </label>
+                  <select
+                    value={contractType}
+                    onChange={(e) => setContractType(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                  >
+                    <option value="">-- Chọn loại hợp đồng --</option>
+                    {hdldOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Trạng thái
                   </label>
                   <select
@@ -606,6 +667,17 @@ export function MemberEditDialog({
                 hideHeader={true}
                 genderDobInline={true}
               />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ</label>
+                <input
+                  type="text"
+                  value={addressLine}
+                  onChange={(e) => setAddressLine(e.target.value)}
+                  placeholder="Số nhà, tên đường..."
+                  disabled={isSubmitting}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                />
+              </div>
             </div>
 
             {/* Tài liệu liên quan */}

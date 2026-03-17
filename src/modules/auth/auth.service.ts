@@ -397,6 +397,7 @@ export class AuthService {
         userId,
         roleId: ownerRole!.id,
         status: 1,
+        employeeCode: 'NV001',
       },
     });
 
@@ -503,6 +504,25 @@ export class AuthService {
 
     // Create "Danh mục khác" catalogs for future use
     // These can be extended as needed for other combobox data sources
+
+    // Create "Loại HĐLĐ" (Labor Contract Type) catalog
+    const hdldCatalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'HDLD_TYPE',
+        code: 'HDLD_TYPE',
+        name: 'Loại HĐLĐ',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: hdldCatalog.id, value: 'THU_VIEC', label: 'Thử việc', order: 0 },
+        { catalogId: hdldCatalog.id, value: 'BA_THANG', label: '3 tháng', order: 1 },
+        { catalogId: hdldCatalog.id, value: 'SAU_THANG', label: '6 tháng', order: 2 },
+      ],
+    });
   }
 
   private async issueTokenResponse(user: User, workspace: Workspace | null, deviceId: string) {
