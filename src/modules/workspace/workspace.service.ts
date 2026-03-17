@@ -1,6 +1,8 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MinioService } from '../../common/storage/minio.service';
+import { AddMemberDto } from './dto/add-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
@@ -84,7 +86,7 @@ export class WorkspaceService {
     return { data };
   }
 
-  async updateMember(workspaceId: string, memberId: string, dto: Record<string, unknown>) {
+  async updateMember(workspaceId: string, memberId: string, dto: UpdateMemberDto) {
     // Check if member exists in this workspace
     const member = await this.prisma.workspaceMember.findFirst({
       where: { id: memberId, workspaceId },
@@ -111,26 +113,26 @@ export class WorkspaceService {
     }
 
     // Update member
+    const updateData: Record<string, unknown> = {};
+    if (employeeCode) updateData.employeeCode = employeeCode;
+    if (dto.roleId !== undefined) updateData.roleId = dto.roleId;
+    if (dto.status !== undefined) updateData.status = dto.status;
+    if (dto.displayName !== undefined) updateData.displayName = dto.displayName;
+    if (dto.workspaceEmail !== undefined) updateData.workspaceEmail = dto.workspaceEmail;
+    if (dto.workspacePhone !== undefined) updateData.workspacePhone = dto.workspacePhone;
+    if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
+    if (dto.gender !== undefined) updateData.gender = dto.gender;
+    if (dto.dateOfBirth !== undefined)
+      updateData.dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth as string) : null;
+    if (dto.workspaceCity !== undefined) updateData.workspaceCity = dto.workspaceCity;
+    if (dto.workspaceAddress !== undefined) updateData.workspaceAddress = dto.workspaceAddress;
+    if (dto.addressLine !== undefined) updateData.addressLine = dto.addressLine;
+    if (dto.contractType !== undefined) updateData.contractType = dto.contractType;
+    if (dto.attachmentUrl !== undefined) updateData.attachmentUrl = dto.attachmentUrl;
+
     const updated = await this.prisma.workspaceMember.update({
       where: { id: memberId },
-      data: {
-        ...(employeeCode && { employeeCode }),
-        ...(dto.roleId && { roleId: dto.roleId }),
-        ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.displayName !== undefined && { displayName: dto.displayName }),
-        ...(dto.workspaceEmail !== undefined && { workspaceEmail: dto.workspaceEmail }),
-        ...(dto.workspacePhone !== undefined && { workspacePhone: dto.workspacePhone }),
-        ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
-        ...(dto.gender !== undefined && { gender: dto.gender }),
-        ...(dto.dateOfBirth !== undefined && {
-          dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
-        }),
-        ...(dto.workspaceCity !== undefined && { workspaceCity: dto.workspaceCity }),
-        ...(dto.workspaceAddress !== undefined && { workspaceAddress: dto.workspaceAddress }),
-        ...(dto.addressLine !== undefined && { addressLine: dto.addressLine }),
-        ...(dto.contractType !== undefined && { contractType: dto.contractType }),
-        ...(dto.attachmentUrl !== undefined && { attachmentUrl: dto.attachmentUrl }),
-      },
+      data: updateData,
       include: {
         user: { select: { id: true, phone: true, email: true, fullName: true } },
         role: { select: { id: true, code: true, name: true } },
@@ -163,23 +165,31 @@ export class WorkspaceService {
     };
   }
 
-  async addMember(workspaceId: string, dto: Record<string, unknown>) {
+  async addMember(workspaceId: string, dto: AddMemberDto) {
+    // Type-safe DTO properties
+    const phone = dto.phone as string;
+    const roleId = dto.roleId as string;
+    const displayName = (dto.displayName as string | undefined) || undefined;
+    const workspaceEmail = (dto.workspaceEmail as string | undefined) || undefined;
+    const workspacePhone = (dto.workspacePhone as string | undefined) || undefined;
+    const contractType = (dto.contractType as string | undefined) || undefined;
+
     // Find user by phone
     let user = await this.prisma.user.findFirst({
-      where: { phone: dto.phone },
+      where: { phone },
     });
 
     if (!user) {
       // Phone doesn't exist — check if email conflicts before creating
-      if (dto.workspaceEmail) {
+      if (workspaceEmail) {
         const emailConflict = await this.prisma.user.findFirst({
-          where: { email: dto.workspaceEmail },
+          where: { email: workspaceEmail },
         });
         if (emailConflict) {
           throw new HttpException(
             {
               code: 'EMAIL_ALREADY_EXISTS',
-              message: `Email "${dto.workspaceEmail}" đã được sử dụng bởi tài khoản khác`,
+              message: `Email "${workspaceEmail}" đã được sử dụng bởi tài khoản khác`,
             },
             HttpStatus.CONFLICT,
           );
@@ -189,24 +199,24 @@ export class WorkspaceService {
       // Create a new user account with minimal info
       user = await this.prisma.user.create({
         data: {
-          phone: dto.phone,
-          fullName: dto.displayName || null,
-          email: dto.workspaceEmail || null,
+          phone,
+          fullName: displayName || null,
+          email: workspaceEmail || null,
           status: 1,
         },
       });
     } else {
       // User exists — check if they're trying to add with a conflicting email
-      if (dto.workspaceEmail && user.email && user.email !== dto.workspaceEmail) {
+      if (workspaceEmail && user.email && user.email !== workspaceEmail) {
         // The existing user has a different email, check if that email belongs to another user
         const emailConflict = await this.prisma.user.findFirst({
-          where: { email: dto.workspaceEmail, NOT: { id: user.id } },
+          where: { email: workspaceEmail, NOT: { id: user.id } },
         });
         if (emailConflict) {
           throw new HttpException(
             {
               code: 'EMAIL_ALREADY_EXISTS',
-              message: `Email "${dto.workspaceEmail}" đã được sử dụng bởi tài khoản khác`,
+              message: `Email "${workspaceEmail}" đã được sử dụng bởi tài khoản khác`,
             },
             HttpStatus.CONFLICT,
           );
@@ -220,18 +230,17 @@ export class WorkspaceService {
     });
 
     if (existing) {
-      const displayPhone = dto.phone;
       throw new HttpException(
         {
           code: 'ALREADY_MEMBER',
-          message: `SĐT ${displayPhone} đã là thành viên của workspace này`,
+          message: `SĐT ${phone} đã là thành viên của workspace này`,
         },
         HttpStatus.CONFLICT,
       );
     }
 
     // Verify role
-    const role = await this.prisma.role.findUnique({ where: { id: dto.roleId } });
+    const role = await this.prisma.role.findUnique({ where: { id: roleId } });
     if (!role) {
       throw new HttpException(
         { code: 'ROLE_NOT_FOUND', message: 'Vai trò không tồn tại' },
@@ -242,24 +251,31 @@ export class WorkspaceService {
     // Generate employee code
     const employeeCode = await this.generateNextEmployeeCode(workspaceId);
 
+    const createData = {
+      workspaceId,
+      userId: user.id,
+      roleId,
+      employeeCode,
+      displayName: displayName || user.fullName,
+      workspaceEmail: workspaceEmail || null,
+      workspacePhone: workspacePhone || phone,
+      contractType: contractType || null,
+      status: 1,
+      joinedAt: new Date(),
+    };
+
     const member = await this.prisma.workspaceMember.create({
-      data: {
-        workspaceId,
-        userId: user.id,
-        roleId: dto.roleId,
-        employeeCode,
-        displayName: dto.displayName || user.fullName,
-        workspaceEmail: dto.workspaceEmail || undefined,
-        workspacePhone: dto.workspacePhone || dto.phone,
-        contractType: dto.contractType || undefined,
-        status: 1,
-        joinedAt: new Date(),
-      },
+      data: createData,
       include: {
         user: { select: { id: true, phone: true, email: true, fullName: true } },
         role: { select: { id: true, code: true, name: true } },
       },
     });
+
+    const memberWithRelations = member as typeof member & {
+      user?: { id: string; phone: string; email: string | null; fullName: string | null };
+      role?: { id: string; code: string; name: string };
+    };
 
     return {
       data: {
@@ -273,8 +289,8 @@ export class WorkspaceService {
         displayName: member.displayName,
         workspaceEmail: member.workspaceEmail,
         workspacePhone: member.workspacePhone,
-        user: member.user,
-        role: member.role,
+        user: memberWithRelations.user,
+        role: memberWithRelations.role,
       },
     };
   }
