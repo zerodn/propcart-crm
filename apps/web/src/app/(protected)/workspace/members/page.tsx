@@ -47,6 +47,8 @@ export default function MembersPage() {
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const [declinedPage, setDeclinedPage] = useState(1);
   const [memberSearch, setMemberSearch] = useState('');
+  const [memberPage, setMemberPage] = useState(1);
+  const MEMBER_PAGE_SIZE = 20;
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [invitationToCancel, setInvitationToCancel] = useState<{
     id: string;
@@ -61,8 +63,9 @@ export default function MembersPage() {
   const {
     members,
     isLoading: membersLoading,
+    meta: membersMeta,
     refetch: refetchMembers,
-  } = useWorkspaceMembers(workspace?.id, memberSearch);
+  } = useWorkspaceMembers(workspace?.id, memberSearch, memberPage, MEMBER_PAGE_SIZE);
   const { roles } = useWorkspaceRoles(workspace?.id);
 
   const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
@@ -187,9 +190,9 @@ export default function MembersPage() {
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Users className="h-4 w-4 text-gray-400" />
             Danh sách nhân sự
-            {members.length > 0 && (
+            {membersMeta.total > 0 && (
               <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">
-                {members.length}
+                {membersMeta.total}
               </span>
             )}
           </h3>
@@ -202,7 +205,10 @@ export default function MembersPage() {
                 type="text"
                 placeholder="Tìm theo SĐT hoặc email..."
                 value={memberSearch}
-                onChange={(e) => setMemberSearch(e.target.value)}
+                onChange={(e) => {
+                setMemberSearch(e.target.value);
+                setMemberPage(1); // reset to page 1 on new search
+              }}
                 className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -266,6 +272,7 @@ export default function MembersPage() {
               </thead>
               <tbody>
                 {members.map((member, index) => {
+                  const rowNumber = (memberPage - 1) * MEMBER_PAGE_SIZE + index + 1;
                   const joinedDate = new Date(member.joinedAt).toLocaleDateString('vi-VN');
                   // Prioritize workspace-scoped fields over user fields
                   const fullName = member.displayName || member.user.fullName || '---';
@@ -280,7 +287,7 @@ export default function MembersPage() {
                     >
                       {/* Row Number */}
                       <td className="py-3 px-4 text-center text-sm font-medium text-gray-600 w-12">
-                        {index + 1}
+                        {rowNumber}
                       </td>
 
                       {/* Contact info */}
@@ -364,6 +371,34 @@ export default function MembersPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Member pagination */}
+        {membersMeta.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              Trang {membersMeta.page} / {membersMeta.totalPages} &bull; Tổng{' '}
+              {membersMeta.total} nhân sự
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
+                disabled={memberPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="h-3 w-3" />
+                Trước
+              </button>
+              <button
+                onClick={() => setMemberPage((p) => Math.min(membersMeta.totalPages, p + 1))}
+                disabled={memberPage === membersMeta.totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Sau
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         )}
       </div>

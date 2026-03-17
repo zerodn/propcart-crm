@@ -34,31 +34,45 @@ export class WorkspaceService {
     });
   }
 
-  async listWorkspaceMembers(workspaceId: string, search?: string) {
+  async listWorkspaceMembers(workspaceId: string, search?: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+
     const where: Record<string, unknown> = {
       workspaceId,
       status: 1, // only active members
     };
 
-    // If search is provided, search in phone or email
+    // If search is provided, search in phone, email, fullName or displayName
     if (search && search.trim()) {
-      where.user = {
-        OR: [
-          { phone: { contains: search.trim() } },
-          { email: { contains: search.trim() } },
-          { fullName: { contains: search.trim() } },
-        ],
-      };
+      where.OR = [
+        { displayName: { contains: search.trim() } },
+        { workspaceEmail: { contains: search.trim() } },
+        { workspacePhone: { contains: search.trim() } },
+        {
+          user: {
+            OR: [
+              { phone: { contains: search.trim() } },
+              { email: { contains: search.trim() } },
+              { fullName: { contains: search.trim() } },
+            ],
+          },
+        },
+      ];
     }
 
-    const members = await this.prisma.workspaceMember.findMany({
-      where,
-      include: {
-        user: { select: { id: true, phone: true, email: true, fullName: true } },
-        role: { select: { id: true, code: true, name: true } },
-      },
-      orderBy: { joinedAt: 'asc' },
-    });
+    const [members, total] = await Promise.all([
+      this.prisma.workspaceMember.findMany({
+        where,
+        include: {
+          user: { select: { id: true, phone: true, email: true, fullName: true } },
+          role: { select: { id: true, code: true, name: true } },
+        },
+        orderBy: { joinedAt: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.workspaceMember.count({ where }),
+    ]);
 
     const data = members.map((m) => ({
       id: m.id,
@@ -83,7 +97,15 @@ export class WorkspaceService {
       role: m.role,
     }));
 
-    return { data };
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async updateMember(workspaceId: string, memberId: string, dto: UpdateMemberDto) {

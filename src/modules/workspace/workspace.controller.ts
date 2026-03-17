@@ -51,8 +51,12 @@ export class WorkspaceController {
   listWorkspaceMembers(
     @Param('workspaceId') workspaceId: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.workspaceService.listWorkspaceMembers(workspaceId, search);
+    const pageNum = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limitNum = limit ? Math.min(100, Math.max(1, parseInt(limit, 10))) : 20;
+    return this.workspaceService.listWorkspaceMembers(workspaceId, search, pageNum, limitNum);
   }
 
   // POST /workspaces/:workspaceId/members — Directly add a member by phone

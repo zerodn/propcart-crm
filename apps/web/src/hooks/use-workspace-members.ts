@@ -35,22 +35,30 @@ export interface WorkspaceMember {
   };
 }
 
-export function useWorkspaceMembers(workspaceId?: string, search?: string) {
+export function useWorkspaceMembers(
+  workspaceId?: string,
+  search?: string,
+  page = 1,
+  limit = 20,
+) {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit, totalPages: 0 });
 
   const refetch = async () => {
     if (!workspaceId) return;
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search && search.trim()) {
-        params.append('search', search.trim());
-      }
-      const url = `/workspaces/${workspaceId}/members${params.toString() ? `?${params.toString()}` : ''}`;
-      const { data } = await apiClient.get(url);
+      if (search && search.trim()) params.append('search', search.trim());
+      params.append('page', String(page));
+      params.append('limit', String(limit));
+      const { data } = await apiClient.get(
+        `/workspaces/${workspaceId}/members?${params.toString()}`,
+      );
       setMembers(data.data ?? []);
+      setMeta(data.meta ?? { total: 0, page, limit, totalPages: 0 });
     } catch {
       setError('Không thể tải danh sách nhân sự');
     } finally {
@@ -60,9 +68,9 @@ export function useWorkspaceMembers(workspaceId?: string, search?: string) {
 
   useEffect(() => {
     refetch();
-  }, [workspaceId, search]);
+  }, [workspaceId, search, page, limit]);
 
-  return { members, isLoading, error, refetch };
+  return { members, isLoading, error, meta, refetch };
 }
 
 export function useWorkspaceRoles(workspaceId?: string) {
