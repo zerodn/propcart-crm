@@ -53,6 +53,10 @@ export function DepartmentForm({
     }
   };
 
+  const filteredParentOptions = initialData?.id
+    ? parentOptions.filter((option) => option.id !== initialData.id)
+    : parentOptions;
+
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-4">
       <div>
@@ -88,6 +92,23 @@ export function DepartmentForm({
       </div>
 
       <div>
+        <label className="block text-sm font-medium text-gray-900">{t('departments.form.parentLabel')}</label>
+        <select
+          value={parentId}
+          onChange={(e) => setParentId(e.target.value)}
+          disabled={isLoading}
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          <option value="">{t('departments.form.parentPlaceholder')}</option>
+          {filteredParentOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name} ({option.code})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
         <label className="block text-sm font-medium text-gray-900">{t('departments.description')}</label>
         <textarea
           value={description}
@@ -97,23 +118,6 @@ export function DepartmentForm({
           placeholder={t('departments.form.descriptionPlaceholder')}
           rows={3}
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-900">{t('departments.form.parentLabel')}</label>
-        <select
-          value={parentId}
-          onChange={(e) => setParentId(e.target.value)}
-          disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          <option value="">{t('departments.form.parentPlaceholder')}</option>
-          {parentOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name} ({option.code})
-            </option>
-          ))}
-        </select>
       </div>
     </form>
   );
