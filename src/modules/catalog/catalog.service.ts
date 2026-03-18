@@ -161,6 +161,15 @@ export class CatalogService {
       await this.initializeAccountStatusCatalog(workspaceId);
     }
 
+    // Auto-initialize department status catalog if it doesn't exist
+    const departmentStatusCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'DEPARTMENT_STATUS', code: 'DEPARTMENT_STATUS' },
+    });
+
+    if (!departmentStatusCatalogExists) {
+      await this.initializeDepartmentStatusCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -265,6 +274,28 @@ export class CatalogService {
         },
       },
     });
+  }
+
+  private async initializeDepartmentStatusCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'DEPARTMENT_STATUS',
+        code: 'DEPARTMENT_STATUS',
+        name: 'Trạng thái phòng ban',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'ACTIVE', label: 'Hoạt động', order: 0 },
+        { catalogId: catalog.id, value: 'INACTIVE', label: 'Ngưng hoạt động', order: 1 },
+        { catalogId: catalog.id, value: 'DISSOLVED', label: 'Giải tán', order: 2 },
+      ],
+    });
+
+    return catalog;
   }
 
   private async initializeRoleCatalog(workspaceId: string) {

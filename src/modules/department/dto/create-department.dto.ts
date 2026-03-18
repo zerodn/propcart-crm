@@ -14,4 +14,8 @@ export class CreateDepartmentDto {
   @IsUUID()
   @IsOptional()
   parentId?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
 }

@@ -16,4 +16,8 @@ export class UpdateDepartmentDto {
   @IsUUID()
   @IsOptional()
   parentId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
 }

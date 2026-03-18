@@ -331,7 +331,7 @@ export const vi = {
     description: 'Mô tả',
     memberCount: 'Số lượng nhân sự',
     members: 'Nhân sự',
-    manageMembers: 'Quản lý nhân sự & gán quyền',
+    manageMembers: 'Thêm nhân sự & Vai trò',
     addMember: 'Thêm nhân sự',
     removeMember: 'Xóa khỏi phòng',
     updateRole: 'Cập nhật vai trò',
@@ -357,7 +357,7 @@ export const vi = {
       description: 'Hãy tạo phòng ban đầu tiên để tổ chức đội ngũ',
     },
     action: {
-      manageMembersTitle: 'Quản lý nhân sự & gán quyền',
+      manageMembersTitle: 'Thêm nhân sự & Vai trò',
       deleteTitle: 'Xóa phòng ban',
     },
     label: {
@@ -378,6 +378,8 @@ export const vi = {
       descriptionPlaceholder: 'Mô tả chức năng của phòng ban',
       parentLabel: 'Trực thuộc phòng ban',
       parentPlaceholder: 'Chọn phòng ban cha (không bắt buộc)',
+      statusLabel: 'Trạng thái',
+      statusPlaceholder: 'Chọn trạng thái phòng ban',
     },
     validation: {
       nameRequired: 'Vui lòng nhập tên phòng ban',
@@ -401,7 +403,7 @@ export const vi = {
       memberListTitle: 'Danh sách nhân sự ({count})',
       noMembersYet: 'Chưa có nhân sự trong phòng ban này.',
       searching: 'Đang tìm kiếm...',
-      selectRolePlaceholder: 'Chọn quyền',
+      selectRolePlaceholder: 'Chọn vai trò',
       addBtn: 'Thêm nhân sự',
       removeBtn: 'Xóa',
       roleChangeWarning: 'Đổi vai trò sẽ thu hồi phiên đăng nhập hiện tại của nhân sự này. Xác nhận để tiếp tục.',

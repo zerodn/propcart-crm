@@ -56,6 +56,12 @@ export class ProductController {
     return this.productService.list(workspaceId, user, query);
   }
 
+  @Get(':id/project-context')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getProjectContext(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
+    return this.productService.getProjectContext(id, workspaceId);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
   findOne(

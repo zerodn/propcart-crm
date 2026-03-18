@@ -63,6 +63,8 @@ export interface Department {
   name: string;
   description?: string;
   parentId?: string | null;
+  parent?: { id: string; name: string; code: string } | null;
+  status?: string | null;
   members?: DepartmentMember[];
 }
 
@@ -73,10 +75,10 @@ export interface UseDepartmentReturn {
   parentOptions: ParentDepartmentOption[];
   isLoading: boolean;
   error: string | null;
-  create: (name: string, code: string, description?: string, parentId?: string) => Promise<void>;
+  create: (name: string, code: string, description?: string, parentId?: string, status?: string) => Promise<void>;
   update: (
     id: string,
-    data: { name?: string; code?: string; description?: string; parentId?: string | null },
+    data: { name?: string; code?: string; description?: string; parentId?: string | null; status?: string },
   ) => Promise<void>;
   delete: (id: string) => Promise<void>;
   addMember: (departmentId: string, userId: string, roleId: string) => Promise<void>;
@@ -149,7 +151,7 @@ export function useDepartment(): UseDepartmentReturn {
     fetchDepartments();
   }, [workspace?.id]);
 
-  const create = async (name: string, code: string, description?: string, parentId?: string) => {
+  const create = async (name: string, code: string, description?: string, parentId?: string, status?: string) => {
     if (!workspace) return;
     try {
       await apiClient.post(`/workspaces/${workspace.id}/departments`, {
@@ -157,6 +159,7 @@ export function useDepartment(): UseDepartmentReturn {
         code,
         description,
         parentId,
+        status,
       });
       toast.success(t('departments.message.addSuccess'));
       await fetchDepartments();
@@ -169,7 +172,7 @@ export function useDepartment(): UseDepartmentReturn {
 
   const update = async (
     id: string,
-    data: { name?: string; code?: string; description?: string; parentId?: string | null },
+    data: { name?: string; code?: string; description?: string; parentId?: string | null; status?: string },
   ) => {
     if (!workspace) return;
     try {

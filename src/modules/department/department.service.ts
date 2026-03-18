@@ -19,9 +19,10 @@ export class DepartmentService {
     code: string,
     description?: string,
     parentId?: string,
+    status?: string,
   ) {
     return this.prisma.department.create({
-      data: { workspaceId, name, code, description, parentId },
+      data: { workspaceId, name, code, description, parentId, status },
     });
   }
 
@@ -29,6 +30,13 @@ export class DepartmentService {
     const departments = await this.prisma.department.findMany({
       where: { workspaceId },
       include: {
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
         members: {
           include: {
             user: {
@@ -181,7 +189,13 @@ export class DepartmentService {
 
   async update(
     id: string,
-    data: { name?: string; code?: string; description?: string; parentId?: string | null },
+    data: {
+      name?: string;
+      code?: string;
+      description?: string;
+      parentId?: string | null;
+      status?: string;
+    },
   ) {
     return this.prisma.department.update({ where: { id }, data });
   }

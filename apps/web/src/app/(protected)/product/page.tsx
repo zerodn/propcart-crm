@@ -220,9 +220,11 @@ export default function ProductPage() {
     {
       key: 'propertyType',
       label: t('product.label.type'),
-      render: (value) => (
-        <span className="text-sm text-gray-700">{typeof value === 'string' ? value : '—'}</span>
-      ),
+      render: (value) => {
+        const code = typeof value === 'string' ? value : '';
+        const label = propertyTypeOptions.find((o) => o.value === code)?.label || code || '—';
+        return <span className="text-sm text-gray-700">{label}</span>;
+      },
     },
     {
       key: 'warehouse',

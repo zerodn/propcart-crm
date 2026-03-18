@@ -372,6 +372,64 @@ export class ProductService {
     }
   }
 
+  async getProjectContext(
+    productId: string,
+    workspaceId: string,
+  ): Promise<{ projectName: string; subdivisionName: string } | null> {
+    // Pre-filter: JSON_SEARCH with '**' wildcard path is unreliable in MariaDB/MySQL,
+    // so we use JSON_SEARCH without path (matches any string value) for correctness.
+    const rows = await this.prisma.$queryRaw<
+      Array<{ id: string; name: string; subdivisions: string | null }>
+    >`
+      SELECT id, name, subdivisions
+      FROM projects
+      WHERE workspaceId = ${workspaceId}
+        AND subdivisions IS NOT NULL
+        AND JSON_SEARCH(subdivisions, 'one', ${productId}) IS NOT NULL
+    `;
+
+    for (const row of rows) {
+      let subdivisions: unknown;
+      try {
+        subdivisions =
+          typeof row.subdivisions === 'string' ? JSON.parse(row.subdivisions) : row.subdivisions;
+      } catch {
+        continue;
+      }
+
+      if (!Array.isArray(subdivisions)) continue;
+
+      for (const sub of subdivisions as Array<{ name?: string; towers?: unknown[] }>) {
+        const towers = Array.isArray(sub.towers) ? sub.towers : [];
+        for (const tower of towers as Array<{
+          fundProducts?: Array<{ productId?: string }>;
+          floorPlanImages?: Array<{ markers?: Array<{ productId?: string }> }>;
+        }>) {
+          // Check quỹ căn (fundProducts)
+          if (
+            Array.isArray(tower.fundProducts) &&
+            tower.fundProducts.some((fp) => fp.productId === productId)
+          ) {
+            return { projectName: row.name, subdivisionName: sub.name ?? '' };
+          }
+          // Check vị trí quỹ căn (floorPlan markers)
+          if (Array.isArray(tower.floorPlanImages)) {
+            for (const fpi of tower.floorPlanImages) {
+              if (
+                Array.isArray(fpi.markers) &&
+                fpi.markers.some((m) => m.productId === productId)
+              ) {
+                return { projectName: row.name, subdivisionName: sub.name ?? '' };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
   async delete(id: string, workspaceId: string) {
     const existed = await this.prisma.propertyProduct.findFirst({
       where: { id, workspaceId },

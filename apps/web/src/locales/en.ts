@@ -802,7 +802,7 @@ export const en = {
     description: 'Description',
     memberCount: 'Member count',
     members: 'Members',
-    manageMembers: 'Manage members & permissions',
+    manageMembers: 'Members & Roles',
     addMember: 'Add member',
     removeMember: 'Remove from department',
     updateRole: 'Update role',
@@ -828,7 +828,7 @@ export const en = {
       description: 'Create the first department to organize your team',
     },
     action: {
-      manageMembersTitle: 'Manage members & assign roles',
+      manageMembersTitle: 'Members & Roles',
       deleteTitle: 'Delete department',
     },
     label: {
@@ -849,6 +849,8 @@ export const en = {
       descriptionPlaceholder: 'Describe the department\'s functions',
       parentLabel: 'Parent department',
       parentPlaceholder: 'Select parent department (optional)',
+      statusLabel: 'Status',
+      statusPlaceholder: 'Select department status',
     },
     validation: {
       nameRequired: 'Please enter department name',

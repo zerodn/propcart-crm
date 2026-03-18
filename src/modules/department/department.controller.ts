@@ -33,6 +33,7 @@ export class DepartmentController {
       dto.code,
       dto.description,
       dto.parentId,
+      dto.status,
     );
   }
 

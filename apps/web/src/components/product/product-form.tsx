@@ -199,6 +199,23 @@ export function ProductForm({
       setProductDocuments(editingProduct.productDocuments || []);
       setContacts((editingProduct.contacts as ProductContact[]) || []);
       setNewContactForm({ name: '' });
+
+      // Auto-fill zone (Phân khu) from project assignment if zone is not set
+      if (!editingProduct.zone && editingProduct.id && workspaceId) {
+        apiClient
+          .get(`/workspaces/${workspaceId}/products/${editingProduct.id}/project-context`)
+          .then(({ data }) => {
+            const ctx: { subdivisionName?: string } | null = data?.data ?? data ?? null;
+            if (ctx?.subdivisionName) {
+              setForm((prev) => ({
+                ...prev,
+                zone: prev.zone || ctx.subdivisionName!,
+              }));
+            }
+          })
+          .catch(() => {});
+      }
+
       return;
     }
 
@@ -642,10 +659,10 @@ export function ProductForm({
       productDocuments,
     };
 
-    if (form.warehouseId.trim()) data.warehouseId = form.warehouseId.trim();
-    if (form.zone.trim()) data.zone = form.zone.trim();
-    if (form.block.trim()) data.block = form.block.trim();
-    if (form.direction.trim()) data.direction = form.direction.trim();
+    data.warehouseId = form.warehouseId.trim();
+    data.zone = form.zone.trim();
+    data.block = form.block.trim();
+    data.direction = form.direction.trim();
     if (form.area.trim()) data.area = Number(form.area);
 
     const priceWithoutVat = parseCurrencyInput(form.priceWithoutVat);
@@ -653,9 +670,9 @@ export function ProductForm({
     if (priceWithoutVat !== undefined) data.priceWithoutVat = priceWithoutVat;
     if (priceWithVat !== undefined) data.priceWithVat = priceWithVat;
 
-    if (form.promotionProgram.trim()) data.promotionProgram = form.promotionProgram.trim();
-    if (contacts.length > 0) data.contacts = contacts;
-    if (form.note.trim()) data.note = form.note.trim();
+    data.promotionProgram = form.promotionProgram.trim();
+    data.contacts = contacts;
+    data.note = form.note.trim();
 
     await onSubmit(data);
   };

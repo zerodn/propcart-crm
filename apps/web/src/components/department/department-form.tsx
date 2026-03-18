@@ -5,16 +5,18 @@ import { useI18n } from '@/providers/i18n-provider';
 import type { ParentDepartmentOption } from '@/hooks/use-department';
 
 interface DepartmentFormProps {
-  onSubmit: (name: string, code: string, description?: string, parentId?: string) => Promise<void>;
+  onSubmit: (name: string, code: string, description?: string, parentId?: string, status?: string) => Promise<void>;
   isLoading?: boolean;
   onCancel?: () => void;
   parentOptions?: ParentDepartmentOption[];
+  statusOptions?: { value: string; label: string; color?: string }[];
   initialData?: {
     name: string;
     code: string;
     description?: string;
     id?: string;
     parentId?: string | null;
+    status?: string | null;
   };
   formId?: string;
 }
@@ -24,6 +26,7 @@ export function DepartmentForm({
   isLoading = false,
   onCancel: _onCancel,
   parentOptions = [],
+  statusOptions = [],
   initialData,
   formId = 'department-form',
 }: DepartmentFormProps) {
@@ -31,6 +34,7 @@ export function DepartmentForm({
   const [code, setCode] = useState(initialData?.code || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [parentId, setParentId] = useState(initialData?.parentId || '');
+  const [status, setStatus] = useState(initialData?.status || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { t } = useI18n();
 
@@ -47,7 +51,7 @@ export function DepartmentForm({
     if (!validate()) return;
 
     try {
-      await onSubmit(name, code, description || undefined, parentId || undefined);
+      await onSubmit(name, code, description || undefined, parentId || undefined, status || undefined);
     } catch {
       // Error is already handled by hook
     }
@@ -103,6 +107,23 @@ export function DepartmentForm({
           {filteredParentOptions.map((option) => (
             <option key={option.id} value={option.id}>
               {option.name} ({option.code})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-900">{t('departments.form.statusLabel')}</label>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          disabled={isLoading}
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          <option value="">{t('departments.form.statusPlaceholder')}</option>
+          {statusOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>

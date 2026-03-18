@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Building2, Plus, Edit2, Trash2, Users, Loader2 } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { usePageSetup } from '@/hooks/use-page-setup';
 import { useDepartment } from '@/hooks/use-department';
+import { useCatalog } from '@/hooks/use-catalog';
 import { DepartmentForm } from '@/components/department/department-form';
 import { DepartmentMembersDialog } from '@/components/department/department-members-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -28,6 +29,16 @@ export default function DepartmentPage() {
     updateMemberRole,
     searchMembers,
   } = useDepartment();
+  const { items: catalogs } = useCatalog();
+
+  const statusOptions = useMemo(() => {
+    const target = catalogs.find((c) => {
+      const code = (c.code || '').toUpperCase();
+      const type = (c.type || '').toUpperCase();
+      return code === 'DEPARTMENT_STATUS' || type === 'DEPARTMENT_STATUS';
+    });
+    return (target?.values || []).map((v) => ({ value: v.value, label: v.label, color: v.color }));
+  }, [catalogs]);
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMembersDialog, setShowMembersDialog] = useState(false);
@@ -76,14 +87,14 @@ export default function DepartmentPage() {
     ? departments.find((d) => d.id === managingDeptId) || null
     : null;
 
-  const handleSubmit = async (name: string, code: string, description?: string, parentId?: string) => {
+  const handleSubmit = async (name: string, code: string, description?: string, parentId?: string, status?: string) => {
     setIsSubmitting(true);
     try {
       if (editingId) {
-        await update(editingId, { name, code, description, parentId: parentId || null });
+        await update(editingId, { name, code, description, parentId: parentId || null, status: status || undefined });
         setEditingId(null);
       } else {
-        await create(name, code, description, parentId);
+        await create(name, code, description, parentId, status);
       }
       setShowForm(false);
     } finally {
@@ -151,6 +162,7 @@ export default function DepartmentPage() {
           onSubmit={handleSubmit}
           isLoading={isSubmitting}
           parentOptions={parentOptions}
+          statusOptions={statusOptions}
           initialData={
             editingDepartment
               ? {
@@ -159,6 +171,7 @@ export default function DepartmentPage() {
                   description: editingDepartment.description,
                   id: editingDepartment.id,
                   parentId: editingDepartment.parentId,
+                  status: editingDepartment.status,
                 }
               : undefined
           }
@@ -197,9 +210,32 @@ export default function DepartmentPage() {
               <div className="flex-1 mb-4">
                 <h3 className="font-medium text-gray-900 truncate">{dept.name}</h3>
                 <p className="text-xs text-gray-500 mt-1">Mã phòng: {dept.code}</p>
-                <div className="inline-flex items-center gap-1 mt-2 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600">
-                  <Users className="h-3 w-3" />
-                  {(dept.members || []).length} nhân sự
+                {dept.parent && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Trực thuộc:{' '}
+                    <span className="font-medium text-gray-700">{dept.parent.name}</span>
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600">
+                    <Users className="h-3 w-3" />
+                    {(dept.members || []).length} nhân sự
+                  </div>
+                  {dept.status && (() => {
+                    const opt = statusOptions.find((o) => o.value === dept.status);
+                    const label = opt?.label || dept.status;
+                    const style = opt?.color
+                      ? { backgroundColor: `${opt.color}20`, color: opt.color }
+                      : undefined;
+                    return (
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${opt?.color ? '' : 'bg-gray-100 text-gray-600'}`}
+                        style={style}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
                 {dept.description && (
                   <p className="text-sm text-gray-600 mt-3">{dept.description}</p>
