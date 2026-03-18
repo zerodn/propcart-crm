@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
+import { useI18n } from '@/providers/i18n-provider';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -58,6 +59,7 @@ function normalizeWarehouse(raw: UnknownRecord): PropertyWarehouse {
 }
 
 export function useWarehouse(workspaceId: string) {
+  const { t } = useI18n();
   const [warehouses, setWarehouses] = useState<PropertyWarehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +93,7 @@ export function useWarehouse(workspaceId: string) {
         setWarehouses(items);
         return items;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load warehouses';
+        const message = err instanceof Error ? err.message : t('warehouse.message.loadError');
         setError(message);
         toast.error(message);
         return [];
@@ -111,11 +113,11 @@ export function useWarehouse(workspaceId: string) {
           data,
         );
         const warehouse = response.data;
-        toast.success('Kho hàng đã được tạo');
+        toast.success(t('warehouse.message.createSuccess'));
         return warehouse;
       } catch (err) {
         console.error('Create warehouse error:', err);
-        const message = err instanceof Error ? err.message : 'Failed to create warehouse';
+        const message = err instanceof Error ? err.message : t('warehouse.message.createError');
         toast.error(message);
         throw err;
       }
@@ -131,10 +133,10 @@ export function useWarehouse(workspaceId: string) {
           data,
         );
         const updated = response.data;
-        toast.success('Kho hàng đã được cập nhật');
+        toast.success(t('warehouse.message.updateSuccess'));
         return updated;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to update warehouse';
+        const message = err instanceof Error ? err.message : t('warehouse.message.updateError');
         toast.error(message);
         throw err;
       }
@@ -147,9 +149,9 @@ export function useWarehouse(workspaceId: string) {
       try {
         await apiClient.delete(`/workspaces/${workspaceId}/warehouses/${id}`);
         setWarehouses((prev) => prev.filter((w) => w.id !== id));
-        toast.success('Kho hàng đã được xoá');
+        toast.success(t('warehouse.message.deleteSuccess'));
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to delete warehouse';
+        const message = err instanceof Error ? err.message : t('warehouse.message.deleteError');
         toast.error(message);
         throw err;
       }

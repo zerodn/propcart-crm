@@ -266,5 +266,44 @@ export async function seedWorkspaceCatalogs(prisma: PrismaService, workspaceId: 
     },
   });
 
+  // Create "Trạng thái nhân sự" (Employment Status) catalog
+  await prisma.catalog.create({
+    data: {
+      workspaceId,
+      type: 'EMPLOYMENT_STATUS',
+      code: 'EMPLOYMENT_STATUS',
+      name: 'Trạng thái nhân sự',
+      parentId: null,
+      values: {
+        create: [
+          { value: 'PROBATION', label: 'Thử việc', order: 0 },
+          { value: 'WORKING', label: 'Đang làm việc', order: 1 },
+          { value: 'ON_LEAVE', label: 'Tạm nghỉ', order: 2 },
+          { value: 'RESIGNED', label: 'Đã nghỉ việc', order: 3 },
+          { value: 'RETIRED', label: 'Nghỉ hưu', order: 4 },
+          { value: 'FIRED', label: 'Bị sa thải', order: 5 },
+        ],
+      },
+    },
+  });
+
+  // Create "Trạng thái tài khoản" (Account Status) catalog
+  await prisma.catalog.create({
+    data: {
+      workspaceId,
+      type: 'ACCOUNT_STATUS',
+      code: 'ACCOUNT_STATUS',
+      name: 'Trạng thái tài khoản',
+      parentId: null,
+      values: {
+        create: [
+          { value: '1', label: 'Đang hoạt động', order: 0 },
+          { value: '2', label: 'Tạm khóa', order: 1 },
+          { value: '0', label: 'Đã vô hiệu hóa', order: 2 },
+        ],
+      },
+    },
+  });
+
   return roleCatalog;
 }

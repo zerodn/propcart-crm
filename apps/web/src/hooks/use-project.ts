@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
+import { useI18n } from '@/providers/i18n-provider';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -240,6 +241,7 @@ function normalizeProject(raw: UnknownRecord): Project {
 }
 
 export function useProject(workspaceId: string) {
+  const { t } = useI18n();
   const [projects, setProjects] = useState<Project[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -261,7 +263,7 @@ export function useProject(workspaceId: string) {
         setProjects(items);
         setTotal(res.data?.meta?.total ?? items.length);
       } catch {
-        toast.error('Không thể tải danh sách dự án');
+        toast.error(t('project.message.loadError'));
       } finally {
         setIsLoading(false);
       }
@@ -278,13 +280,13 @@ export function useProject(workspaceId: string) {
         const res = await apiClient.post(`/workspaces/${workspaceId}/projects`, payload);
         const created = normalizeProject(res.data?.data ?? res.data);
         setProjects((prev) => [created, ...prev]);
-        setTotal((t) => t + 1);
+        setTotal((prev) => prev + 1);
         if (!options?.silent) {
-          toast.success('Tạo dự án thành công');
+          toast.success(t('project.message.addSuccess'));
         }
         return created;
       } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, 'Không thể tạo dự án'));
+        toast.error(getApiErrorMessage(err, t('project.message.addError')));
         return null;
       }
     },
@@ -302,11 +304,11 @@ export function useProject(workspaceId: string) {
         const updated = normalizeProject(res.data?.data ?? res.data);
         setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
         if (!options?.silent) {
-          toast.success('Cập nhật dự án thành công');
+          toast.success(t('project.message.updateSuccess'));
         }
         return updated;
       } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, 'Không thể cập nhật dự án'));
+        toast.error(getApiErrorMessage(err, t('project.message.updateError')));
         return null;
       }
     },
@@ -318,11 +320,11 @@ export function useProject(workspaceId: string) {
       try {
         await apiClient.delete(`/workspaces/${workspaceId}/projects/${id}`);
         setProjects((prev) => prev.filter((p) => p.id !== id));
-        setTotal((t) => Math.max(0, t - 1));
-        toast.success('Xóa dự án thành công');
+        setTotal((prev) => Math.max(0, prev - 1));
+        toast.success(t('project.message.deleteSuccess'));
         return true;
       } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, 'Không thể xóa dự án'));
+        toast.error(getApiErrorMessage(err, t('project.message.deleteError')));
         return false;
       }
     },
@@ -344,7 +346,7 @@ export function useProject(workspaceId: string) {
         const urls: string[] = res.data?.data?.urls ?? res.data?.urls ?? [];
         return urls[0] ?? null;
       } catch {
-        toast.error('Upload ảnh thất bại');
+        toast.error(t('image.uploadFailed'));
         return null;
       }
     },

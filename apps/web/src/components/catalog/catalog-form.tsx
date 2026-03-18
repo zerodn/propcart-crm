@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { CATALOG_TYPES } from '@/types';
+import { useI18n } from '@/providers/i18n-provider';
 
 interface CatalogFormProps {
   onSubmit: (
@@ -33,6 +34,7 @@ export function CatalogForm({
   parentOptions = [],
   formId = 'catalog-form',
 }: CatalogFormProps) {
+  const { t } = useI18n();
   const normalizeHexColor = (value: string) => {
     const raw = value.trim();
     const withHash = raw.startsWith('#') ? raw : `#${raw}`;
@@ -52,9 +54,9 @@ export function CatalogForm({
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!type.trim()) newErrors.type = 'Vui lòng chọn loại danh mục';
-    if (!code.trim()) newErrors.code = 'Vui lòng nhập mã danh mục';
-    if (!name.trim()) newErrors.name = 'Vui lòng nhập tên danh mục';
+    if (!type.trim()) newErrors.type = t('catalogs.validation2.typeRequired');
+    if (!code.trim()) newErrors.code = t('catalogs.validation2.codeRequired');
+    if (!name.trim()) newErrors.name = t('catalogs.validation2.nameRequired');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -78,7 +80,7 @@ export function CatalogForm({
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-900">Loại danh mục *</label>
+        <label className="block text-sm font-medium text-gray-900">{t('catalogs.form.typeLabel')}</label>
         <select
           value={type}
           onChange={(e) => {
@@ -88,7 +90,7 @@ export function CatalogForm({
           disabled={isLoading}
           className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
-          <option value="">Chọn loại danh mục</option>
+          <option value="">{t('catalogs.form.typePlaceholder')}</option>
           {Object.entries(CATALOG_TYPES).map(([key, label]) => (
             <option key={key} value={key}>
               {label}
@@ -99,7 +101,7 @@ export function CatalogForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-900">Mã danh mục *</label>
+        <label className="block text-sm font-medium text-gray-900">{t('catalogs.form.codeLabel2')}</label>
         <input
           type="text"
           value={code}
@@ -115,7 +117,7 @@ export function CatalogForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-900">Tên danh mục *</label>
+        <label className="block text-sm font-medium text-gray-900">{t('catalogs.form.nameLabel2')}</label>
         <input
           type="text"
           value={name}
@@ -125,20 +127,20 @@ export function CatalogForm({
           }}
           disabled={isLoading}
           className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-          placeholder="VD: Căn hộ, Nhà riêng"
+          placeholder={t('catalogs.form.namePlaceholder2')}
         />
         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-900">Danh mục cha (tùy chọn)</label>
+        <label className="block text-sm font-medium text-gray-900">{t('catalogs.form.parentLabel')}</label>
         <select
           value={parentId ?? ''}
           onChange={(e) => setParentId(e.target.value || null)}
           disabled={isLoading}
           className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
-          <option value="">Không có</option>
+          <option value="">{t('catalogs.noParent')}</option>
           {parentOptions.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -148,12 +150,12 @@ export function CatalogForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-900">Danh sách giá trị con</label>
+        <label className="block text-sm font-medium text-gray-900">{t('catalogs.form.valuesLabel')}</label>
         <div className="space-y-2 mt-2">
           <div className="grid grid-cols-[1fr_1fr_130px_40px] gap-2 px-1 text-[11px] font-medium text-gray-500">
-            <span>Mã code</span>
-            <span>Nhãn</span>
-            <span>Màu</span>
+            <span>{t('catalogs.form.valueCodeHeader')}</span>
+            <span>{t('catalogs.form.valueLabelHeader')}</span>
+            <span>{t('catalogs.form.valueColorHeader')}</span>
             <span></span>
           </div>
           {values.map((v, idx) => (
@@ -162,14 +164,14 @@ export function CatalogForm({
                 type="text"
                 value={v.value}
                 onChange={(e) => updateValue(idx, 'value', e.target.value)}
-                placeholder="Mã code (VD: HOT)"
+                placeholder={t('catalogs.form.valuePlaceholderCode')}
                 className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm"
               />
               <input
                 type="text"
                 value={v.label}
                 onChange={(e) => updateValue(idx, 'label', e.target.value)}
-                placeholder="Nhãn (VD: Hàng hot)"
+                placeholder={t('catalogs.form.valuePlaceholderLabel')}
                 className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm"
               />
               <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-2 py-1">
@@ -178,7 +180,7 @@ export function CatalogForm({
                   value={v.color || '#3b82f6'}
                   onChange={(e) => updateValue(idx, 'color', e.target.value)}
                   className="h-7 w-7 p-0 border-0 rounded cursor-pointer"
-                  title="Màu nhãn"
+                  title={t('catalogs.form.valueColorTitle')}
                 />
                 <input
                   type="text"
@@ -201,7 +203,7 @@ export function CatalogForm({
             onClick={addValue}
             className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600"
           >
-            <Plus className="h-4 w-4" /> Thêm giá trị
+            <Plus className="h-4 w-4" /> {t('catalogs.addValue')}
           </button>
         </div>
       </div>

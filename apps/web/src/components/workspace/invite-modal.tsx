@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, Phone } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
 import { BaseDialog } from '../common/base-dialog';
 
 const COUNTRIES = [
@@ -38,6 +39,7 @@ interface InviteModalProps {
 
 export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
   const { workspace } = useAuth();
+  const { t } = useI18n();
   const [selectedCountry, setSelectedCountry] = useState(
     COUNTRIES[0] as (typeof COUNTRIES)[number],
   );
@@ -94,17 +96,17 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
         phone: fullPhone,
         role_code: roleCode,
       });
-      toast.success(`Đã gửi lời mời đến ${fullPhone}`);
+      toast.success(t('members.inviteSuccess', { phone: fullPhone }));
       onSuccess();
       onClose();
       setPhone('');
       setSelectedCountry(COUNTRIES[0]);
     } catch (err: unknown) {
       const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
-      if (code === 'MEMBER_ALREADY_EXISTS') toast.error('Người dùng đã là nhân sự');
-      else if (code === 'INVITATION_ALREADY_PENDING') toast.error('Lời mời đã tồn tại');
-      else if (code === 'ROLE_NOT_FOUND') toast.error('Vai trò không hợp lệ');
-      else toast.error('Không thể gửi lời mời');
+      if (code === 'MEMBER_ALREADY_EXISTS') toast.error(t('members.inviteDialog.error.alreadyMember'));
+      else if (code === 'INVITATION_ALREADY_PENDING') toast.error(t('members.inviteDialog.error.invitationExists'));
+      else if (code === 'ROLE_NOT_FOUND') toast.error(t('members.inviteDialog.error.invalidRole'));
+      else toast.error(t('members.inviteDialog.message.sendError'));
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +116,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
     <BaseDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="Mời nhân sự"
+      title={t('members.inviteDialog.title')}
       footer={
         <>
           <button
@@ -122,7 +124,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
             onClick={onClose}
             className="flex-1 py-2.5 px-4 border border-gray-300 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Hủy
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -131,7 +133,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
             className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {isLoading ? 'Đang gửi...' : 'Gửi lời mời'}
+            {isLoading ? t('members.inviteDialog.sendingBtn') : t('members.inviteDialog.sendBtn')}
           </button>
         </>
       }
@@ -139,7 +141,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
       <form id="invite-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Country Code + Phone Input */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">Số điện thoại</label>
+          <label className="text-sm font-medium text-gray-700">{t('members.inviteDialog.phoneLabel')}</label>
           <div className="flex gap-2">
             {/* Country Selector */}
             <div className="relative w-24">
@@ -199,7 +201,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">Vai trò</label>
+          <label className="text-sm font-medium text-gray-700">{t('members.inviteDialog.roleLabel')}</label>
           <select
             value={roleCode}
             onChange={(e) => setRoleCode(e.target.value)}

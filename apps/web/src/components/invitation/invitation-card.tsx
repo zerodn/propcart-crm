@@ -157,17 +157,19 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
 
       {(invitation.status !== 0 || isExpired) && (
         <div className="mt-3 text-xs text-gray-400 text-center">
-          {invitation.status === 1 && '✓ Đã chấp nhận'}
+          {invitation.status === 1 && t('invitations.statusAccepted')}
           {invitation.status === 2 && (
             <>
-              ✗ Đã từ chối
+              {t('invitations.statusDeclined')}
               {invitation.declineReason && (
-                <span className="block text-gray-500 mt-1">Lý do: {invitation.declineReason}</span>
+                <span className="block text-gray-500 mt-1">
+                  {t('invitations.declineReasonLabel', { reason: invitation.declineReason })}
+                </span>
               )}
             </>
           )}
-          {invitation.status === 4 && 'Đã hủy'}
-          {isExpired && invitation.status === 0 && 'Lời mời đã hết hạn'}
+          {invitation.status === 4 && t('invitations.statusCancelled')}
+          {isExpired && invitation.status === 0 && t('invitations.statusExpired')}
         </div>
       )}
     </div>

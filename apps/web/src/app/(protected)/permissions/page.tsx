@@ -185,10 +185,10 @@ export default function PermissionsPage() {
 
       <ConfirmDialog
         isOpen={showRemoveConfirm}
-        title="Xóa quyền hạn"
-        message={`Bạn có chắc chắn muốn xóa quyền "${permissionToRemove?.permissionName}" từ vai trò "${permissionToRemove?.roleName}"?`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('permissions.action.deleteTitle')}
+        message={t('permissions.confirm.deleteText', { permission: permissionToRemove?.permissionName ?? '', role: permissionToRemove?.roleName ?? '' })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isRemoving}
         onConfirm={handleConfirmRemovePermission}

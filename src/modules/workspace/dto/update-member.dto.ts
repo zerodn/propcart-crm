@@ -8,8 +8,8 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(1)
-  status?: number; // 0=inactive, 1=active
+  @Max(2)
+  status?: number; // 0=inactive, 1=active, 2=suspended
 
   // Workspace-scoped profile fields
   @IsOptional()
@@ -55,4 +55,8 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsString()
   attachmentUrl?: string; // Tệp đính kèm (URL)
+
+  @IsOptional()
+  @IsString()
+  employmentStatus?: string; // PROBATION, WORKING, ON_LEAVE, RESIGNED, RETIRED, FIRED
 }

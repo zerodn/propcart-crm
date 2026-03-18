@@ -110,6 +110,7 @@ model WorkspaceMember {
   workspaceAddress String?   // Phường/Xã
   addressLine      String?   // Địa chỉ cụ thể (số nhà, tên đường)
   contractType     String?   // Loại HĐLĐ (từ catalog HDLD_TYPE)
+  employmentStatus String?   // Trạng thái nhân sự: PROBATION, WORKING, ON_LEAVE, RESIGNED, RETIRED, FIRED
   attachmentUrl    String?   // Tệp đính kèm (URL)
 
   // Relations

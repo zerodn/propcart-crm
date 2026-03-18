@@ -11,9 +11,11 @@ import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/providers/i18n-provider';
 
 export default function WarehousePage() {
   const { workspace } = useAuth();
+  const { t } = useI18n();
   const {
     warehouses,
     isLoading,
@@ -36,8 +38,8 @@ export default function WarehousePage() {
   const WAREHOUSE_PAGE_SIZE = 10;
 
   usePageSetup({
-    title: 'Quản lý kho hàng',
-    subtitle: 'Quản lý các kho hàng bất động sản',
+    title: t('warehouse.pageTitle'),
+    subtitle: t('warehouse.subtitle'),
     actions: (
       <button
         onClick={() => {
@@ -47,7 +49,7 @@ export default function WarehousePage() {
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
       >
         <Plus className="h-4 w-4" />
-        Tạo kho hàng
+        {t('warehouse.action.create')}
       </button>
     ),
   });
@@ -108,29 +110,29 @@ export default function WarehousePage() {
   const columns: DataGridColumn<PropertyWarehouse>[] = [
     {
       key: 'name',
-      label: 'Tên kho',
+      label: t('warehouse.label.name'),
       render: (value, row) => (
         <div>
           <div className="font-semibold text-gray-900">
             {typeof value === 'string' ? value : '—'}
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">Mã: {row.code}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{t('warehouse.label.code')} {row.code}</div>
         </div>
       ),
     },
     {
       key: 'type',
-      label: 'Loại kho',
+      label: t('warehouse.label.type'),
       render: (value) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {warehouseTypes.find((t) => t.value === value)?.label ||
+          {warehouseTypes.find((wt) => wt.value === value)?.label ||
             (typeof value === 'string' ? value : '—')}
         </span>
       ),
     },
     {
       key: 'status',
-      label: 'Trạng thái',
+      label: t('warehouse.label.status'),
       render: (value) => (
         <span
           className={cn(
@@ -138,13 +140,13 @@ export default function WarehousePage() {
             value === 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
           )}
         >
-          {value === 1 ? 'Hoạt động' : 'Tạm dừng'}
+          {value === 1 ? t('common.active') : t('common.paused')}
         </span>
       ),
     },
     {
       key: 'provinceName',
-      label: 'Địa điểm',
+      label: t('warehouse.label.location'),
       render: (value, row) => {
         const province = typeof value === 'string' ? value : '';
         return (
@@ -163,7 +165,7 @@ export default function WarehousePage() {
     },
     {
       key: 'latitude',
-      label: 'Tọa độ',
+      label: t('warehouse.label.coordinates'),
       render: (value, row) => {
         if (value && row.longitude) {
           return (
@@ -185,7 +187,7 @@ export default function WarehousePage() {
     },
     {
       key: 'createdBy',
-      label: 'Người tạo',
+      label: t('warehouse.label.createdBy'),
       render: (value) => (
         <span className="text-sm text-gray-700">
           {(value as { fullName?: string; phone?: string } | null | undefined)?.fullName ||
@@ -203,14 +205,14 @@ export default function WarehousePage() {
         data={warehouses}
         columns={columns}
         isLoading={isLoading}
-        title="Danh sách kho hàng"
+        title={t('warehouse.title')}
         titleIcon={<Building2 className="h-5 w-5" />}
         badgeCount={warehouseMeta.total}
         searchValue={warehouseSearch}
         onSearchChange={(v) => { setWarehouseSearch(v); setWarehousePage(1); }}
-        searchPlaceholder="Tìm kiếm kho hàng..."
+        searchPlaceholder={t('warehouse.placeholder.search')}
         pageSize={WAREHOUSE_PAGE_SIZE}
-        emptyMessage="Chưa có kho hàng nào. Bắt đầu bằng cách tạo kho hàng đầu tiên."
+        emptyMessage={t('warehouse.empty.description')}
         emptyIcon={<Building2 className="h-10 w-10 text-gray-300" />}
         totalItems={warehouseMeta.total}
         currentPage={warehousePage}
@@ -226,7 +228,7 @@ export default function WarehousePage() {
           setShowForm(false);
           setEditingId(null);
         }}
-        title={editingId ? 'Chỉnh sửa kho hàng' : 'Tạo kho hàng'}
+        title={editingId ? t('warehouse.action.edit') : t('warehouse.action.create')}
         maxWidth="2xl"
         footer={
           <>
@@ -239,7 +241,7 @@ export default function WarehousePage() {
               disabled={isSubmitting}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -248,7 +250,7 @@ export default function WarehousePage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? 'Cập nhật' : 'Tạo mới'}
+              {editingId ? t('common.update') : t('common.create')}
             </button>
           </>
         }
@@ -265,10 +267,10 @@ export default function WarehousePage() {
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Xoá kho hàng"
-        message="Bạn có chắc chắn muốn xoá kho hàng này?"
-        confirmText="Xoá"
-        cancelText="Hủy"
+        title={t('warehouse.action.deleteTitle')}
+        message={t('warehouse.confirm.deleteText')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}

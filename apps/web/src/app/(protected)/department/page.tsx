@@ -119,7 +119,7 @@ export default function DepartmentPage() {
           setEditingId(null);
         }}
         title={editingId ? t('department.editTitle') : t('department.addTitle')}
-        maxWidth="lg"
+        maxWidth="2xl"
         footer={
           <>
             <button
@@ -131,7 +131,7 @@ export default function DepartmentPage() {
               disabled={isSubmitting}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -140,7 +140,7 @@ export default function DepartmentPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? 'Cập nhật' : 'Thêm mới'}
+              {editingId ? t('common.update') : t('common.addNew')}
             </button>
           </>
         }
@@ -210,7 +210,7 @@ export default function DepartmentPage() {
                   }}
                   className="w-full py-2 px-3 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
                 >
-                  Quản lý nhân sự & gán quyền
+                  {t('departments.manageMembers')}
                 </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -219,18 +219,18 @@ export default function DepartmentPage() {
                       setShowForm(true);
                     }}
                     className="flex items-center justify-center gap-1.5 py-2 px-3 bg-gray-50 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
-                    title="Chỉnh sửa"
+                    title={t('common.editInfo')}
                   >
                     <Edit2 className="h-4 w-4" />
-                    Sửa
+                    {t('common.edit')}
                   </button>
                   <button
                     onClick={() => handleDelete(dept.id)}
                     className="flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
-                    title="Xóa"
+                    title={t('common.delete')}
                   >
                     <Trash2 className="h-4 w-4" />
-                    Xóa
+                    {t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -257,10 +257,10 @@ export default function DepartmentPage() {
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Xóa phòng ban"
-        message="Bạn có chắc chắn muốn xóa phòng ban này? Hành động này không thể hoàn tác."
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('departments.action.deleteTitle')}
+        message={t('departments.confirm.deleteText')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}

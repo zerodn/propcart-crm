@@ -2,6 +2,7 @@
 
 import { Building2, User, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import type { WorkspaceItem } from '@/types';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,7 @@ interface WorkspaceCardProps {
 
 export function WorkspaceCard({ item }: WorkspaceCardProps) {
   const { workspace: current, switchWorkspace } = useAuth();
+  const { t } = useI18n();
   const isActive = item.id === current?.id;
 
   return (
@@ -45,7 +47,7 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
                 item.type === 'COMPANY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600',
               )}
             >
-              {item.type === 'COMPANY' ? 'Doanh nghiệp' : 'Cá nhân'}
+              {item.type === 'COMPANY' ? t('workspace.card.typeBusiness') : t('workspace.card.typePersonal')}
             </span>
           </div>
         </div>
@@ -62,13 +64,13 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
           {ROLE_LABELS[item.role] ?? item.role}
         </span>
         {isActive ? (
-          <span className="text-xs text-blue-600 font-medium">Đang dùng</span>
+          <span className="text-xs text-blue-600 font-medium">{t('workspace.card.current')}</span>
         ) : (
           <button
             onClick={() => switchWorkspace(item.id)}
             className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
           >
-            Chuyển sang →
+            {t('workspace.card.switchTo')}
           </button>
         )}
       </div>

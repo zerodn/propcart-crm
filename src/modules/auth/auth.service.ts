@@ -43,11 +43,17 @@ export class AuthService {
   async sendOtp(dto: SendOtpDto) {
     const { phone } = dto;
 
-    // Check if user is banned
+    // Check if user is banned or disabled
     const user = await this.userService.findByPhone(phone);
     if (user && user.status === 2) {
       throw new HttpException(
-        { code: 'USER_BANNED', message: 'This account has been banned' },
+        { code: 'USER_BANNED', message: 'Tài khoản đã bị tạm khóa' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (user && user.status === 0) {
+      throw new HttpException(
+        { code: 'USER_DISABLED', message: 'Tài khoản đã bị vô hiệu hóa' },
         HttpStatus.FORBIDDEN,
       );
     }
@@ -115,6 +121,20 @@ export class AuthService {
     if (!user) {
       user = await this.userService.createUser({ phone });
       isNewUser = true;
+    } else {
+      // Block login for disabled or banned accounts
+      if (user.status === 2) {
+        throw new HttpException(
+          { code: 'USER_BANNED', message: 'Tài khoản đã bị tạm khóa' },
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      if (user.status === 0) {
+        throw new HttpException(
+          { code: 'USER_DISABLED', message: 'Tài khoản đã bị vô hiệu hóa' },
+          HttpStatus.FORBIDDEN,
+        );
+      }
     }
 
     // Create personal workspace for new users
@@ -188,6 +208,20 @@ export class AuthService {
       return { data: { status: 'PHONE_REQUIRED', temp_token: tempToken } };
     }
 
+    // Block login for disabled or banned accounts
+    if (user.status === 2) {
+      throw new HttpException(
+        { code: 'USER_BANNED', message: 'Tài khoản đã bị tạm khóa' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (user.status === 0) {
+      throw new HttpException(
+        { code: 'USER_DISABLED', message: 'Tài khoản đã bị vô hiệu hóa' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
     // User has phone — issue full tokens
     const workspace = await this.prisma.workspace.findFirst({
       where: { ownerUserId: user.id, type: 'PERSONAL' },
@@ -258,6 +292,20 @@ export class AuthService {
 
     // Load user + workspace + role for new JWT
     const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
+
+    // Block refresh for disabled or banned accounts
+    if (!user || user.status === 2) {
+      throw new HttpException(
+        { code: 'USER_BANNED', message: 'Tài khoản đã bị tạm khóa' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (user.status === 0) {
+      throw new HttpException(
+        { code: 'USER_DISABLED', message: 'Tài khoản đã bị vô hiệu hóa' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: stored.workspaceId },
     });

@@ -116,7 +116,7 @@ export default function CatalogPage() {
           setShowForm(false);
           setEditingId(null);
         }}
-        title={editingId ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
+        title={editingId ? t('catalogs.modal.editTitle') : t('catalogs.modal.addTitle')}
         maxWidth="4xl"
         footer={
           <>
@@ -129,7 +129,7 @@ export default function CatalogPage() {
               disabled={isSubmitting}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -138,7 +138,7 @@ export default function CatalogPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? 'Cập nhật' : 'Thêm mới'}
+              {editingId ? t('common.update') : t('common.addNew')}
             </button>
           </>
         }
@@ -177,10 +177,10 @@ export default function CatalogPage() {
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Xóa danh mục"
-        message="Bạn có chắc chắn muốn xóa danh mục này? Hành động này không thể hoàn tác."
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('catalogs.delete')}
+        message={t('catalogs.confirmDelete')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
@@ -200,13 +200,13 @@ export default function CatalogPage() {
       {/* Type Filter */}
       {items.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <label className="block text-sm font-medium text-gray-900 mb-2">Lọc theo loại</label>
+          <label className="block text-sm font-medium text-gray-900 mb-2">{t('catalogs.filterByType')}</label>
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Tất cả loại</option>
+            <option value="">{t('catalogs.filter.allTypes')}</option>
             {Object.entries(CATALOG_TYPES).map(([key, label]) => (
               <option key={key} value={key}>
                 {label}
@@ -224,12 +224,12 @@ export default function CatalogPage() {
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <ClipboardList className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="font-medium text-gray-900">
-            {items.length === 0 ? 'Chưa có danh mục nào' : 'Không tìm thấy danh mục'}
+            {items.length === 0 ? t('catalogs.empty.title') : t('catalogs.empty.notFound')}
           </p>
           <p className="text-sm text-gray-500 mt-1">
             {items.length === 0
-              ? 'Hãy thêm danh mục đầu tiên để bắt đầu'
-              : 'Thay đổi bộ lọc để xem thêm'}
+              ? t('catalogs.empty.description')
+              : t('catalogs.empty.filterHint')}
           </p>
         </div>
       )}
@@ -263,18 +263,18 @@ export default function CatalogPage() {
                 <button
                   onClick={() => handleOpenEdit(item.id)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
-                  title="Chỉnh sửa giá trị"
+                  title={t('common.editInfo')}
                 >
                   <Edit2 className="h-4 w-4" />
-                  Sửa
+                  {t('common.edit')}
                 </button>
                 <button
                   onClick={() => handleDelete(item.id)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
-                  title="Xóa danh mục"
+                  title={t('catalogs.delete')}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Xóa
+                  {t('common.delete')}
                 </button>
               </div>
             </div>

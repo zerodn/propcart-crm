@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import type { Invitation } from '@/types';
+import { useI18n } from '@/providers/i18n-provider';
 
 export function useInvitations() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +17,7 @@ export function useInvitations() {
       const { data } = await apiClient.get('/me/invitations');
       setInvitations(data.data ?? []);
     } catch {
-      setError('Không thể tải danh sách lời mời');
+      setError(t('invitations.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -31,6 +33,7 @@ export function useInvitations() {
 // Hook for workspace sent invitations
 export function useWorkspaceInvitations(workspaceId?: string) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +44,7 @@ export function useWorkspaceInvitations(workspaceId?: string) {
       const { data } = await apiClient.get(`/workspaces/${workspaceId}/invitations`);
       setInvitations(data.data ?? []);
     } catch {
-      setError('Không thể tải danh sách lời mời');
+      setError(t('invitations.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +60,7 @@ export function useWorkspaceInvitations(workspaceId?: string) {
 // Hook for declined invitations with pagination
 export function useDeclinedInvitations(workspaceId?: string, page = 1, limit = 10) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
@@ -71,7 +75,7 @@ export function useDeclinedInvitations(workspaceId?: string, page = 1, limit = 1
       setInvitations(data.data ?? []);
       setMeta(data.meta ?? { total: 0, page, limit, totalPages: 0 });
     } catch {
-      setError('Không thể tải danh sách lời mời bị từ chối');
+      setError(t('invitations.loadDeclinedError'));
     } finally {
       setIsLoading(false);
     }

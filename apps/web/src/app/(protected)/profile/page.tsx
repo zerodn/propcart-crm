@@ -43,8 +43,8 @@ export default function ProfilePage() {
   const { refreshProfile } = useAuth();
 
   usePageSetup({
-    title: 'Hồ sơ cá nhân',
-    subtitle: 'Cập nhật thông tin của bạn và xác thực email',
+    title: t('profile.title'),
+    subtitle: t('profile.subtitle'),
   });
   const {
     profile,
@@ -119,13 +119,13 @@ export default function ProfilePage() {
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!validTypes.includes(file.type)) {
-      toast.error('Chỉ hỗ trợ file ảnh JPG, PNG');
+      toast.error(t('profile.avatar.fileTypesSupported'));
       return;
     }
 
     // Validate file size (max 5MB for avatar)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ảnh đại diện tối đa 5MB');
+      toast.error(t('profile.avatar.maxSize'));
       return;
     }
 
@@ -148,15 +148,15 @@ export default function ProfilePage() {
         // Save avatar URL to database immediately
         await updateProfile({ avatarUrl: uploadedUrl });
         setAvatarUrl(uploadedUrl);
-        toast.success('Đã cập nhật ảnh đại diện');
+        toast.success(t('profile.avatar.updateSuccess'));
       }
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { code?: string } } };
       const code = apiError.response?.data?.code;
       if (code === 'FILE_TOO_LARGE') {
-        toast.error('Ảnh quá lớn (tối đa 5MB)');
+        toast.error(t('profile.avatar.tooLargeError'));
       } else {
-        toast.error('Không thể tải ảnh lên');
+        toast.error(t('profile.avatar.uploadError'));
       }
       URL.revokeObjectURL(previewUrl);
       setAvatarUrl(profile?.avatarUrl ?? '');
@@ -317,7 +317,7 @@ export default function ProfilePage() {
         >
           {/* Avatar Upload Section */}
           <div className="pb-4 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Ảnh đại diện</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('profile.section.avatar')}</h3>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="w-24 h-24 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-2xl font-semibold overflow-hidden">
@@ -336,7 +336,7 @@ export default function ProfilePage() {
               <div className="flex flex-col gap-2">
                 <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer">
                   <Camera className="h-4 w-4" />
-                  Tải ảnh lên
+                  {t('profile.avatar.upload')}
                   <input
                     type="file"
                     className="hidden"
@@ -353,16 +353,16 @@ export default function ProfilePage() {
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
-                    Xóa ảnh
+                    {t('profile.avatar.remove')}
                   </button>
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Chỉ hỗ trợ JPG, PNG. Tối đa 5MB.</p>
+            <p className="text-xs text-gray-500 mt-2">{t('profile.avatar.validationMsg')}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.label.phone')}</label>
             <input
               value={profile?.phone ?? ''}
               disabled
@@ -371,23 +371,23 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.label.name')}</label>
             <input
               value={form.fullName}
               onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-              placeholder="Nhập tên của bạn"
+              placeholder={t('profile.form.namePlaceholder')}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.label.email')}</label>
             <div className="relative">
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-                placeholder="Nhập email"
+                placeholder={t('profile.form.emailPlaceholder')}
                 className="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -397,7 +397,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     aria-label="send-email-verification"
-                    title="Gửi xác thực email"
+                    title={t('profile.sendVerifyEmail')}
                     disabled={!canVerifyEmail || sendingVerify}
                     onClick={handleSendVerify}
                     className="p-1 rounded hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -414,11 +414,11 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ chi tiết</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.label.address')}</label>
             <input
               value={form.fullAddress}
               onChange={(e) => setForm((prev) => ({ ...prev, fullAddress: e.target.value }))}
-              placeholder="VD: 123 Nguyễn Văn Linh"
+              placeholder={t('profile.form.addressPlaceholder')}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
@@ -442,7 +442,7 @@ export default function ProfilePage() {
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              Lưu thông tin
+              {t('profile.action.save')}
             </button>
           </div>
         </form>
@@ -451,9 +451,9 @@ export default function ProfilePage() {
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Tài liệu liên quan</h2>
+              <h2 className="text-sm font-semibold text-gray-900">{t('profile.section.documents')}</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Hỗ trợ PDF, DOC, DOCX, PNG, JPG (tối đa 20MB)
+                {t('profile.documents.uploadHint')}
               </p>
             </div>
           </div>
@@ -466,10 +466,10 @@ export default function ProfilePage() {
               }
               className="flex-1 px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
             >
-              <option value="CCCD">Loại: CCCD</option>
-              <option value="HDLD">Loại: HDLD</option>
-              <option value="CHUNG_CHI">Loại: Chứng chỉ</option>
-              <option value="OTHER">Loại: Khác</option>
+              <option value="CCCD">{t('profile.documents.typePrefix')}{t('profile.documents.types.CCCD')}</option>
+              <option value="HDLD">{t('profile.documents.typePrefix')}{t('profile.documents.types.HDLD')}</option>
+              <option value="CHUNG_CHI">{t('profile.documents.typePrefix')}{t('profile.documents.types.CHUNG_CHI')}</option>
+              <option value="OTHER">{t('profile.documents.typePrefix')}{t('profile.documents.types.OTHER')}</option>
             </select>
 
             <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer whitespace-nowrap">
@@ -478,7 +478,7 @@ export default function ProfilePage() {
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              Tải lên
+              {t('profile.documents.uploadNew')}
               <input
                 type="file"
                 className="hidden"
@@ -490,23 +490,23 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-600">Lọc theo loại</label>
+            <label className="text-xs font-medium text-gray-600">{t('profile.documents.filterByType')}</label>
             <select
               value={activeDocumentType}
               onChange={(e) => setDocumentTypeFilter(e.target.value as DocumentTypeOption)}
               className="px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
             >
-              <option value="ALL">Tất cả</option>
-              <option value="CCCD">CCCD</option>
-              <option value="HDLD">HDLD</option>
-              <option value="CHUNG_CHI">Chứng chỉ</option>
-              <option value="OTHER">Khác</option>
+              <option value="ALL">{t('common.all')}</option>
+              <option value="CCCD">{t('profile.documents.types.CCCD')}</option>
+              <option value="HDLD">{t('profile.documents.types.HDLD')}</option>
+              <option value="CHUNG_CHI">{t('profile.documents.types.CHUNG_CHI')}</option>
+              <option value="OTHER">{t('profile.documents.types.OTHER')}</option>
             </select>
           </div>
 
           {documents.length === 0 ? (
             <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
-              Chưa có tài liệu nào được tải lên.
+              {t('profile.documents.noDocuments')}
             </div>
           ) : (
             <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto pr-1">
@@ -537,10 +537,10 @@ export default function ProfilePage() {
                           className="px-2 py-1 rounded-md border border-gray-300 bg-white text-xs flex-shrink-0"
                           aria-label="document-type"
                         >
-                          <option value="CCCD">CCCD</option>
-                          <option value="HDLD">HDLD</option>
-                          <option value="CHUNG_CHI">Chứng chỉ</option>
-                          <option value="OTHER">Khác</option>
+                          <option value="CCCD">{t('profile.documents.types.CCCD')}</option>
+                          <option value="HDLD">{t('profile.documents.types.HDLD')}</option>
+                          <option value="CHUNG_CHI">{t('profile.documents.types.CHUNG_CHI')}</option>
+                          <option value="OTHER">{t('profile.documents.types.OTHER')}</option>
                         </select>
                         {updatingTypeDocumentId === doc.id && (
                           <Loader2
@@ -557,7 +557,7 @@ export default function ProfilePage() {
                       onClick={() => downloadDocument(doc)}
                       className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
                       aria-label="download-document"
-                      title="Tải xuống"
+                      title={t('document.download')}
                     >
                       <Download className="h-4 w-4" />
                     </button>
@@ -566,7 +566,7 @@ export default function ProfilePage() {
                       onClick={() => handleDeleteDocument(doc)}
                       className="p-1.5 rounded-lg text-red-600 hover:bg-red-50"
                       aria-label="delete-document"
-                      title="Xóa"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -614,10 +614,10 @@ export default function ProfilePage() {
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Xóa tài liệu"
-        message={`Bạn có chắc chắn muốn xóa tài liệu "${documentToDelete?.fileName}"? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('profile.documents.deleteTitle')}
+        message={t('profile.documents.deleteConfirmWithFile', { fileName: documentToDelete?.fileName ?? '' })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeletingDocument}
         onConfirm={handleConfirmDeleteDocument}

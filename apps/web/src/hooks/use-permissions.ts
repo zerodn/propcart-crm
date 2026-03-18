@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 import { useAuth } from './use-auth';
+import { useI18n } from '@/providers/i18n-provider';
 
 export interface Permission {
   id: string;
@@ -33,6 +34,7 @@ export interface UsePermissionsReturn {
 
 export function usePermissions(): UsePermissionsReturn {
   const { workspace } = useAuth();
+  const { t } = useI18n();
   const [roles, setRoles] = useState<RoleWithPermissions[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +67,7 @@ export function usePermissions(): UsePermissionsReturn {
       setRoles(rolesWithPerms);
       setPermissions(permsData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể tải dữ liệu';
+      const message = err instanceof Error ? err.message : t('permissions.message.loadError');
       setError(message);
       toast.error(message);
     } finally {
@@ -83,10 +85,10 @@ export function usePermissions(): UsePermissionsReturn {
       await apiClient.post(`/workspaces/${workspace.id}/permissions/roles/${roleId}`, {
         permissionId,
       });
-      toast.success('Gán quyền thành công');
+      toast.success(t('permissions.message.assignSuccess'));
       await fetchData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể gán quyền';
+      const message = err instanceof Error ? err.message : t('permissions.message.assignError');
       toast.error(message);
       throw err;
     }
@@ -98,10 +100,10 @@ export function usePermissions(): UsePermissionsReturn {
       await apiClient.delete(
         `/workspaces/${workspace.id}/permissions/roles/${roleId}/${permissionId}`,
       );
-      toast.success('Xóa quyền thành công');
+      toast.success(t('permissions.message.deleteSuccess'));
       await fetchData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể xóa quyền';
+      const message = err instanceof Error ? err.message : t('permissions.message.deleteError');
       toast.error(message);
       throw err;
     }

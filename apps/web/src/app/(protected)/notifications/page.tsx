@@ -28,8 +28,8 @@ export default function NotificationsPage() {
   const [isDeletingNotification, setIsDeletingNotification] = useState(false);
 
   usePageSetup({
-    title: 'Thông báo',
-    subtitle: 'Quản lý tất cả thông báo của hệ thống',
+    title: t('notifications.title'),
+    subtitle: t('notifications.subtitle'),
   });
 
   useEffect(() => {
@@ -192,7 +192,7 @@ export default function NotificationsPage() {
                   <button
                     onClick={() => markAsRead(notification.id)}
                     className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Đánh dấu đã đọc"
+                    title={t('notifications.markAsRead')}
                   >
                     <CheckCircle className="h-4 w-4" />
                   </button>
@@ -200,7 +200,7 @@ export default function NotificationsPage() {
                 <button
                   onClick={() => deleteNotification(notification.id)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Xóa"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -212,10 +212,10 @@ export default function NotificationsPage() {
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Xóa thông báo"
-        message="Bạn có chắc chắn muốn xóa thông báo này? Hành động này không thể hoàn tác."
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('notifications.action.deleteTitle')}
+        message={t('notifications.confirm.deleteText')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeletingNotification}
         onConfirm={handleConfirmDeleteNotification}

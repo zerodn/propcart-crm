@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, RotateCw, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 
 export interface BaseImagePreviewItem {
   src: string;
@@ -28,6 +29,7 @@ export function BaseImagePreviewDialog({
 }: BaseImagePreviewDialogProps) {
   const [rotation, setRotation] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const { t } = useI18n();
 
   const safeIndex = currentIndex ?? 0;
   const currentItem = items[safeIndex];
@@ -176,8 +178,8 @@ export function BaseImagePreviewDialog({
             type="button"
             onClick={() => onDownload?.(currentItem)}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-            aria-label="Tải xuống"
-            title="Tải xuống"
+            aria-label={t('document.download')}
+            title={t('document.download')}
           >
             <Download className="h-4 w-4" />
           </button>

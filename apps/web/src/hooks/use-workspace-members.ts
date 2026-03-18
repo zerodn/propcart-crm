@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
+import { useI18n } from '@/providers/i18n-provider';
 
 export interface WorkspaceMember {
   id: string;
@@ -22,11 +23,13 @@ export interface WorkspaceMember {
   addressLine?: string | null; // Địa chỉ cụ thể
   contractType?: string | null; // Loại HĐLĐ
   attachmentUrl?: string | null; // Tệp đính kèm
+  employmentStatus?: string | null; // PROBATION, WORKING, ON_LEAVE, RESIGNED, RETIRED, FIRED
   user: {
     id: string;
     phone: string | null;
     email: string | null;
     fullName: string | null;
+    status: number; // 1=active, 0=inactive, 2=banned
   };
   role: {
     id: string;
@@ -42,6 +45,7 @@ export function useWorkspaceMembers(
   limit = 20,
 ) {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit, totalPages: 0 });
@@ -60,7 +64,7 @@ export function useWorkspaceMembers(
       setMembers(data.data ?? []);
       setMeta(data.meta ?? { total: 0, page, limit, totalPages: 0 });
     } catch {
-      setError('Không thể tải danh sách nhân sự');
+      setError(t('members.error.loadFailed'));
     } finally {
       setIsLoading(false);
     }

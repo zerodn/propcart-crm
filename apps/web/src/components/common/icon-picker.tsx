@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 
 // ─── Emoji icon set grouped by category ───────────────────────
 export const EMOJI_CATEGORIES: { label: string; icons: { emoji: string; name: string }[] }[] = [
@@ -187,6 +188,7 @@ interface IconPickerProps {
 
 export function IconPicker({ value, onChange, className, buttonClassName }: IconPickerProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(0);
   const [dropdownPos, setDropdownPos] = useState<{
@@ -344,7 +346,7 @@ export function IconPicker({ value, onChange, className, buttonClassName }: Icon
                 </button>
               ))}
               {displayIcons.length === 0 && (
-                <p className="col-span-8 text-center text-xs text-gray-400 py-3">Không tìm thấy</p>
+                <p className="col-span-8 text-center text-xs text-gray-400 py-3">{t('common.iconNotFound')}</p>
               )}
             </div>
           </div>,
@@ -359,7 +361,7 @@ export function IconPicker({ value, onChange, className, buttonClassName }: Icon
         type="button"
         onClick={openDropdown}
         className={`flex h-7 w-full items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 text-xs leading-none hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 ${buttonClassName ?? ''}`}
-        aria-label="Chọn biểu tượng"
+        aria-label={t('common.selectIcon')}
       >
         {value ? (
           <span className="text-sm leading-none">{value}</span>

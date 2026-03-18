@@ -14,6 +14,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-provider';
 import { usePageSetup } from '@/hooks/use-page-setup';
 import { getAccessToken } from '@/lib/auth';
 import { useProject, Project, CreateProjectPayload } from '@/hooks/use-project';
@@ -22,22 +23,10 @@ import { ProjectTypeDialog } from '@/components/project/project-type-dialog';
 import { ProjectForm } from '@/components/project/project-form';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 
-const SALE_STATUS_LABEL: Record<string, string> = {
-  COMING_SOON: 'Sắp mở bán',
-  ON_SALE: 'Đang mở bán',
-  SOLD_OUT: 'Đã bán hết',
-};
-
 const SALE_STATUS_COLOR: Record<string, string> = {
   COMING_SOON: 'bg-blue-100 text-blue-700',
   ON_SALE: 'bg-green-100 text-green-700',
   SOLD_OUT: 'bg-gray-100 text-gray-600',
-};
-
-const DISPLAY_STATUS_LABEL: Record<string, string> = {
-  PUBLISHED: 'Công khai',
-  DRAFT: 'Bản nháp',
-  HIDDEN: 'Ẩn',
 };
 
 const DISPLAY_STATUS_COLOR: Record<string, string> = {
@@ -46,35 +35,47 @@ const DISPLAY_STATUS_COLOR: Record<string, string> = {
   HIDDEN: 'bg-red-100 text-red-700',
 };
 
-const PROJECT_TYPE_LABEL: Record<string, string> = {
-  LOW_RISE: 'Dự án thấp tầng',
-  HIGH_RISE: 'Dự án cao tầng',
-};
-
 function SaleStatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
+  const label: Record<string, string> = {
+    COMING_SOON: t('project.status.comingSoon'),
+    ON_SALE: t('project.status.onSale'),
+    SOLD_OUT: t('project.status.soldOut'),
+  };
   return (
     <span
       className={`text-xs font-medium px-2 py-0.5 rounded-full ${SALE_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'}`}
     >
-      {SALE_STATUS_LABEL[status] ?? status}
+      {label[status] ?? status}
     </span>
   );
 }
 
 function ProjectTypeBadge({ type }: { type: string }) {
+  const { t } = useI18n();
+  const label: Record<string, string> = {
+    LOW_RISE: t('project.type.lowRise'),
+    HIGH_RISE: t('project.type.highRise'),
+  };
   return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-      {PROJECT_TYPE_LABEL[type] ?? type}
+      {label[type] ?? type}
     </span>
   );
 }
 
 function DisplayStatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
+  const label: Record<string, string> = {
+    PUBLISHED: t('project.displayStatus.published'),
+    DRAFT: t('project.displayStatus.draft'),
+    HIDDEN: t('project.displayStatus.hidden'),
+  };
   return (
     <span
       className={`text-xs font-medium px-2 py-0.5 rounded-full ${DISPLAY_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'}`}
     >
-      {DISPLAY_STATUS_LABEL[status] ?? status}
+      {label[status] ?? status}
     </span>
   );
 }
@@ -91,6 +92,7 @@ function CardMenu({
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
 
   return (
     <div className="relative">
@@ -101,7 +103,7 @@ function CardMenu({
           setOpen((v) => !v);
         }}
         className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/80 transition-colors"
-        aria-label="Tùy chọn"
+        aria-label={t('common.options')}
       >
         <MoreHorizontal className="w-4 h-4 text-gray-600" />
       </button>
@@ -117,7 +119,7 @@ function CardMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Eye className="w-4 h-4 text-gray-400" /> Xem chi tiết
+              <Eye className="w-4 h-4 text-gray-400" /> {t('common.viewDetails')}
             </button>
             <button
               type="button"
@@ -127,7 +129,7 @@ function CardMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Pencil className="w-4 h-4 text-gray-400" /> Chỉnh sửa
+              <Pencil className="w-4 h-4 text-gray-400" /> {t('common.editInfo')}
             </button>
             <button
               type="button"
@@ -137,7 +139,7 @@ function CardMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Copy className="w-4 h-4 text-gray-400" /> Sao chép
+              <Copy className="w-4 h-4 text-gray-400" /> {t('common.copy')}
             </button>
             <button
               type="button"
@@ -147,7 +149,7 @@ function CardMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
-              <Trash2 className="w-4 h-4" /> Xóa
+              <Trash2 className="w-4 h-4" /> {t('common.delete')}
             </button>
           </div>
         </>
@@ -167,6 +169,7 @@ function Pagination({
   limit: number;
   onPageChange: (p: number) => void;
 }) {
+  const { t } = useI18n();
   const totalPages = Math.ceil(total / limit);
   if (totalPages <= 1) return null;
 
@@ -190,7 +193,7 @@ function Pagination({
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
         className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        aria-label="Trang trước"
+        aria-label={t('common.pagePrev')}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -222,7 +225,7 @@ function Pagination({
         disabled={page === totalPages}
         onClick={() => onPageChange(page + 1)}
         className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        aria-label="Trang sau"
+        aria-label={t('common.pageNext')}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -236,6 +239,7 @@ const PAGE_LIMIT = 9;
 
 export default function ProjectPage() {
   const { workspace } = useAuth();
+  const { t } = useI18n();
   const workspaceId = workspace?.id ?? '';
 
   const { projects, total, isLoading, list, create, update, remove, uploadImage } =
@@ -282,22 +286,22 @@ export default function ProjectPage() {
   };
 
   usePageSetup({
-    title: 'Dự án',
-    subtitle: 'Quản lý danh sách dự án bất động sản',
+    title: t('project.title'),
+    subtitle: t('project.subtitle'),
     actions: (
       <div className="flex items-center gap-3">
         <button
           type="button"
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-800"
         >
-          <Filter className="w-3.5 h-3.5" /> Bộ lọc
+          <Filter className="w-3.5 h-3.5" /> {t('project.action.filter')}
         </button>
         <button
           type="button"
           onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <Plus className="w-4 h-4" /> Thêm mới
+          <Plus className="w-4 h-4" /> {t('common.addNew')}
         </button>
       </div>
     ),
@@ -373,7 +377,7 @@ export default function ProjectPage() {
     setIsCopying(true);
 
     // Extract base name and find the highest sequential number
-    const baseName = sourceProject.name || 'Dự án';
+    const baseName = sourceProject.name || t('project.title');
     const projectNames = projects.map((p) => p.name || '');
 
     // Regex to match name + number at the end
@@ -505,8 +509,8 @@ export default function ProjectPage() {
       ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-60 text-gray-400 gap-3">
           <FolderOpen className="w-12 h-12 text-gray-300" />
-          <p className="text-sm font-medium">Chưa có dự án nào</p>
-          <p className="text-xs">Nhấn "+ Thêm mới" để tạo dự án đầu tiên</p>
+          <p className="text-sm font-medium">{t('project.empty.title')}</p>
+            <p className="text-xs">{t('project.empty.hint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -559,7 +563,7 @@ export default function ProjectPage() {
 
       {!isLoading && projects.length > 0 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 flex-shrink-0">
-          <span className="text-sm text-gray-500">Có {total.toLocaleString('vi-VN')} kết quả</span>
+          <span className="text-sm text-gray-500">{t('project.title')}: {total.toLocaleString('vi-VN')}</span>
           <Pagination
             total={total}
             page={currentPage}
@@ -595,10 +599,10 @@ export default function ProjectPage() {
         isOpen={!!deleteId}
         onCancel={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Xóa dự án"
-        message="Bạn có chắc muốn xóa dự án này? Hành động này không thể hoàn tác."
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('project.action.deleteTitle')}
+        message={t('project.confirm.deleteText')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeleting}
       />
@@ -607,10 +611,10 @@ export default function ProjectPage() {
         isOpen={!!copyId}
         onCancel={() => setCopyId(null)}
         onConfirm={handleCopyProject}
-        title="Sao chép dự án"
-        message="Dự án sẽ được sao chép với tên = tên gốc + số thứ tự tăng. Dữ liệu sao chép là độc lập, xóa không ảnh hưởng đến bản gốc. Tiếp tục?"
-        confirmText="Sao chép"
-        cancelText="Hủy"
+        title={t('project.action.copyTitle')}
+        message={t('project.confirm.copyText')}
+        confirmText={t('project.action.copy')}
+        cancelText={t('common.cancel')}
         isLoading={isCopying}
       />
     </div>

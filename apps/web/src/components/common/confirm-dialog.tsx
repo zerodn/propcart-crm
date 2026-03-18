@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 import { BaseDialog } from './base-dialog';
 
 interface ConfirmDialogProps {
@@ -19,13 +20,16 @@ export function ConfirmDialog({
   isOpen,
   title,
   message,
-  confirmText = 'Xác nhận',
-  cancelText = 'Hủy',
+  confirmText,
+  cancelText,
   isDangerous = false,
   isLoading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useI18n();
+  const displayConfirmText = confirmText ?? t('common.confirm');
+  const displayCancelText = cancelText ?? t('common.cancel');
   return (
     <BaseDialog
       isOpen={isOpen}
@@ -51,7 +55,7 @@ export function ConfirmDialog({
             disabled={isLoading}
             className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
-            {cancelText}
+            {displayCancelText}
           </button>
           <button
             onClick={onConfirm}
@@ -61,7 +65,7 @@ export function ConfirmDialog({
             }`}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {confirmText}
+            {displayConfirmText}
           </button>
         </>
       }

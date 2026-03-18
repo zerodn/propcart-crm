@@ -134,8 +134,9 @@ export class WorkspaceController {
     @Param('workspaceId') workspaceId: string,
     @Param('memberId') memberId: string,
     @Body() dto: UpdateMemberDto,
+    @CurrentUser() currentUser: JwtPayload,
   ) {
-    return this.workspaceService.updateMember(workspaceId, memberId, dto);
+    return this.workspaceService.updateMember(workspaceId, memberId, dto, currentUser.sub);
   }
 
   // POST /workspaces/:workspaceId/members/:memberId/upload-avatar — Upload avatar for member
@@ -194,6 +195,16 @@ export class WorkspaceController {
     @Body() dto: import('./dto/decline-invitation.dto').DeclineInvitationDto,
   ) {
     return this.invitationService.declineInvitation(token, user, dto.reason);
+  }
+
+  // GET /workspaces/:workspaceId/members/:memberId/departments — List departments a member belongs to
+  @Get('workspaces/:workspaceId/members/:memberId/departments')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getMemberDepartments(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+  ) {
+    return this.workspaceService.getMemberDepartments(workspaceId, memberId);
   }
 
   // DELETE /workspaces/:workspaceId/invitations/:id — OWNER/ADMIN only

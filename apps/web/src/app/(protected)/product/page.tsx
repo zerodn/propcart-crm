@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDataGrid, DataGridColumn, DataGridAction } from '@/components/common/base-data-grid';
 import { ProductForm } from '@/components/product/product-form';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/providers/i18n-provider';
 
 interface ProductFormPayload {
   [key: string]: unknown;
@@ -25,6 +26,7 @@ function formatMoney(value?: number) {
 
 export default function ProductPage() {
   const { workspace } = useAuth();
+  const { t } = useI18n();
   const workspaceId = workspace?.id || '';
 
   const {
@@ -55,8 +57,8 @@ export default function ProductPage() {
   const PRODUCT_PAGE_SIZE = 10;
 
   usePageSetup({
-    title: 'Quản lý sản phẩm',
-    subtitle: 'Quản lý danh sách sản phẩm bất động sản',
+    title: t('product.pageTitle'),
+    subtitle: t('product.subtitle'),
     actions: (
       <button
         onClick={() => {
@@ -66,7 +68,7 @@ export default function ProductPage() {
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
       >
         <Plus className="h-4 w-4" />
-        Tạo sản phẩm
+        {t('product.action.create')}
       </button>
     ),
   });
@@ -193,7 +195,7 @@ export default function ProductPage() {
   const customActions: DataGridAction<PropertyProduct>[] = [
     {
       icon: <Eye className="h-3.5 w-3.5" />,
-      label: 'Xem chi tiết',
+      label: t('common.viewDetails'),
       onClick: (row) => {
         setDetailsId(row.id);
         setShowDetails(true);
@@ -205,26 +207,26 @@ export default function ProductPage() {
   const columns: DataGridColumn<PropertyProduct>[] = [
     {
       key: 'name',
-      label: 'Tên sản phẩm',
+      label: t('product.label.name'),
       render: (value, row) => (
         <div>
           <div className="font-medium text-gray-900">
             {typeof value === 'string' && value.trim() ? value : '—'}
           </div>
-          <div className="text-xs text-gray-500">Mã: {row.unitCode}</div>
+          <div className="text-xs text-gray-500">{t('product.label.code')} {row.unitCode}</div>
         </div>
       ),
     },
     {
       key: 'propertyType',
-      label: 'Loại hình',
+      label: t('product.label.type'),
       render: (value) => (
         <span className="text-sm text-gray-700">{typeof value === 'string' ? value : '—'}</span>
       ),
     },
     {
       key: 'warehouse',
-      label: 'Kho hàng',
+      label: t('product.label.warehouse'),
       render: (value) => {
         const warehouse = value as { name?: string } | null | undefined;
         return <span>{warehouse?.name || '—'}</span>;
@@ -232,7 +234,7 @@ export default function ProductPage() {
     },
     {
       key: 'area',
-      label: 'Diện tích',
+      label: t('product.label.area'),
       render: (value) => {
         const area = typeof value === 'number' ? value : undefined;
         return <span>{area ? `${area} m2` : '—'}</span>;
@@ -240,17 +242,17 @@ export default function ProductPage() {
     },
     {
       key: 'priceWithoutVat',
-      label: 'Giá chưa VAT',
+      label: t('product.label.priceExcludingVAT'),
       render: (value) => <span>{formatMoney(typeof value === 'number' ? value : undefined)}</span>,
     },
     {
       key: 'priceWithVat',
-      label: 'Giá gồm VAT',
+      label: t('product.label.priceIncludingVAT'),
       render: (value) => <span>{formatMoney(typeof value === 'number' ? value : undefined)}</span>,
     },
     {
       key: 'transactionStatus',
-      label: 'Giao dịch',
+      label: t('product.label.transaction'),
       render: (value) => {
         const status = typeof value === 'string' ? value : '';
         return (
@@ -267,7 +269,7 @@ export default function ProductPage() {
     },
     {
       key: 'createdBy',
-      label: 'Người tạo',
+      label: t('product.label.createdBy'),
       render: (value) => {
         const createdBy = value as { fullName?: string; phone?: string } | null | undefined;
         return <span>{createdBy?.fullName || createdBy?.phone || 'N/A'}</span>;
@@ -282,14 +284,14 @@ export default function ProductPage() {
         columns={columns}
         actions={customActions}
         isLoading={isLoading}
-        title="Danh sách sản phẩm"
+        title={t('product.title')}
         titleIcon={<Box className="h-5 w-5" />}
         badgeCount={productMeta.total}
         searchValue={productSearch}
         onSearchChange={(v) => { setProductSearch(v); setProductPage(1); }}
-        searchPlaceholder="Tìm kiếm sản phẩm..."
+        searchPlaceholder={t('product.placeholder.search')}
         pageSize={PRODUCT_PAGE_SIZE}
-        emptyMessage="Chưa có sản phẩm nào."
+        emptyMessage={t('product.empty.title')}
         emptyIcon={<Box className="h-10 w-10 text-gray-300" />}
         totalItems={productMeta.total}
         currentPage={productPage}
@@ -307,7 +309,7 @@ export default function ProductPage() {
           setShowForm(false);
           setEditingId(null);
         }}
-        title={editingId ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm'}
+        title={editingId ? t('product.action.edit') : t('product.action.create')}
         maxWidth="6xl"
         footer={
           <>
@@ -320,7 +322,7 @@ export default function ProductPage() {
               disabled={isSubmitting}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -329,7 +331,7 @@ export default function ProductPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? 'Cập nhật' : 'Tạo mới'}
+              {editingId ? t('common.update') : t('common.create')}
             </button>
           </>
         }
@@ -357,7 +359,7 @@ export default function ProductPage() {
           setShowDetails(false);
           setDetailsId(null);
         }}
-        title="Chi tiết sản phẩm"
+        title={t('product.action.details')}
         maxWidth="6xl"
         footer={
           <button
@@ -368,7 +370,7 @@ export default function ProductPage() {
             }}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            Đóng
+            {t('common.close')}
           </button>
         }
       >
@@ -393,10 +395,10 @@ export default function ProductPage() {
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Xóa sản phẩm"
-        message="Bạn có chắc chắn muốn xóa sản phẩm này?"
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('product.action.deleteTitle')}
+        message={t('product.confirm.deleteText')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}

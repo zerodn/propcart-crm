@@ -20,7 +20,7 @@ export class DepartmentService {
   }
 
   async list(workspaceId: string) {
-    return this.prisma.department.findMany({
+    const departments = await this.prisma.department.findMany({
       where: { workspaceId },
       include: {
         members: {
@@ -44,6 +44,29 @@ export class DepartmentService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Collect all userIds to fetch WorkspaceMember scoped profile data
+    const userIds = [...new Set(departments.flatMap((d) => d.members.map((m) => m.userId)))];
+    if (userIds.length === 0) return departments;
+
+    const workspaceMembers = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId, userId: { in: userIds } },
+      select: {
+        userId: true,
+        displayName: true,
+        employeeCode: true,
+        workspacePhone: true,
+      },
+    });
+    const wsMemberMap = new Map(workspaceMembers.map((wm) => [wm.userId, wm]));
+
+    return departments.map((dept) => ({
+      ...dept,
+      members: dept.members.map((m) => ({
+        ...m,
+        workspaceMember: wsMemberMap.get(m.userId) ?? null,
+      })),
+    }));
   }
 
   async listWorkspaceMemberOptions(workspaceId: string) {
@@ -105,16 +128,33 @@ export class DepartmentService {
   }
 
   async removeMember(departmentId: string, userId: string) {
-    return this.prisma.departmentMember.delete({
+    const result = await this.prisma.departmentMember.delete({
       where: { departmentId_userId: { departmentId, userId } },
     });
+    // Revoke all active sessions so permission changes take effect immediately
+    await this.revokeUserSessions(userId);
+    return result;
   }
 
   async updateMemberRole(departmentId: string, userId: string, roleId: string) {
-    return this.prisma.departmentMember.update({
+    const result = await this.prisma.departmentMember.update({
       where: { departmentId_userId: { departmentId, userId } },
       data: { roleId },
     });
+    // Revoke all active sessions so new permissions take effect on next login
+    await this.revokeUserSessions(userId);
+    return result;
+  }
+
+  private async revokeUserSessions(userId: string) {
+    try {
+      await this.prisma.refreshToken.updateMany({
+        where: { userId, revoked: false },
+        data: { revoked: true },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to revoke sessions for user ${userId}: ${error.message}`);
+    }
   }
 
   async update(id: string, data: { name?: string; code?: string; description?: string }) {
@@ -154,6 +194,9 @@ export class DepartmentService {
         where: { workspaceId, userId: { in: userIds } },
         select: {
           userId: true,
+          displayName: true,
+          employeeCode: true,
+          workspacePhone: true,
           avatarUrl: true,
           user: { select: { avatarUrl: true } },
           role: { select: { name: true } },
@@ -166,9 +209,10 @@ export class DepartmentService {
           const wsMember = memberMap.get(member.userId);
           return {
             userId: member.userId,
-            phone: member.phone,
+            phone: wsMember?.workspacePhone || member.phone,
             email: member.email,
-            name: member.name,
+            name: wsMember?.displayName || member.name,
+            employeeCode: wsMember?.employeeCode || null,
             avatarUrl: wsMember?.avatarUrl || wsMember?.user?.avatarUrl || null,
             roleName: wsMember?.role?.name || null,
             score: member.score,
@@ -233,15 +277,23 @@ export class DepartmentService {
 
       this.logger.debug(`Filtered down to ${filtered.length} matching members`);
 
+      const dbFilteredIds = filtered.slice(0, 50).map((m) => m.user.id);
+      const dbWsMembers = await this.prisma.workspaceMember.findMany({
+        where: { workspaceId, userId: { in: dbFilteredIds } },
+        select: { userId: true, employeeCode: true, workspacePhone: true },
+      });
+      const dbWsMap = new Map(dbWsMembers.map((m) => [m.userId, m]));
+
       return {
         data: filtered.slice(0, 50).map((member) => ({
           userId: member.user.id,
-          phone: member.user.phone,
+          phone: dbWsMap.get(member.user.id)?.workspacePhone || member.user.phone,
           email: member.user.email,
           name: member.displayName || member.user.fullName,
+          employeeCode: dbWsMap.get(member.user.id)?.employeeCode || null,
           avatarUrl: member.avatarUrl || member.user.avatarUrl || null,
           roleName: member.role?.name || null,
-          score: 0, // No score from database search
+          score: 0,
         })),
       };
     } catch (error) {

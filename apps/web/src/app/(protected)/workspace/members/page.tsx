@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Users,
   UserPlus,
@@ -69,11 +69,14 @@ export default function MembersPage() {
   } = useWorkspaceMembers(workspace?.id, memberSearch, memberPage, MEMBER_PAGE_SIZE);
   const { roles } = useWorkspaceRoles(workspace?.id);
 
-  const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isAdminOrOwner = mounted && (role === 'OWNER' || role === 'ADMIN');
 
   usePageSetup({
     title: t('members.title'),
     subtitle: t('members.subtitle'),
+    actionsKey: isAdminOrOwner,
     actions: isAdminOrOwner ? (
       <div className="flex items-center gap-2">
         <button
@@ -81,7 +84,7 @@ export default function MembersPage() {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           <UserPlus className="h-4 w-4" />
-          Thêm nhân sự
+          {t('members.addMember')}
         </button>
         <button
           onClick={() => setShowInviteModal(true)}
@@ -104,12 +107,12 @@ export default function MembersPage() {
     setIsCanceling(true);
     try {
       await apiClient.delete(`/workspaces/${workspace?.id}/invitations/${invitationToCancel.id}`);
-      toast.success('Đã hủy lời mời');
+      toast.success(t('members.cancelSuccess'));
       setShowCancelConfirm(false);
       setInvitationToCancel(null);
       refetch();
     } catch {
-      toast.error('Không thể hủy lời mời');
+      toast.error(t('members.cancelError'));
     } finally {
       setIsCanceling(false);
     }
@@ -121,7 +124,7 @@ export default function MembersPage() {
   };
 
   const handleEditSuccess = () => {
-    toast.success('Cập nhật thành công');
+    toast.success(t('members.updateMemberSuccess'));
     refetchMembers();
   };
 
@@ -141,9 +144,9 @@ export default function MembersPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success('Đã xuất file Excel thành công');
+      toast.success(t('members.exportSuccess'));
     } catch {
-      toast.error('Không thể xuất file Excel');
+      toast.error(t('members.exportError'));
     } finally {
       setIsExporting(false);
     }
@@ -155,32 +158,17 @@ export default function MembersPage() {
       await apiClient.patch(`/workspaces/${workspace?.id}/members/${member.id}`, {
         status: newStatus,
       });
-      toast.success(newStatus === 1 ? 'Đã kích hoạt nhân sự' : 'Đã vô hiệu hóa nhân sự');
+      toast.success(newStatus === 1 ? t('members.message.activateSuccess') : t('members.message.deactivateSuccess'));
       refetchMembers();
     } catch {
-      toast.error('Không thể cập nhật trạng thái');
+      toast.error(t('members.message.updateStatusError'));
     }
   };
 
   const memberColumns: DataGridColumn<WorkspaceMember>[] = [
     {
-      key: 'contact',
-      label: 'Thông tin liên hệ',
-      render: (_v, row) => {
-        const phone = row.workspacePhone || row.user.phone || '';
-        const email = row.workspaceEmail || row.user.email || '';
-        return (
-          <div className="text-sm">
-            {phone && <p className="font-medium text-gray-900">{phone}</p>}
-            {email && <p className="text-gray-600 text-xs">{email}</p>}
-            {!phone && !email && <p className="text-gray-400">Chưa có</p>}
-          </div>
-        );
-      },
-    },
-    {
       key: 'name',
-      label: 'Tên',
+      label: t('members.label.name'),
       render: (_v, row) => {
         const fullName = row.displayName || row.user.fullName || '---';
         const initials = fullName.slice(0, 2).toUpperCase();
@@ -197,45 +185,96 @@ export default function MembersPage() {
             </div>
             <div>
               <p className="font-medium text-gray-900">{fullName}</p>
-              {isCurrentUser && <span className="text-xs text-blue-600">(Bạn)</span>}
+              {isCurrentUser && <span className="text-xs text-blue-600">{t('members.label.currentUser')}</span>}
             </div>
           </div>
         );
       },
     },
     {
-      key: 'role',
-      label: 'Vai trò',
-      render: (_v, row) => (
-        <span
-          className={cn(
-            'inline-block text-xs px-2.5 py-1 rounded-full font-medium',
-            ROLE_COLORS[row.role.code] ?? 'bg-gray-100',
-          )}
-        >
-          {ROLE_LABELS[row.role.code] ?? row.role.name}
-        </span>
-      ),
+      key: 'contact',
+      label: t('members.label.contactInfo'),
+      render: (_v, row) => {
+        const phone = row.workspacePhone || row.user.phone || '';
+        const email = row.workspaceEmail || row.user.email || '';
+        return (
+          <div className="text-sm">
+            {phone && <p className="font-medium text-gray-900">{phone}</p>}
+            {email && <p className="text-gray-600 text-xs">{email}</p>}
+            {!phone && !email && <p className="text-gray-400">{t('members.label.noContact')}</p>}
+          </div>
+        );
+      },
     },
     {
-      key: 'status',
-      label: 'Trạng thái',
-      render: (_v, row) =>
-        row.status === 1 ? (
+      key: 'role',
+      label: t('members.label.role'),
+      render: (_v, row) => {
+        const roleFromCatalog = roles.find((r) => r.id === row.roleId);
+        const roleName = roleFromCatalog?.name ?? ROLE_LABELS[row.role.code] ?? row.role.name;
+        return (
+          <span
+            className={cn(
+              'inline-block text-xs px-2.5 py-1 rounded-full font-medium',
+              ROLE_COLORS[row.role.code] ?? 'bg-gray-100',
+            )}
+          >
+            {roleName}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'systemStatus',
+      label: t('members.systemStatus.label'),
+      render: (_v, row) => {
+        const s = row.user.status;
+        if (s === 1) return (
           <span className="inline-flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2.5 py-1 rounded-full font-medium">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-            Hoạt động
+            {t('members.systemStatus.active')}
           </span>
-        ) : (
+        );
+        if (s === 2) return (
+          <span className="inline-flex items-center gap-1.5 text-xs text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full font-medium">
+            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+            {t('members.systemStatus.banned')}
+          </span>
+        );
+        return (
           <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-            Vô hiệu
+            {t('members.systemStatus.inactive')}
           </span>
-        ),
+        );
+      },
+    },
+    {
+      key: 'employmentStatus',
+      label: t('members.employmentStatus.label'),
+      render: (_v, row) => {
+        const es = row.employmentStatus;
+        const colorMap: Record<string, string> = {
+          PROBATION: 'bg-yellow-100 text-yellow-700',
+          WORKING: 'bg-green-100 text-green-700',
+          ON_LEAVE: 'bg-blue-100 text-blue-700',
+          RESIGNED: 'bg-gray-100 text-gray-600',
+          RETIRED: 'bg-purple-100 text-purple-700',
+          FIRED: 'bg-red-100 text-red-700',
+        };
+        const label = es
+          ? (t(`members.employmentStatus.${es}` as Parameters<typeof t>[0]) || es)
+          : t('members.employmentStatus.unknown');
+        return (
+          <span className={cn('inline-block text-xs px-2.5 py-1 rounded-full font-medium', es ? (colorMap[es] ?? 'bg-gray-100 text-gray-600') : 'bg-gray-100 text-gray-400')}>
+            {label}
+          </span>
+        );
+      },
     },
     {
       key: 'joinedAt',
-      label: 'Tham gia',
+      label: t('members.label.joined'),
       render: (_v, row) => (
         <span className="text-gray-600">
           {new Date(row.joinedAt).toLocaleDateString('vi-VN')}
@@ -248,19 +287,19 @@ export default function MembersPage() {
     ? [
         {
           icon: <Edit2 className="h-3.5 w-3.5" />,
-          label: 'Chỉnh sửa thông tin',
+          label: t('members.action.editInfo'),
           onClick: (row) => handleEditMember(row),
           variant: 'primary',
         },
         {
           icon: <UserCog className="h-3.5 w-3.5" />,
-          label: 'Vô hiệu hóa',
+          label: t('members.action.disable'),
           onClick: (row) => handleToggleStatus(row),
           show: (row) => row.userId !== user?.id && row.status === 1,
         },
         {
           icon: <UserCog className="h-3.5 w-3.5" />,
-          label: 'Kích hoạt',
+          label: t('members.action.activate'),
           onClick: (row) => handleToggleStatus(row),
           show: (row) => row.userId !== user?.id && row.status === 0,
         },
@@ -275,9 +314,9 @@ export default function MembersPage() {
         columns={memberColumns}
         actions={memberActions}
         isLoading={membersLoading}
-        emptyMessage={memberSearch ? 'Không tìm thấy nhân sự nào' : 'Chưa có nhân sự nào'}
+        emptyMessage={memberSearch ? t('members.empty.notFound') : t('members.empty.noMembers')}
         emptyIcon={<Users className="h-10 w-10 text-gray-300" />}
-        title="Danh sách nhân sự"
+        title={t('members.label.memberList')}
         titleIcon={<Users className="h-4 w-4 text-gray-400" />}
         badgeCount={membersMeta.total}
         searchValue={memberSearch}
@@ -285,7 +324,7 @@ export default function MembersPage() {
           setMemberSearch(v);
           setMemberPage(1);
         }}
-        searchPlaceholder="Tìm theo SĐT hoặc email..."
+        searchPlaceholder={t('members.placeholder.search')}
         headerActions={
           isAdminOrOwner ? (
             <div className="flex items-center gap-2">
@@ -344,7 +383,7 @@ export default function MembersPage() {
           )}
 
           {!invLoading && invitations.length === 0 && (
-            <p className="text-sm text-gray-400">{t('members.no_pending')}</p>
+            <p className="text-sm text-gray-400">{t('members.noPending')}</p>
           )}
 
           <div className="grid gap-3">
@@ -374,14 +413,14 @@ export default function MembersPage() {
                       >
                         {ROLE_LABELS[inv.role.code] ?? inv.role.name}
                       </span>
-                      <span className="text-xs text-gray-500">• Còn {daysLeft} ngày</span>
+            <span className="text-xs text-gray-500">• {t('members.invitation.remainingDays', { days: daysLeft })}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={() => handleCancel(inv.id, inv.invitedPhone)}
                     className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Hủy lời mời"
+                    title={t('members.action.cancelInvitation')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -397,7 +436,7 @@ export default function MembersPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
             <XCircle className="h-4 w-4 text-red-400" />
-            Lời mời bị từ chối
+            {t('members.invitation.declined')}
             {declinedMeta.total > 0 && (
               <span className="bg-red-100 text-red-700 text-xs px-1.5 py-0.5 rounded-full">
                 {declinedMeta.total}
@@ -405,10 +444,10 @@ export default function MembersPage() {
             )}
           </h3>
 
-          {declinedLoading && <div className="text-sm text-gray-400">Đang tải...</div>}
+          {declinedLoading && <div className="text-sm text-gray-400">{t('members.loading')}</div>}
 
           {!declinedLoading && declinedInvitations.length === 0 && (
-            <p className="text-sm text-gray-400">Chưa có lời mời bị từ chối</p>
+            <p className="text-sm text-gray-400">{t('members.invitation.noDeclined')}</p>
           )}
 
           <div className="grid gap-3">
@@ -438,11 +477,11 @@ export default function MembersPage() {
                       >
                         {ROLE_LABELS[inv.role.code] ?? inv.role.name}
                       </span>
-                      <span className="text-xs text-gray-500">• Từ chối ngày {declinedDate}</span>
+                      <span className="text-xs text-gray-500">{t('members.invitation.declinedOn', { date: declinedDate })}</span>
                     </div>
                     {inv.declineReason && (
                       <div className="mt-2 p-2 bg-white border border-gray-200 rounded text-xs text-gray-600">
-                        <span className="font-medium">Lý do:</span> {inv.declineReason}
+                        <span className="font-medium">{t('members.invitation.declineReason')}</span> {inv.declineReason}
                       </div>
                     )}
                   </div>
@@ -455,7 +494,7 @@ export default function MembersPage() {
           {declinedMeta.totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                Trang {declinedMeta.page} / {declinedMeta.totalPages} (Tổng: {declinedMeta.total})
+                {t('members.invitation.pageSummary', { page: declinedMeta.page, total: declinedMeta.totalPages, count: declinedMeta.total })}
               </p>
               <div className="flex gap-2">
                 <button
@@ -464,14 +503,14 @@ export default function MembersPage() {
                   className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="h-3 w-3" />
-                  Trước
+                  {t('common.pagePrev')}
                 </button>
                 <button
                   onClick={() => setDeclinedPage((p) => Math.min(declinedMeta.totalPages, p + 1))}
                   disabled={declinedPage === declinedMeta.totalPages}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  Sau
+                  {t('common.pageNext')}
                   <ChevronRight className="h-3 w-3" />
                 </button>
               </div>
@@ -527,10 +566,10 @@ export default function MembersPage() {
 
       <ConfirmDialog
         isOpen={showCancelConfirm}
-        title="Hủy lời mời"
-        message={`Bạn có chắc chắn muốn hủy lời mời cho ${invitationToCancel?.phone}? Họ sẽ không thể tham gia workspace bằng lời mời này nữa.`}
-        confirmText="Hủy lời mời"
-        cancelText="Đóng"
+        title={t('members.cancelInvitation')}
+        message={t('members.confirm.cancelInviteText', { phone: invitationToCancel?.phone ?? '' })}
+        confirmText={t('members.action.cancelInvitation')}
+        cancelText={t('common.close')}
         isDangerous
         isLoading={isCanceling}
         onConfirm={handleConfirmCancel}

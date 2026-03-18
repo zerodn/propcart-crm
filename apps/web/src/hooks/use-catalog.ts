@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
 import { useAuth } from './use-auth';
+import { useI18n } from '@/providers/i18n-provider';
 
 export interface CatalogValue {
   value: string;
@@ -46,6 +47,7 @@ export interface UseCatalogReturn {
 
 export function useCatalog(type?: string): UseCatalogReturn {
   const { workspace } = useAuth();
+  const { t } = useI18n();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function useCatalog(type?: string): UseCatalogReturn {
       const items = Array.isArray(response?.data) ? response.data : (response?.data?.data ?? []);
       setItems(items || []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể tải danh mục';
+      const message = err instanceof Error ? err.message : t('catalogs.message.loadError');
       setError(message);
       toast.error(message);
     } finally {
@@ -90,10 +92,10 @@ export function useCatalog(type?: string): UseCatalogReturn {
         parentId: parentId ?? null,
         values,
       });
-      toast.success('Thêm danh mục thành công');
+      toast.success(t('catalogs.message.addSuccess'));
       await fetchItems();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể thêm danh mục';
+      const message = err instanceof Error ? err.message : t('catalogs.message.addError');
       toast.error(message);
       throw err;
     }
@@ -112,10 +114,10 @@ export function useCatalog(type?: string): UseCatalogReturn {
     if (!workspace) return;
     try {
       await apiClient.patch(`/workspaces/${workspace.id}/catalogs/${id}`, data);
-      toast.success('Cập nhật danh mục thành công');
+      toast.success(t('catalogs.message.updateSuccess'));
       await fetchItems();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể cập nhật danh mục';
+      const message = err instanceof Error ? err.message : t('catalogs.message.updateError');
       toast.error(message);
       throw err;
     }
@@ -125,15 +127,15 @@ export function useCatalog(type?: string): UseCatalogReturn {
     if (!workspace) return;
     try {
       await apiClient.delete(`/workspaces/${workspace.id}/catalogs/${id}`);
-      toast.success('Xóa danh mục thành công');
+      toast.success(t('catalogs.message.deleteSuccess'));
       await fetchItems();
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message.includes('CATALOG_IN_USE')
-            ? 'Không thể xóa danh mục đang được sử dụng'
+            ? t('catalogs.message.inUse')
             : err.message
-          : 'Không thể xóa danh mục';
+          : t('catalogs.message.deleteError');
       toast.error(message);
       throw err;
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -64,14 +64,16 @@ export function Sidebar() {
   const pathname = usePathname();
   const { logout, role, workspace } = useAuth();
   const { t } = useI18n();
-  const isAdminOrOwner = role === 'OWNER' || role === 'ADMIN';
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isAdminOrOwner = mounted && (role === 'OWNER' || role === 'ADMIN');
   const [collapsed, setCollapsed] = useState(false);
 
   const adminNavItems: NavItem[] = [
     { href: '/workspace/members', label: t('sidebar.members'), icon: Users },
     { href: '/warehouse', label: t('sidebar.warehouses'), icon: Warehouse },
     { href: '/product', label: t('sidebar.products'), icon: Box },
-    { href: '/project', label: 'Dự án', icon: FolderOpen },
+    { href: '/project', label: t('sidebar.projects'), icon: FolderOpen },
     { href: '/department', label: t('sidebar.departments'), icon: Briefcase },
     { href: '/catalog', label: t('sidebar.catalogs'), icon: ClipboardList },
     { href: '/permissions', label: t('sidebar.permissions'), icon: Shield },

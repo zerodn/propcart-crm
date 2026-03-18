@@ -22,4 +22,20 @@ export class AddMemberDto {
   @IsOptional()
   @IsString()
   contractType?: string;
+
+  @IsOptional()
+  @IsString()
+  workspaceCity?: string; // Tỉnh/Thành phố
+
+  @IsOptional()
+  @IsString()
+  workspaceAddress?: string; // Phường/Xã
+
+  @IsOptional()
+  @IsString()
+  addressLine?: string; // Địa chỉ chi tiết
+
+  @IsOptional()
+  @IsString()
+  employmentStatus?: string; // PROBATION, WORKING, ON_LEAVE, RESIGNED, RETIRED, FIRED
 }

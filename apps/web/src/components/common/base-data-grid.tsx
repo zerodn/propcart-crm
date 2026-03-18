@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical, Search } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useI18n } from '@/providers/i18n-provider';
 
 export interface DataGridColumn<T = object> {
   key: string;
@@ -55,7 +56,7 @@ export function BaseDataGrid<T extends object>({
   actions = [],
   pageSize = 10,
   isLoading = false,
-  emptyMessage = 'Không có dữ liệu',
+  emptyMessage,
   emptyIcon,
   showTableWhenEmpty = false,
   onRowClick,
@@ -74,6 +75,8 @@ export function BaseDataGrid<T extends object>({
   onPageChange,
 }: BaseDataGridProps<T>) {
   const [internalPage, setInternalPage] = useState(1);
+  const { t } = useI18n();
+  const displayEmptyMessage = emptyMessage ?? t('grid.empty');
 
   // Server-side mode: parent controls page + total count
   const isServerSide = totalItems !== undefined && onPageChange !== undefined;
@@ -177,7 +180,7 @@ export function BaseDataGrid<T extends object>({
         ) : data.length === 0 && !showTableWhenEmpty ? (
           <div className="p-12 text-center">
             {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
-            <p className="text-gray-500 text-sm">{emptyMessage}</p>
+            <p className="text-gray-500 text-sm">{displayEmptyMessage}</p>
           </div>
         ) : (
         <div className="overflow-x-auto">
@@ -202,7 +205,7 @@ export function BaseDataGrid<T extends object>({
                 {/* Actions Column */}
                 {allActions.length > 0 && (
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider w-16">
-                    Thao tác
+                    {t('common.actions')}
                   </th>
                 )}
               </tr>
@@ -247,7 +250,7 @@ export function BaseDataGrid<T extends object>({
                               <button
                                 onClick={(e) => e.stopPropagation()}
                                 className="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                title="Thao tác"
+                                title={t('common.actions')}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </button>
@@ -313,7 +316,7 @@ export function BaseDataGrid<T extends object>({
                     colSpan={1 + columns.length + (allActions.length > 0 ? 1 : 0)}
                     className="px-4 py-10 text-center text-sm text-gray-400"
                   >
-                    {emptyMessage}
+                    {displayEmptyMessage}
                   </td>
                 </tr>
               )}

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Download, Loader2, X } from 'lucide-react';
+import { useI18n } from '@/providers/i18n-provider';
 
 interface DocumentPreviewDialogProps {
   isOpen: boolean;
@@ -33,8 +34,7 @@ export function DocumentPreviewDialog({
   canNext = false,
   currentNumber,
   totalCount,
-}: DocumentPreviewDialogProps) {
-  useEffect(() => {
+}: DocumentPreviewDialogProps) {  const { t } = useI18n();  useEffect(() => {
     if (!isOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -87,7 +87,7 @@ export function DocumentPreviewDialog({
           {isLoading ? (
             <div className="flex h-full items-center justify-center gap-2 text-sm text-gray-500">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Đang tải tài liệu...
+              {t('document.loading')}
             </div>
           ) : previewUrl && isPdf ? (
             <iframe
@@ -98,8 +98,8 @@ export function DocumentPreviewDialog({
           ) : (
             <div className="flex h-full items-center justify-center text-center text-sm text-gray-600">
               <div>
-                <p className="font-medium">Không hỗ trợ xem trực tiếp</p>
-                <p className="text-xs text-gray-500 mt-1">Vui lòng tải xuống để xem file này.</p>
+                <p className="font-medium">{t('document.notSupported')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('document.downloadHint')}</p>
               </div>
             </div>
           )}
@@ -113,7 +113,7 @@ export function DocumentPreviewDialog({
               disabled={!canPrev}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="previous-document"
-              title="Trước"
+              title={t('common.pagePrev')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -124,7 +124,7 @@ export function DocumentPreviewDialog({
               disabled={!canNext}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="next-document"
-              title="Sau"
+              title={t('common.pageNext')}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -135,7 +135,7 @@ export function DocumentPreviewDialog({
             onClick={onDownload}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
             aria-label="download-document"
-            title="Tải xuống"
+            title={t('document.download')}
           >
             <Download className="h-4 w-4" />
           </button>

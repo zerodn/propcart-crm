@@ -143,6 +143,24 @@ export class CatalogService {
       await this.initializeHdldTypeCatalog(workspaceId);
     }
 
+    // Auto-initialize employment status catalog if it doesn't exist
+    const employmentStatusCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'EMPLOYMENT_STATUS', code: 'EMPLOYMENT_STATUS' },
+    });
+
+    if (!employmentStatusCatalogExists) {
+      await this.initializeEmploymentStatusCatalog(workspaceId);
+    }
+
+    // Auto-initialize account status catalog if it doesn't exist
+    const accountStatusCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'ACCOUNT_STATUS', code: 'ACCOUNT_STATUS' },
+    });
+
+    if (!accountStatusCatalogExists) {
+      await this.initializeAccountStatusCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -183,18 +201,34 @@ export class CatalogService {
 
     // Update values if provided
     if (data.values && data.values.length > 0) {
-      // Delete existing values
-      await this.prisma.catalogValue.deleteMany({ where: { catalogId: id } });
-      // Create new values
-      await this.prisma.catalogValue.createMany({
-        data: data.values.map((v, idx) => ({
-          catalogId: id,
-          value: v.value,
-          label: v.label,
-          color: v.color || null,
-          order: v.order ?? idx,
-        })),
+      // System catalogs use `value` as an immutable mapping key — only label/color/order may change
+      const SYSTEM_CATALOG_TYPES = ['ACCOUNT_STATUS', 'EMPLOYMENT_STATUS'];
+      const catalog = await this.prisma.catalog.findUnique({
+        where: { id },
+        select: { type: true },
       });
+
+      if (catalog && SYSTEM_CATALOG_TYPES.includes(catalog.type)) {
+        // Only update mutable fields; never delete or rename existing value keys
+        for (const v of data.values) {
+          await this.prisma.catalogValue.updateMany({
+            where: { catalogId: id, value: v.value },
+            data: { label: v.label, color: v.color ?? null, order: v.order ?? 0 },
+          });
+        }
+      } else {
+        // Non-system catalog: full replace
+        await this.prisma.catalogValue.deleteMany({ where: { catalogId: id } });
+        await this.prisma.catalogValue.createMany({
+          data: data.values.map((v, idx) => ({
+            catalogId: id,
+            value: v.value,
+            label: v.label,
+            color: v.color || null,
+            order: v.order ?? idx,
+          })),
+        });
+      }
     }
 
     return this.getCatalogWithValues(id);
@@ -626,6 +660,53 @@ export class CatalogService {
         { catalogId: catalog.id, value: 'THU_VIEC', label: 'Thử việc', order: 0 },
         { catalogId: catalog.id, value: 'BA_THANG', label: '3 tháng', order: 1 },
         { catalogId: catalog.id, value: 'SAU_THANG', label: '6 tháng', order: 2 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeEmploymentStatusCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'EMPLOYMENT_STATUS',
+        code: 'EMPLOYMENT_STATUS',
+        name: 'Trạng thái nhân sự',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'PROBATION', label: 'Thử việc', order: 0 },
+        { catalogId: catalog.id, value: 'WORKING', label: 'Đang làm việc', order: 1 },
+        { catalogId: catalog.id, value: 'ON_LEAVE', label: 'Tạm nghỉ', order: 2 },
+        { catalogId: catalog.id, value: 'RESIGNED', label: 'Đã nghỉ việc', order: 3 },
+        { catalogId: catalog.id, value: 'RETIRED', label: 'Nghỉ hưu', order: 4 },
+        { catalogId: catalog.id, value: 'FIRED', label: 'Bị sa thải', order: 5 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeAccountStatusCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'ACCOUNT_STATUS',
+        code: 'ACCOUNT_STATUS',
+        name: 'Trạng thái tài khoản',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: '1', label: 'Đang hoạt động', order: 0 },
+        { catalogId: catalog.id, value: '2', label: 'Tạm khóa', order: 1 },
+        { catalogId: catalog.id, value: '0', label: 'Đã vô hiệu hóa', order: 2 },
       ],
     });
 

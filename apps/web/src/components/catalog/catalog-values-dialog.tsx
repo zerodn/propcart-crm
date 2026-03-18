@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { BaseDialog } from '../common/base-dialog';
+import { useI18n } from '../../providers/i18n-provider';
 
 interface Value {
   value: string;
@@ -35,6 +36,7 @@ export function CatalogValuesDialog({
 
   const [values, setValues] = useState<Value[]>(initialValues);
   const [saving, setSaving] = useState(false);
+  const { t } = useI18n();
 
   // Sync values when dialog opens or initialValues change
   useEffect(() => {
@@ -64,7 +66,7 @@ export function CatalogValuesDialog({
     <BaseDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={`Quản lý dữ liệu: ${catalogName}`}
+      title={t('catalogs.valuesDialog.titleWithName', { name: catalogName })}
       maxWidth="md"
       disableClose={saving}
       footer={
@@ -74,7 +76,7 @@ export function CatalogValuesDialog({
             disabled={saving}
             className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
-            Hủy
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -82,16 +84,16 @@ export function CatalogValuesDialog({
             className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Lưu
+            {t('common.save')}
           </button>
         </>
       }
     >
       <div className="space-y-3">
         <div className="grid grid-cols-[1fr_1fr_140px_40px] gap-2 px-1 text-[11px] font-medium text-gray-500">
-          <span>Mã code</span>
-          <span>Nhãn</span>
-          <span>Màu</span>
+          <span>{t('catalogs.valuesDialog.codeColumnLabel')}</span>
+          <span>{t('catalogs.valuesDialog.labelColumnLabel')}</span>
+          <span>{t('catalogs.valuesDialog.colorColumnLabel')}</span>
           <span></span>
         </div>
         {values.map((v, idx) => (
@@ -100,14 +102,14 @@ export function CatalogValuesDialog({
               type="text"
               value={v.value}
               onChange={(e) => updateValue(idx, 'value', e.target.value)}
-              placeholder="Mã code (VD: HOT)"
+              placeholder={t('catalogs.valuesDialog.valueCodePlaceholder')}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
               value={v.label}
               onChange={(e) => updateValue(idx, 'label', e.target.value)}
-              placeholder="Nhãn (VD: Hàng hot)"
+              placeholder={t('catalogs.valuesDialog.valueLabelPlaceholder')}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-2 py-1 h-10">
@@ -116,7 +118,7 @@ export function CatalogValuesDialog({
                 value={v.color || '#3b82f6'}
                 onChange={(e) => updateValue(idx, 'color', e.target.value)}
                 className="h-7 w-7 p-0 border-0 rounded cursor-pointer"
-                title="Màu nhãn"
+                title={t('catalogs.valuesDialog.colorTitle')}
               />
               <input
                 type="text"
@@ -132,7 +134,7 @@ export function CatalogValuesDialog({
             <button
               onClick={() => removeValue(idx)}
               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-              title="Xóa"
+              title={t('common.delete')}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -145,7 +147,7 @@ export function CatalogValuesDialog({
           className="w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Thêm giá trị
+          {t('catalogs.addValue')}
         </button>
       </div>
     </BaseDialog>

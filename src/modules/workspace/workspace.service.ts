@@ -34,6 +34,41 @@ export class WorkspaceService {
     });
   }
 
+  async getMemberDepartments(workspaceId: string, memberId: string) {
+    // memberId is WorkspaceMember.id — resolve to userId first
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { id: memberId, workspaceId },
+      select: { userId: true },
+    });
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    const rows = await this.prisma.departmentMember.findMany({
+      where: {
+        userId: member.userId,
+        department: { workspaceId },
+      },
+      include: {
+        department: { select: { id: true, name: true, code: true } },
+        role: { select: { id: true, code: true, name: true } },
+      },
+      orderBy: { id: 'asc' },
+    });
+    return {
+      data: rows.map((r) => ({
+        departmentId: r.departmentId,
+        departmentName: r.department.name,
+        departmentCode: r.department.code,
+        roleId: r.roleId,
+        roleCode: r.role.code,
+        roleName: r.role.name,
+      })),
+    };
+  }
+
   async listWorkspaceMembers(workspaceId: string, search?: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
@@ -64,7 +99,7 @@ export class WorkspaceService {
       this.prisma.workspaceMember.findMany({
         where,
         include: {
-          user: { select: { id: true, phone: true, email: true, fullName: true } },
+          user: { select: { id: true, phone: true, email: true, fullName: true, status: true } },
           role: { select: { id: true, code: true, name: true } },
         },
         orderBy: { joinedAt: 'asc' },
@@ -92,6 +127,7 @@ export class WorkspaceService {
       workspaceAddress: m.workspaceAddress,
       addressLine: m.addressLine,
       contractType: m.contractType,
+      employmentStatus: m.employmentStatus,
       attachmentUrl: m.attachmentUrl,
       user: m.user,
       role: m.role,
@@ -108,7 +144,12 @@ export class WorkspaceService {
     };
   }
 
-  async updateMember(workspaceId: string, memberId: string, dto: UpdateMemberDto) {
+  async updateMember(
+    workspaceId: string,
+    memberId: string,
+    dto: UpdateMemberDto,
+    currentUserId?: string,
+  ) {
     // Check if member exists in this workspace
     const member = await this.prisma.workspaceMember.findFirst({
       where: { id: memberId, workspaceId },
@@ -116,6 +157,22 @@ export class WorkspaceService {
 
     if (!member) {
       throw new Error('Member not found in this workspace');
+    }
+
+    // Block status change on own account (only when the value actually changes)
+    if (
+      currentUserId &&
+      member.userId === currentUserId &&
+      dto.status !== undefined &&
+      dto.status !== member.status
+    ) {
+      throw new HttpException(
+        {
+          code: 'CANNOT_CHANGE_OWN_STATUS',
+          message: 'Không thể thay đổi trạng thái của chính mình',
+        },
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     // If updating role, verify role exists
@@ -151,12 +208,13 @@ export class WorkspaceService {
     if (dto.addressLine !== undefined) updateData.addressLine = dto.addressLine;
     if (dto.contractType !== undefined) updateData.contractType = dto.contractType;
     if (dto.attachmentUrl !== undefined) updateData.attachmentUrl = dto.attachmentUrl;
+    if (dto.employmentStatus !== undefined) updateData.employmentStatus = dto.employmentStatus;
 
     const updated = await this.prisma.workspaceMember.update({
       where: { id: memberId },
       data: updateData,
       include: {
-        user: { select: { id: true, phone: true, email: true, fullName: true } },
+        user: { select: { id: true, phone: true, email: true, fullName: true, status: true } },
         role: { select: { id: true, code: true, name: true } },
       },
     });
@@ -180,6 +238,7 @@ export class WorkspaceService {
         workspaceAddress: updated.workspaceAddress,
         addressLine: updated.addressLine,
         contractType: updated.contractType,
+        employmentStatus: updated.employmentStatus,
         attachmentUrl: updated.attachmentUrl,
         user: updated.user,
         role: updated.role,
@@ -195,6 +254,10 @@ export class WorkspaceService {
     const workspaceEmail = (dto.workspaceEmail as string | undefined) || undefined;
     const workspacePhone = (dto.workspacePhone as string | undefined) || undefined;
     const contractType = (dto.contractType as string | undefined) || undefined;
+    const workspaceCity = (dto.workspaceCity as string | undefined) || undefined;
+    const workspaceAddress = (dto.workspaceAddress as string | undefined) || undefined;
+    const addressLine = (dto.addressLine as string | undefined) || undefined;
+    const employmentStatus = (dto.employmentStatus as string | undefined) || undefined;
 
     // Find user by phone
     let user = await this.prisma.user.findFirst({
@@ -282,6 +345,10 @@ export class WorkspaceService {
       workspaceEmail: workspaceEmail || null,
       workspacePhone: workspacePhone || phone,
       contractType: contractType || null,
+      workspaceCity: workspaceCity || null,
+      workspaceAddress: workspaceAddress || null,
+      addressLine: addressLine || null,
+      employmentStatus: employmentStatus || null,
       status: 1,
       joinedAt: new Date(),
     };

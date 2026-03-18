@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/providers/i18n-provider';
 
 interface LocationItem {
   code: number;
@@ -39,6 +40,7 @@ export function PersonalInfoForm({
   hideHeader = false,
   genderDobInline = false,
 }: PersonalInfoFormProps) {
+  const { t } = useI18n();
   const [provinces, setProvinces] = useState<LocationItem[]>([]);
   const [wards, setWards] = useState<LocationItem[]>([]);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -118,14 +120,14 @@ export function PersonalInfoForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Tỉnh/Thành phố</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('personalInfoForm.province')}</label>
           <select
             value={data.provinceCode || ''}
             onChange={(e) => handleProvinceChange(e.target.value)}
             disabled={locationLoading || isDisabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
           >
-            <option value="">Chọn tỉnh/thành</option>
+            <option value="">{t('personalInfoForm.provincePlaceholder')}</option>
             {provinces.map((item) => (
               <option key={item.code} value={String(item.code)}>
                 {item.name}
@@ -135,14 +137,14 @@ export function PersonalInfoForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Phường/Xã</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('personalInfoForm.ward')}</label>
           <select
             value={data.wardCode || ''}
             onChange={(e) => handleWardChange(e.target.value)}
             disabled={!data.provinceCode || locationLoading || wardLoading || isDisabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
           >
-            <option value="">Chọn phường/xã</option>
+            <option value="">{t('personalInfoForm.wardPlaceholder')}</option>
             {wards.map((item) => (
               <option key={item.code} value={String(item.code)}>
                 {item.name}
@@ -156,26 +158,26 @@ export function PersonalInfoForm({
         <div>
           {!hideHeader && <div className="border-t border-gray-200 mb-3 pt-3" />}
           {!hideHeader && (
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Thông tin cá nhân</h4>
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">{t('personalInfoForm.personalInfoTitle')}</h4>
           )}
           <div className={genderDobInline ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Giới tính</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('personalInfoForm.gender')}</label>
               <select
                 value={data.gender || ''}
                 onChange={(e) => onChange({ ...data, gender: e.target.value })}
                 disabled={isDisabled}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
               >
-                <option value="">Chọn giới tính</option>
-                <option value="MALE">Nam</option>
-                <option value="FEMALE">Nữ</option>
-                <option value="OTHER">Khác</option>
+                <option value="">{t('personalInfoForm.genderPlaceholder')}</option>
+                <option value="MALE">{t('personalInfoForm.genderMale')}</option>
+                <option value="FEMALE">{t('personalInfoForm.genderFemale')}</option>
+                <option value="OTHER">{t('personalInfoForm.genderOther')}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày sinh</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('personalInfoForm.dateOfBirth')}</label>
               <input
                 type="date"
                 value={data.dateOfBirth || ''}

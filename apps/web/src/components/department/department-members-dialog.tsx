@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { Loader2, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDialog } from '@/components/common/base-dialog';
+import { useI18n } from '@/providers/i18n-provider';
 import type {
   Department,
   DepartmentMemberOption,
@@ -35,10 +36,12 @@ export function DepartmentMembersDialog({
   onUpdateMemberRole,
   onSearchMembers,
 }: DepartmentMembersDialogProps) {
+  const { t } = useI18n();
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [rowLoadingKey, setRowLoadingKey] = useState<string | null>(null);
+  const [pendingRoleChanges, setPendingRoleChanges] = useState<Record<string, string>>({}); // userId → newRoleId
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<DepartmentMemberOption[]>([]);
@@ -144,7 +147,12 @@ export function DepartmentMembersDialog({
 
   const handleRemoveMember = async (userId: string) => {
     const member = department?.members?.find((m) => m.userId === userId);
-    const memberName = member?.user?.phone || member?.user?.email || userId;
+    const memberName =
+      member?.workspaceMember?.displayName ||
+      member?.workspaceMember?.workspacePhone ||
+      member?.user?.phone ||
+      member?.user?.email ||
+      userId;
     setMemberToRemove({ userId, memberName });
     setShowRemoveConfirm(true);
   };
@@ -165,9 +173,22 @@ export function DepartmentMembersDialog({
     setRowLoadingKey(`role-${userId}`);
     try {
       await onUpdateMemberRole(department.id, userId, roleId);
+      setPendingRoleChanges((prev) => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
     } finally {
       setRowLoadingKey(null);
     }
+  };
+
+  const handleCancelRoleChange = (userId: string) => {
+    setPendingRoleChanges((prev) => {
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
   };
 
   return (
@@ -180,31 +201,33 @@ export function DepartmentMembersDialog({
         headerContent={
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-gray-900">
-              Nhân sự phòng: {department.name}
+              {t('departments.membersDialog.headerTitle', { name: department.name })}
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5">Mã phòng: {department.code}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{t('departments.membersDialog.headerCode', { code: department.code })}</p>
           </div>
         }
       >
         <div className="flex flex-col -mx-6 -my-5">
           {/* Add Member Form Section */}
           <div className="px-6 py-5 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Thêm nhân sự vào phòng</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('departments.membersDialog.addSectionTitle')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Autocomplete member search */}
               <div className="relative">
                 <div className="relative">
+              {(() => {
+                const displayValue = selectedUserId
+                  ? (() => {
+                      const m = memberOptions.find((m) => m.userId === selectedUserId);
+                      return m?.displayName || m?.phone || m?.email || searchQuery;
+                    })()
+                  : searchQuery;
+                return (
                   <input
                     ref={userInputRef}
                     type="text"
-                    placeholder="Tìm theo SĐT, email..."
-                    value={
-                      selectedUserId
-                        ? memberOptions.find((m) => m.userId === selectedUserId)?.phone ||
-                          memberOptions.find((m) => m.userId === selectedUserId)?.email ||
-                          searchQuery
-                        : searchQuery
-                    }
+                    placeholder={t('departments.membersDialog.searchPlaceholder')}
+                    value={displayValue}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
                       setShowUserDropdown(true);
@@ -212,6 +235,8 @@ export function DepartmentMembersDialog({
                     onFocus={() => setShowUserDropdown(true)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                );
+              })()}
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
 
@@ -224,11 +249,11 @@ export function DepartmentMembersDialog({
                     {isSearching ? (
                       <div className="px-3 py-2 text-sm text-gray-500 flex items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Đang tìm kiếm...
+                        {t('departments.membersDialog.searching')}
                       </div>
                     ) : searchResults.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-gray-500">
-                        {searchQuery ? 'Không tìm thấy nhân sự' : 'Nhập để tìm kiếm'}
+                        {searchQuery ? t('departments.membersDialog.notFound') : t('departments.membersDialog.typeToSearch')}
                       </div>
                     ) : (
                       searchResults.map((member) => (
@@ -240,10 +265,20 @@ export function DepartmentMembersDialog({
                             setShowUserDropdown(false);
                             setSearchQuery('');
                           }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors"
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
                         >
                           <div className="font-medium text-gray-900">
-                            {member.phone || member.email}
+                            {member.displayName || member.phone || member.email}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {member.employeeCode && (
+                              <span className="text-xs font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                {member.employeeCode}
+                              </span>
+                            )}
+                            {member.phone && (
+                              <span className="text-xs text-gray-400">{member.phone}</span>
+                            )}
                           </div>
                         </button>
                       ))
@@ -257,7 +292,7 @@ export function DepartmentMembersDialog({
                 onChange={(e) => setSelectedRoleId(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Chọn quyền</option>
+                <option value="">{t('departments.membersDialog.selectRolePlaceholder')}</option>
                 {roleOptions.map((role) => (
                   <option key={role.id} value={role.id}>
                     {role.name}
@@ -275,7 +310,7 @@ export function DepartmentMembersDialog({
                 ) : (
                   <Plus className="h-4 w-4" />
                 )}
-                Thêm nhân sự
+                {t('departments.membersDialog.addBtn')}
               </button>
             </div>
           </div>
@@ -283,11 +318,11 @@ export function DepartmentMembersDialog({
           {/* Members List Section */}
           <div className="px-6 py-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Danh sách nhân sự ({department.members?.length || 0})
+              {t('departments.membersDialog.memberListTitle', { count: department.members?.length || 0 })}
             </h3>
             {(!department.members || department.members.length === 0) && (
               <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
-                Chưa có nhân sự trong phòng ban này.
+                {t('departments.membersDialog.noMembersYet')}
               </div>
             )}
 
@@ -296,43 +331,94 @@ export function DepartmentMembersDialog({
                 const keyRemove = `remove-${member.userId}`;
                 const keyRole = `role-${member.userId}`;
                 const isRowLoading = rowLoadingKey === keyRemove || rowLoadingKey === keyRole;
+                const hasPendingRole = pendingRoleChanges[member.userId] !== undefined;
+                const displayName =
+                  member.workspaceMember?.displayName ||
+                  member.user?.phone ||
+                  member.user?.email ||
+                  member.userId;
+                const phone =
+                  member.workspaceMember?.workspacePhone || member.user?.phone;
+                const employeeCode = member.workspaceMember?.employeeCode;
 
                 return (
-                  <div
-                    key={member.userId}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto] items-center gap-3 border border-gray-200 rounded-lg p-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {member.user?.phone || member.user?.email || member.userId}
-                      </p>
+                  <div key={member.userId} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto] items-center gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {employeeCode && (
+                            <span className="text-xs text-gray-500 font-mono">{employeeCode}</span>
+                          )}
+                          {phone && displayName !== phone && (
+                            <span className="text-xs text-gray-400">{phone}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <select
+                        value={
+                          hasPendingRole
+                            ? pendingRoleChanges[member.userId]
+                            : member.roleId
+                        }
+                        onChange={(e) => {
+                          const newRoleId = e.target.value;
+                          if (newRoleId !== member.roleId) {
+                            setPendingRoleChanges((prev) => ({
+                              ...prev,
+                              [member.userId]: newRoleId,
+                            }));
+                          }
+                        }}
+                        disabled={isRowLoading}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        {roleOptions.map((role) => (
+                          <option key={role.id} value={role.id}>
+                            {role.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        onClick={() => handleRemoveMember(member.userId)}
+                        disabled={isRowLoading}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+                      >
+                        {isRowLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        {t('departments.membersDialog.removeBtn')}
+                      </button>
                     </div>
 
-                    <select
-                      value={member.roleId}
-                      onChange={(e) => handleRoleChange(member.userId, e.target.value)}
-                      disabled={isRowLoading}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      {roleOptions.map((role) => (
-                        <option key={role.id} value={role.id}>
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      onClick={() => handleRemoveMember(member.userId)}
-                      disabled={isRowLoading}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
-                    >
-                      {isRowLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                      Xóa
-                    </button>
+                    {/* Role change confirm panel */}
+                    {hasPendingRole && !isRowLoading && (
+                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 space-y-2">
+                        <p className="text-xs font-medium text-amber-800">
+                          {t('departments.membersDialog.roleChangeWarning')}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              handleRoleChange(member.userId, pendingRoleChanges[member.userId])
+                            }
+                            className="px-3 py-1.5 bg-amber-600 text-white rounded-md text-xs font-medium hover:bg-amber-700 transition-colors"
+                          >
+                            {t('departments.membersDialog.roleChangeConfirm')}
+                          </button>
+                          <button
+                            onClick={() => handleCancelRoleChange(member.userId)}
+                            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 transition-colors"
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -343,10 +429,10 @@ export function DepartmentMembersDialog({
 
       <ConfirmDialog
         isOpen={showRemoveConfirm}
-        title="Xóa nhân sự khỏi phòng"
-        message={`Bạn có chắc chắn muốn xóa ${memberToRemove?.memberName} khỏi phòng ban này? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('departments.membersDialog.deleteMemberTitle')}
+        message={t('departments.membersDialog.deleteMemberConfirm', { name: memberToRemove?.memberName || '' })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
         isLoading={rowLoadingKey?.startsWith('remove-') ?? false}
         onConfirm={handleConfirmRemove}
