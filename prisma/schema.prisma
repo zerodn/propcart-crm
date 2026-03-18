@@ -316,13 +316,17 @@ model Department {
   code        String   @default("")
   name        String
   description String?
+  parentId    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   members DepartmentMember[]
+  parent  Department?       @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Department[] @relation("DepartmentHierarchy")
 
   @@index([workspaceId])
+  @@index([parentId])
   @@map("departments")
 }
 

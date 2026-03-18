@@ -13,9 +13,15 @@ export class DepartmentService {
     private readonly elasticsearchService: ElasticsearchService,
   ) {}
 
-  async create(workspaceId: string, name: string, code: string, description?: string) {
+  async create(
+    workspaceId: string,
+    name: string,
+    code: string,
+    description?: string,
+    parentId?: string,
+  ) {
     return this.prisma.department.create({
-      data: { workspaceId, name, code, description },
+      data: { workspaceId, name, code, description, parentId },
     });
   }
 
@@ -67,6 +73,22 @@ export class DepartmentService {
         workspaceMember: wsMemberMap.get(m.userId) ?? null,
       })),
     }));
+  }
+
+  async listParentOptions(workspaceId: string, excludeId?: string) {
+    return this.prisma.department.findMany({
+      where: {
+        workspaceId,
+        // Exclude self
+        ...(excludeId && { NOT: { id: excludeId } }),
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+      },
+      orderBy: { name: 'asc' },
+    });
   }
 
   async listWorkspaceMemberOptions(workspaceId: string) {
@@ -157,7 +179,10 @@ export class DepartmentService {
     }
   }
 
-  async update(id: string, data: { name?: string; code?: string; description?: string }) {
+  async update(
+    id: string,
+    data: { name?: string; code?: string; description?: string; parentId?: string | null },
+  ) {
     return this.prisma.department.update({ where: { id }, data });
   }
 

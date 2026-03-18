@@ -847,6 +847,8 @@ export const en = {
       codePlaceholder: 'E.g. SALES_DEPT',
       descriptionLabel: 'Description (optional)',
       descriptionPlaceholder: 'Describe the department\'s functions',
+      parentLabel: 'Parent department',
+      parentPlaceholder: 'Select parent department (optional)',
     },
     validation: {
       nameRequired: 'Please enter department name',

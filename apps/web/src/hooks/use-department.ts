@@ -50,12 +50,19 @@ export interface DepartmentRoleOption {
   name: string;
 }
 
+export interface ParentDepartmentOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
 export interface Department {
   id: string;
   workspaceId: string;
   code: string;
   name: string;
   description?: string;
+  parentId?: string | null;
   members?: DepartmentMember[];
 }
 
@@ -63,12 +70,13 @@ export interface UseDepartmentReturn {
   departments: Department[];
   memberOptions: DepartmentMemberOption[];
   roleOptions: DepartmentRoleOption[];
+  parentOptions: ParentDepartmentOption[];
   isLoading: boolean;
   error: string | null;
-  create: (name: string, code: string, description?: string) => Promise<void>;
+  create: (name: string, code: string, description?: string, parentId?: string) => Promise<void>;
   update: (
     id: string,
-    data: { name?: string; code?: string; description?: string },
+    data: { name?: string; code?: string; description?: string; parentId?: string | null },
   ) => Promise<void>;
   delete: (id: string) => Promise<void>;
   addMember: (departmentId: string, userId: string, roleId: string) => Promise<void>;
@@ -84,6 +92,7 @@ export function useDepartment(): UseDepartmentReturn {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [memberOptions, setMemberOptions] = useState<DepartmentMemberOption[]>([]);
   const [roleOptions, setRoleOptions] = useState<DepartmentRoleOption[]>([]);
+  const [parentOptions, setParentOptions] = useState<ParentDepartmentOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,13 +101,16 @@ export function useDepartment(): UseDepartmentReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const [departmentRes, memberRes, roleRes] = await Promise.all([
+      const [departmentRes, memberRes, roleRes, parentRes] = await Promise.all([
         apiClient.get<{ data: Department[] }>(`/workspaces/${workspace.id}/departments`),
         apiClient.get<{ data: DepartmentMemberOptionApi[] }>(
           `/workspaces/${workspace.id}/departments/member-options`,
         ),
         apiClient.get<{ data: DepartmentRoleOption[] }>(
           `/workspaces/${workspace.id}/departments/role-options`,
+        ),
+        apiClient.get<{ data: ParentDepartmentOption[] }>(
+          `/workspaces/${workspace.id}/departments/parent-options`,
         ),
       ]);
 
@@ -109,6 +121,9 @@ export function useDepartment(): UseDepartmentReturn {
         ? memberRes.data
         : (memberRes?.data?.data ?? []);
       const roles = Array.isArray(roleRes?.data) ? roleRes.data : (roleRes?.data?.data ?? []);
+      const parents = Array.isArray(parentRes?.data)
+        ? parentRes.data
+        : (parentRes?.data?.data ?? []);
 
       setMemberOptions(
         (members || []).map((member: DepartmentMemberOptionApi) => ({
@@ -119,6 +134,7 @@ export function useDepartment(): UseDepartmentReturn {
         })),
       );
       setRoleOptions(roles || []);
+      setParentOptions(parents || []);
       setDepartments(items || []);
     } catch (err) {
       const message = err instanceof Error ? err.message : t('departments.message.loadError');
@@ -133,13 +149,14 @@ export function useDepartment(): UseDepartmentReturn {
     fetchDepartments();
   }, [workspace?.id]);
 
-  const create = async (name: string, code: string, description?: string) => {
+  const create = async (name: string, code: string, description?: string, parentId?: string) => {
     if (!workspace) return;
     try {
       await apiClient.post(`/workspaces/${workspace.id}/departments`, {
         name,
         code,
         description,
+        parentId,
       });
       toast.success(t('departments.message.addSuccess'));
       await fetchDepartments();
@@ -152,7 +169,7 @@ export function useDepartment(): UseDepartmentReturn {
 
   const update = async (
     id: string,
-    data: { name?: string; code?: string; description?: string },
+    data: { name?: string; code?: string; description?: string; parentId?: string | null },
   ) => {
     if (!workspace) return;
     try {
@@ -255,6 +272,7 @@ export function useDepartment(): UseDepartmentReturn {
     departments,
     memberOptions,
     roleOptions,
+    parentOptions,
     isLoading,
     error,
     create,

@@ -2,15 +2,19 @@
 
 import { useState } from 'react';
 import { useI18n } from '@/providers/i18n-provider';
+import type { ParentDepartmentOption } from '@/hooks/use-department';
 
 interface DepartmentFormProps {
-  onSubmit: (name: string, code: string, description?: string) => Promise<void>;
+  onSubmit: (name: string, code: string, description?: string, parentId?: string) => Promise<void>;
   isLoading?: boolean;
   onCancel?: () => void;
+  parentOptions?: ParentDepartmentOption[];
   initialData?: {
     name: string;
     code: string;
     description?: string;
+    id?: string;
+    parentId?: string | null;
   };
   formId?: string;
 }
@@ -19,12 +23,14 @@ export function DepartmentForm({
   onSubmit,
   isLoading = false,
   onCancel: _onCancel,
+  parentOptions = [],
   initialData,
   formId = 'department-form',
 }: DepartmentFormProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [code, setCode] = useState(initialData?.code || '');
   const [description, setDescription] = useState(initialData?.description || '');
+  const [parentId, setParentId] = useState(initialData?.parentId || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { t } = useI18n();
 
@@ -41,7 +47,7 @@ export function DepartmentForm({
     if (!validate()) return;
 
     try {
-      await onSubmit(name, code, description || undefined);
+      await onSubmit(name, code, description || undefined, parentId || undefined);
     } catch {
       // Error is already handled by hook
     }
@@ -91,6 +97,23 @@ export function DepartmentForm({
           placeholder={t('departments.form.descriptionPlaceholder')}
           rows={3}
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-900">{t('departments.form.parentLabel')}</label>
+        <select
+          value={parentId}
+          onChange={(e) => setParentId(e.target.value)}
+          disabled={isLoading}
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          <option value="">{t('departments.form.parentPlaceholder')}</option>
+          {parentOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name} ({option.code})
+            </option>
+          ))}
+        </select>
       </div>
     </form>
   );

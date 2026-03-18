@@ -27,13 +27,28 @@ export class DepartmentController {
   @UseGuards(JwtAuthGuard, WorkspaceGuard, PermissionGuard)
   @RequirePermission('DEPARTMENT_CREATE')
   create(@Param('workspaceId') workspaceId: string, @Body() dto: CreateDepartmentDto) {
-    return this.departmentService.create(workspaceId, dto.name, dto.code, dto.description);
+    return this.departmentService.create(
+      workspaceId,
+      dto.name,
+      dto.code,
+      dto.description,
+      dto.parentId,
+    );
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
   list(@Param('workspaceId') workspaceId: string) {
     return this.departmentService.list(workspaceId);
+  }
+
+  @Get('parent-options')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  listParentOptions(
+    @Param('workspaceId') workspaceId: string,
+    @Query('excludeId') excludeId?: string,
+  ) {
+    return this.departmentService.listParentOptions(workspaceId, excludeId);
   }
 
   @Get('member-options')

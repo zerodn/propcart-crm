@@ -376,6 +376,8 @@ export const vi = {
       codePlaceholder: 'VD: SALES_DEPT',
       descriptionLabel: 'Mô tả (không bắt buộc)',
       descriptionPlaceholder: 'Mô tả chức năng của phòng ban',
+      parentLabel: 'Trực thuộc phòng ban',
+      parentPlaceholder: 'Chọn phòng ban cha (không bắt buộc)',
     },
     validation: {
       nameRequired: 'Vui lòng nhập tên phòng ban',

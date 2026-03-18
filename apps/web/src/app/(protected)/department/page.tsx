@@ -17,6 +17,7 @@ export default function DepartmentPage() {
     departments,
     memberOptions,
     roleOptions,
+    parentOptions,
     isLoading,
     error,
     create,
@@ -75,14 +76,14 @@ export default function DepartmentPage() {
     ? departments.find((d) => d.id === managingDeptId) || null
     : null;
 
-  const handleSubmit = async (name: string, code: string, description?: string) => {
+  const handleSubmit = async (name: string, code: string, description?: string, parentId?: string) => {
     setIsSubmitting(true);
     try {
       if (editingId) {
-        await update(editingId, { name, code, description });
+        await update(editingId, { name, code, description, parentId: parentId || null });
         setEditingId(null);
       } else {
-        await create(name, code, description);
+        await create(name, code, description, parentId);
       }
       setShowForm(false);
     } finally {
@@ -149,12 +150,15 @@ export default function DepartmentPage() {
           formId="department-form"
           onSubmit={handleSubmit}
           isLoading={isSubmitting}
+          parentOptions={parentOptions}
           initialData={
             editingDepartment
               ? {
                   name: editingDepartment.name,
                   code: editingDepartment.code,
                   description: editingDepartment.description,
+                  id: editingDepartment.id,
+                  parentId: editingDepartment.parentId,
                 }
               : undefined
           }
