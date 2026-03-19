@@ -19,6 +19,10 @@ import {
   FolderOpen,
   ChevronLeft,
   ChevronRight,
+  ContactRound,
+  ClipboardCheck,
+  History,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
@@ -75,6 +79,10 @@ export function Sidebar() {
     { href: '/product', label: t('sidebar.products'), icon: Box },
     { href: '/project', label: t('sidebar.projects'), icon: FolderOpen },
     { href: '/department', label: t('sidebar.departments'), icon: Briefcase },
+    { href: '/customer', label: t('sidebar.customers'), icon: ContactRound },
+    { href: '/demand', label: t('sidebar.demands'), icon: ClipboardCheck },
+    { href: '/activity', label: t('sidebar.activities'), icon: History },
+    { href: '/task', label: t('sidebar.tasks'), icon: ListChecks },
     { href: '/catalog', label: t('sidebar.catalogs'), icon: ClipboardList },
     { href: '/permissions', label: t('sidebar.permissions'), icon: Shield },
   ];

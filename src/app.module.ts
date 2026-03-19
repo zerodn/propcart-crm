@@ -27,6 +27,10 @@ import { ProjectModule } from './modules/project/project.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { PortalModule } from './modules/portal/portal.module';
+import { CustomerModule } from './modules/customer/customer.module';
+import { DemandModule } from './modules/demand/demand.module';
+import { ActivityModule } from './modules/activity/activity.module';
+import { TaskModule } from './modules/task/task.module';
 
 @Module({
   imports: [
@@ -106,6 +110,10 @@ import { PortalModule } from './modules/portal/portal.module';
     UploadModule,
     CleanupModule,
     PortalModule,
+    CustomerModule,
+    DemandModule,
+    ActivityModule,
+    TaskModule,
   ],
   providers: [
     // Global HMAC signature guard

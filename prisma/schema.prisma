@@ -54,6 +54,13 @@ model User {
   createdWarehouses   PropertyWarehouse[] @relation("WarehouseCreator")
   createdProducts     PropertyProduct[]   @relation("ProductCreator")
   createdProjects     Project[]           @relation("ProjectCreator")
+  createdCustomers    Customer[]          @relation("CustomerCreator")
+  assignedCustomers   Customer[]          @relation("CustomerAssignee")
+  createdDemands      Demand[]            @relation("DemandCreator")
+  assignedDemands     Demand[]            @relation("DemandAssignee")
+  activities          Activity[]          @relation("ActivityCreator")
+  createdTasks        Task[]              @relation("TaskCreator")
+  assignedTasks       Task[]              @relation("TaskAssignee")
 
   @@index([email])
   @@map("users")
@@ -80,6 +87,10 @@ model Workspace {
   warehouses  PropertyWarehouse[]
   products    PropertyProduct[]
   projects    Project[]
+  customers   Customer[]
+  demands     Demand[]
+  activities  Activity[]
+  tasks       Task[]
 
   @@index([ownerUserId])
   @@index([type])
@@ -538,5 +549,231 @@ model Project {
   @@index([workspaceId, displayStatus])
   @@index([workspaceId, saleStatus])
   @@map("projects")
+}
+
+// ============================================================
+// CUSTOMERS (Khách hàng)
+// ============================================================
+
+model Customer {
+  id              String    @id @default(uuid())
+  workspaceId     String
+
+  // Thông tin cơ bản
+  fullName        String                            // Họ tên khách hàng
+  phone           String                            // Số điện thoại (unique per workspace)
+  email           String?                           // Email
+  gender          String?                           // MALE | FEMALE | OTHER
+  dateOfBirth     DateTime?                         // Ngày sinh
+
+  // Địa chỉ
+  address         String?                           // Địa chỉ cụ thể
+  provinceCode    String?
+  provinceName    String?
+  districtCode    String?
+  districtName    String?
+  wardCode        String?
+  wardName        String?
+
+  // Phân loại khách hàng
+  source          String?                           // Nguồn khách hàng (catalog: CUSTOMER_SOURCE)
+  group           String?                           // Nhóm khách hàng (catalog: CUSTOMER_GROUP)
+  status          String    @default("NEW")         // NEW | CONTACTED | INTERESTED | NEGOTIATING | CONVERTED | LOST
+  interestLevel   String?                           // HOT | WARM | COLD
+
+  // Quản lý
+  avatarUrl       String?                           // Ảnh đại diện khách hàng
+  assignedUserId  String?                           // Nhân viên phụ trách (WorkspaceMember.userId)
+  tags            Json?                             // string[] - Nhãn khách hàng
+  note            String?   @db.LongText            // Ghi chú
+
+  // Soft delete
+  deletedAt       DateTime?
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CustomerCreator", fields: [createdByUserId], references: [id])
+  assignedUser User?  @relation("CustomerAssignee", fields: [assignedUserId], references: [id])
+  demands      Demand[]
+  activities   Activity[]
+  tasks        Task[]
+
+  @@unique([workspaceId, phone])
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, interestLevel])
+  @@index([workspaceId, assignedUserId])
+  @@index([workspaceId, source])
+  @@index([workspaceId, deletedAt])
+  @@map("customers")
+}
+
+// ============================================================
+// DEMANDS (Nhu cầu)
+// ============================================================
+
+model Demand {
+  id              String    @id @default(uuid())
+  workspaceId     String
+
+  // Liên kết khách hàng
+  customerId      String?                           // Khách hàng liên quan
+
+  // Thông tin nhu cầu
+  title           String                            // Tiêu đề nhu cầu
+  propertyType    String?                           // Loại BĐS (catalog: DEMAND_PROPERTY_TYPE)
+  purpose         String?                           // Mục đích: BUY | RENT | INVEST (catalog: DEMAND_PURPOSE)
+
+  // Ngân sách
+  budgetMin       Float?                            // Ngân sách tối thiểu
+  budgetMax       Float?                            // Ngân sách tối đa
+  budgetUnit      String?   @default("VND")         // Đơn vị: VND | USD
+
+  // Diện tích
+  areaMin         Float?                            // Diện tích tối thiểu (m²)
+  areaMax         Float?                            // Diện tích tối đa (m²)
+
+  // Vị trí mong muốn
+  provinceCode    String?
+  provinceName    String?
+  districtCode    String?
+  districtName    String?
+  wardCode        String?
+  wardName        String?
+  address         String?                           // Địa chỉ mong muốn / khu vực
+
+  // Trạng thái & ưu tiên
+  status          String    @default("NEW")         // NEW | SEARCHING | MATCHED | COMPLETED | CANCELLED
+  priority        String?                           // HIGH | MEDIUM | LOW
+
+  // Quản lý
+  assignedUserId  String?                           // Nhân viên phụ trách
+  description     String?   @db.LongText            // Mô tả chi tiết nhu cầu
+  note            String?   @db.LongText            // Ghi chú nội bộ
+
+  // Soft delete
+  deletedAt       DateTime?
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  createdBy    User      @relation("DemandCreator", fields: [createdByUserId], references: [id])
+  assignedUser User?     @relation("DemandAssignee", fields: [assignedUserId], references: [id])
+  activities   Activity[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, assignedUserId])
+  @@index([workspaceId, propertyType])
+  @@index([workspaceId, purpose])
+  @@index([workspaceId, priority])
+  @@index([workspaceId, deletedAt])
+  @@map("demands")
+}
+
+// ============================================================
+// ACTIVITIES (Lịch sử tương tác)
+// ============================================================
+
+model Activity {
+  id              String    @id @default(uuid())
+  workspaceId     String
+
+  // Liên kết
+  customerId      String?                           // Khách hàng liên quan
+  demandId        String?                           // Nhu cầu liên quan
+
+  // Thông tin tương tác
+  type            String                            // CALL | MEETING | EMAIL | NOTE | VISIT | SMS | OTHER (catalog: ACTIVITY_TYPE)
+  title           String                            // Tiêu đề
+  content         String?   @db.LongText            // Nội dung chi tiết
+  result          String?                           // Kết quả tương tác (catalog: ACTIVITY_RESULT)
+
+  // Thời gian
+  activityDate    DateTime  @default(now())          // Ngày giờ tương tác
+  duration        Int?                              // Thời lượng (phút)
+
+  // Trạng thái
+  status          String    @default("COMPLETED")   // PLANNED | IN_PROGRESS | COMPLETED | CANCELLED
+
+  // Metadata
+  deletedAt       DateTime?
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  demand       Demand?   @relation(fields: [demandId], references: [id])
+  createdBy    User      @relation("ActivityCreator", fields: [createdByUserId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, demandId])
+  @@index([workspaceId, type])
+  @@index([workspaceId, status])
+  @@index([workspaceId, activityDate])
+  @@index([workspaceId, deletedAt])
+  @@map("activities")
+}
+
+// ============================================================
+// TASKS (Công việc)
+// ============================================================
+
+model Task {
+  id              String    @id @default(uuid())
+  workspaceId     String
+
+  // Liên kết
+  customerId      String?                           // Khách hàng liên quan
+
+  // Thông tin công việc
+  title           String                            // Tiêu đề công việc
+  description     String?   @db.LongText            // Mô tả chi tiết
+  category        String?                           // Loại công việc (catalog: TASK_CATEGORY)
+  priority        String?                           // HIGH | MEDIUM | LOW (catalog: TASK_PRIORITY)
+  status          String    @default("TODO")        // TODO | IN_PROGRESS | REVIEW | DONE | CANCELLED
+
+  // Thời hạn
+  startDate       DateTime?                         // Ngày bắt đầu
+  dueDate         DateTime?                         // Hạn hoàn thành
+  completedDate   DateTime?                         // Ngày hoàn thành thực tế
+
+  // Phân công
+  assignedUserId  String?                           // Nhân viên phụ trách
+
+  // Metadata
+  deletedAt       DateTime?
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  createdBy    User      @relation("TaskCreator", fields: [createdByUserId], references: [id])
+  assignedUser User?     @relation("TaskAssignee", fields: [assignedUserId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, priority])
+  @@index([workspaceId, assignedUserId])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, dueDate])
+  @@index([workspaceId, deletedAt])
+  @@map("tasks")
 }
 

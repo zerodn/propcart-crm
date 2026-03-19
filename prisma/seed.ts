@@ -51,6 +51,22 @@ async function main() {
     { code: 'PROJECT_CREATE', name: 'Create Project', module: 'project' },
     { code: 'PROJECT_UPDATE', name: 'Update Project', module: 'project' },
     { code: 'PROJECT_DELETE', name: 'Delete Project', module: 'project' },
+    { code: 'CUSTOMER_CREATE', name: 'Create Customer', module: 'customer' },
+    { code: 'CUSTOMER_UPDATE', name: 'Update Customer', module: 'customer' },
+    { code: 'CUSTOMER_DELETE', name: 'Delete Customer', module: 'customer' },
+    { code: 'CUSTOMER_VIEW', name: 'View Customer', module: 'customer' },
+    { code: 'DEMAND_CREATE', name: 'Create Demand', module: 'demand' },
+    { code: 'DEMAND_UPDATE', name: 'Update Demand', module: 'demand' },
+    { code: 'DEMAND_DELETE', name: 'Delete Demand', module: 'demand' },
+    { code: 'DEMAND_VIEW', name: 'View Demand', module: 'demand' },
+    { code: 'ACTIVITY_CREATE', name: 'Create Activity', module: 'activity' },
+    { code: 'ACTIVITY_UPDATE', name: 'Update Activity', module: 'activity' },
+    { code: 'ACTIVITY_DELETE', name: 'Delete Activity', module: 'activity' },
+    { code: 'ACTIVITY_VIEW', name: 'View Activity', module: 'activity' },
+    { code: 'TASK_CREATE', name: 'Create Task', module: 'task' },
+    { code: 'TASK_UPDATE', name: 'Update Task', module: 'task' },
+    { code: 'TASK_DELETE', name: 'Delete Task', module: 'task' },
+    { code: 'TASK_VIEW', name: 'View Task', module: 'task' },
   ];
 
   for (const permission of permissions) {
@@ -131,6 +147,54 @@ async function main() {
   const projectDeletePermission = await prisma.permission.findUnique({
     where: { code: 'PROJECT_DELETE' },
   });
+  const customerCreatePermission = await prisma.permission.findUnique({
+    where: { code: 'CUSTOMER_CREATE' },
+  });
+  const customerUpdatePermission = await prisma.permission.findUnique({
+    where: { code: 'CUSTOMER_UPDATE' },
+  });
+  const customerDeletePermission = await prisma.permission.findUnique({
+    where: { code: 'CUSTOMER_DELETE' },
+  });
+  const customerViewPermission = await prisma.permission.findUnique({
+    where: { code: 'CUSTOMER_VIEW' },
+  });
+  const demandCreatePermission = await prisma.permission.findUnique({
+    where: { code: 'DEMAND_CREATE' },
+  });
+  const demandUpdatePermission = await prisma.permission.findUnique({
+    where: { code: 'DEMAND_UPDATE' },
+  });
+  const demandDeletePermission = await prisma.permission.findUnique({
+    where: { code: 'DEMAND_DELETE' },
+  });
+  const demandViewPermission = await prisma.permission.findUnique({
+    where: { code: 'DEMAND_VIEW' },
+  });
+  const activityCreatePermission = await prisma.permission.findUnique({
+    where: { code: 'ACTIVITY_CREATE' },
+  });
+  const activityUpdatePermission = await prisma.permission.findUnique({
+    where: { code: 'ACTIVITY_UPDATE' },
+  });
+  const activityDeletePermission = await prisma.permission.findUnique({
+    where: { code: 'ACTIVITY_DELETE' },
+  });
+  const activityViewPermission = await prisma.permission.findUnique({
+    where: { code: 'ACTIVITY_VIEW' },
+  });
+  const taskCreatePermission = await prisma.permission.findUnique({
+    where: { code: 'TASK_CREATE' },
+  });
+  const taskUpdatePermission = await prisma.permission.findUnique({
+    where: { code: 'TASK_UPDATE' },
+  });
+  const taskDeletePermission = await prisma.permission.findUnique({
+    where: { code: 'TASK_DELETE' },
+  });
+  const taskViewPermission = await prisma.permission.findUnique({
+    where: { code: 'TASK_VIEW' },
+  });
 
   const rolePermissions = [
     { roleId: ownerRole!.id, permissionId: invitePermission!.id },
@@ -154,6 +218,22 @@ async function main() {
     { roleId: ownerRole!.id, permissionId: projectCreatePermission!.id },
     { roleId: ownerRole!.id, permissionId: projectUpdatePermission!.id },
     { roleId: ownerRole!.id, permissionId: projectDeletePermission!.id },
+    { roleId: ownerRole!.id, permissionId: customerCreatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: customerUpdatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: customerDeletePermission!.id },
+    { roleId: ownerRole!.id, permissionId: customerViewPermission!.id },
+    { roleId: ownerRole!.id, permissionId: demandCreatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: demandUpdatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: demandDeletePermission!.id },
+    { roleId: ownerRole!.id, permissionId: demandViewPermission!.id },
+    { roleId: ownerRole!.id, permissionId: activityCreatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: activityUpdatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: activityDeletePermission!.id },
+    { roleId: ownerRole!.id, permissionId: activityViewPermission!.id },
+    { roleId: ownerRole!.id, permissionId: taskCreatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: taskUpdatePermission!.id },
+    { roleId: ownerRole!.id, permissionId: taskDeletePermission!.id },
+    { roleId: ownerRole!.id, permissionId: taskViewPermission!.id },
     { roleId: adminRole!.id, permissionId: invitePermission!.id },
     { roleId: adminRole!.id, permissionId: removePermission!.id },
     { roleId: adminRole!.id, permissionId: catalogCreatePermission!.id },
@@ -174,6 +254,22 @@ async function main() {
     { roleId: adminRole!.id, permissionId: projectCreatePermission!.id },
     { roleId: adminRole!.id, permissionId: projectUpdatePermission!.id },
     { roleId: adminRole!.id, permissionId: projectDeletePermission!.id },
+    { roleId: adminRole!.id, permissionId: customerCreatePermission!.id },
+    { roleId: adminRole!.id, permissionId: customerUpdatePermission!.id },
+    { roleId: adminRole!.id, permissionId: customerDeletePermission!.id },
+    { roleId: adminRole!.id, permissionId: customerViewPermission!.id },
+    { roleId: adminRole!.id, permissionId: demandCreatePermission!.id },
+    { roleId: adminRole!.id, permissionId: demandUpdatePermission!.id },
+    { roleId: adminRole!.id, permissionId: demandDeletePermission!.id },
+    { roleId: adminRole!.id, permissionId: demandViewPermission!.id },
+    { roleId: adminRole!.id, permissionId: activityCreatePermission!.id },
+    { roleId: adminRole!.id, permissionId: activityUpdatePermission!.id },
+    { roleId: adminRole!.id, permissionId: activityDeletePermission!.id },
+    { roleId: adminRole!.id, permissionId: activityViewPermission!.id },
+    { roleId: adminRole!.id, permissionId: taskCreatePermission!.id },
+    { roleId: adminRole!.id, permissionId: taskUpdatePermission!.id },
+    { roleId: adminRole!.id, permissionId: taskDeletePermission!.id },
+    { roleId: adminRole!.id, permissionId: taskViewPermission!.id },
   ];
 
   for (const rp of rolePermissions) {

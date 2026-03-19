@@ -170,6 +170,106 @@ export class CatalogService {
       await this.initializeDepartmentStatusCatalog(workspaceId);
     }
 
+    // Auto-initialize customer source catalog if it doesn't exist
+    const customerSourceCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'CUSTOMER_SOURCE', code: 'CUSTOMER_SOURCE' },
+    });
+
+    if (!customerSourceCatalogExists) {
+      await this.initializeCustomerSourceCatalog(workspaceId);
+    }
+
+    // Auto-initialize customer group catalog if it doesn't exist
+    const customerGroupCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'CUSTOMER_GROUP', code: 'CUSTOMER_GROUP' },
+    });
+
+    if (!customerGroupCatalogExists) {
+      await this.initializeCustomerGroupCatalog(workspaceId);
+    }
+
+    // Auto-initialize customer status catalog if it doesn't exist
+    const customerStatusCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'CUSTOMER_STATUS', code: 'CUSTOMER_STATUS' },
+    });
+
+    if (!customerStatusCatalogExists) {
+      await this.initializeCustomerStatusCatalog(workspaceId);
+    }
+
+    // Auto-initialize customer interest level catalog if it doesn't exist
+    const customerInterestLevelCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'CUSTOMER_INTEREST_LEVEL', code: 'CUSTOMER_INTEREST_LEVEL' },
+    });
+
+    if (!customerInterestLevelCatalogExists) {
+      await this.initializeCustomerInterestLevelCatalog(workspaceId);
+    }
+
+    // Auto-initialize demand property type catalog if it doesn't exist
+    const demandPropertyTypeCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'DEMAND_PROPERTY_TYPE', code: 'DEMAND_PROPERTY_TYPE' },
+    });
+    if (!demandPropertyTypeCatalogExists) {
+      await this.initializeDemandPropertyTypeCatalog(workspaceId);
+    }
+
+    // Auto-initialize demand purpose catalog if it doesn't exist
+    const demandPurposeCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'DEMAND_PURPOSE', code: 'DEMAND_PURPOSE' },
+    });
+    if (!demandPurposeCatalogExists) {
+      await this.initializeDemandPurposeCatalog(workspaceId);
+    }
+
+    // Auto-initialize demand status catalog if it doesn't exist
+    const demandStatusCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'DEMAND_STATUS', code: 'DEMAND_STATUS' },
+    });
+    if (!demandStatusCatalogExists) {
+      await this.initializeDemandStatusCatalog(workspaceId);
+    }
+
+    // Auto-initialize demand priority catalog if it doesn't exist
+    const demandPriorityCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'DEMAND_PRIORITY', code: 'DEMAND_PRIORITY' },
+    });
+    if (!demandPriorityCatalogExists) {
+      await this.initializeDemandPriorityCatalog(workspaceId);
+    }
+
+    // Auto-initialize activity type catalog if it doesn't exist
+    const activityTypeCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'ACTIVITY_TYPE', code: 'ACTIVITY_TYPE' },
+    });
+    if (!activityTypeCatalogExists) {
+      await this.initializeActivityTypeCatalog(workspaceId);
+    }
+
+    // Auto-initialize activity result catalog if it doesn't exist
+    const activityResultCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'ACTIVITY_RESULT', code: 'ACTIVITY_RESULT' },
+    });
+    if (!activityResultCatalogExists) {
+      await this.initializeActivityResultCatalog(workspaceId);
+    }
+
+    // Auto-initialize task category catalog if it doesn't exist
+    const taskCategoryCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'TASK_CATEGORY', code: 'TASK_CATEGORY' },
+    });
+    if (!taskCategoryCatalogExists) {
+      await this.initializeTaskCategoryCatalog(workspaceId);
+    }
+
+    // Auto-initialize task priority catalog if it doesn't exist
+    const taskPriorityCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'TASK_PRIORITY', code: 'TASK_PRIORITY' },
+    });
+    if (!taskPriorityCatalogExists) {
+      await this.initializeTaskPriorityCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -738,6 +838,361 @@ export class CatalogService {
         { catalogId: catalog.id, value: '1', label: 'Đang hoạt động', order: 0 },
         { catalogId: catalog.id, value: '2', label: 'Tạm khóa', order: 1 },
         { catalogId: catalog.id, value: '0', label: 'Đã vô hiệu hóa', order: 2 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeCustomerSourceCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'CUSTOMER_SOURCE',
+        code: 'CUSTOMER_SOURCE',
+        name: 'Nguồn khách hàng',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'FACEBOOK', label: 'Facebook', order: 0 },
+        { catalogId: catalog.id, value: 'ZALO', label: 'Zalo', order: 1 },
+        { catalogId: catalog.id, value: 'WEBSITE', label: 'Website', order: 2 },
+        { catalogId: catalog.id, value: 'REFERRAL', label: 'Giới thiệu', order: 3 },
+        { catalogId: catalog.id, value: 'WALK_IN', label: 'Khách vãng lai', order: 4 },
+        { catalogId: catalog.id, value: 'EVENT', label: 'Sự kiện', order: 5 },
+        { catalogId: catalog.id, value: 'HOTLINE', label: 'Hotline', order: 6 },
+        { catalogId: catalog.id, value: 'OTHER', label: 'Khác', order: 7 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeCustomerGroupCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'CUSTOMER_GROUP',
+        code: 'CUSTOMER_GROUP',
+        name: 'Nhóm khách hàng',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'INDIVIDUAL', label: 'Cá nhân', order: 0 },
+        { catalogId: catalog.id, value: 'INVESTOR', label: 'Nhà đầu tư', order: 1 },
+        { catalogId: catalog.id, value: 'COMPANY', label: 'Doanh nghiệp', order: 2 },
+        { catalogId: catalog.id, value: 'VIP', label: 'VIP', order: 3 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeCustomerStatusCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'CUSTOMER_STATUS',
+        code: 'CUSTOMER_STATUS',
+        name: 'Trạng thái khách hàng',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'NEW', label: 'Mới', color: '#3b82f6', order: 0 },
+        {
+          catalogId: catalog.id,
+          value: 'CONTACTED',
+          label: 'Đã liên hệ',
+          color: '#8b5cf6',
+          order: 1,
+        },
+        {
+          catalogId: catalog.id,
+          value: 'INTERESTED',
+          label: 'Quan tâm',
+          color: '#f59e0b',
+          order: 2,
+        },
+        {
+          catalogId: catalog.id,
+          value: 'NEGOTIATING',
+          label: 'Đang đàm phán',
+          color: '#f97316',
+          order: 3,
+        },
+        {
+          catalogId: catalog.id,
+          value: 'CONVERTED',
+          label: 'Đã chuyển đổi',
+          color: '#22c55e',
+          order: 4,
+        },
+        { catalogId: catalog.id, value: 'LOST', label: 'Đã mất', color: '#ef4444', order: 5 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeCustomerInterestLevelCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'CUSTOMER_INTEREST_LEVEL',
+        code: 'CUSTOMER_INTEREST_LEVEL',
+        name: 'Mức độ quan tâm',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'HOT', label: 'Nóng', color: '#ef4444', order: 0 },
+        { catalogId: catalog.id, value: 'WARM', label: 'Ấm', color: '#f59e0b', order: 1 },
+        { catalogId: catalog.id, value: 'COLD', label: 'Lạnh', color: '#3b82f6', order: 2 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeDemandPropertyTypeCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'DEMAND_PROPERTY_TYPE',
+        code: 'DEMAND_PROPERTY_TYPE',
+        name: 'Loại bất động sản',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'APARTMENT', label: 'Căn hộ', order: 0 },
+        { catalogId: catalog.id, value: 'HOUSE', label: 'Nhà phố', order: 1 },
+        { catalogId: catalog.id, value: 'VILLA', label: 'Biệt thự', order: 2 },
+        { catalogId: catalog.id, value: 'LAND', label: 'Đất nền', order: 3 },
+        { catalogId: catalog.id, value: 'OFFICE', label: 'Văn phòng', order: 4 },
+        { catalogId: catalog.id, value: 'SHOPHOUSE', label: 'Shophouse', order: 5 },
+        { catalogId: catalog.id, value: 'PENTHOUSE', label: 'Penthouse', order: 6 },
+        { catalogId: catalog.id, value: 'OTHER', label: 'Khác', order: 7 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeDemandPurposeCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'DEMAND_PURPOSE',
+        code: 'DEMAND_PURPOSE',
+        name: 'Mục đích nhu cầu',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'BUY', label: 'Mua', color: '#22c55e', order: 0 },
+        { catalogId: catalog.id, value: 'RENT', label: 'Thuê', color: '#3b82f6', order: 1 },
+        { catalogId: catalog.id, value: 'INVEST', label: 'Đầu tư', color: '#f59e0b', order: 2 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeDemandStatusCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'DEMAND_STATUS',
+        code: 'DEMAND_STATUS',
+        name: 'Trạng thái nhu cầu',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'NEW', label: 'Mới', color: '#3b82f6', order: 0 },
+        {
+          catalogId: catalog.id,
+          value: 'SEARCHING',
+          label: 'Đang tìm',
+          color: '#8b5cf6',
+          order: 1,
+        },
+        {
+          catalogId: catalog.id,
+          value: 'MATCHED',
+          label: 'Đã tìm thấy',
+          color: '#f59e0b',
+          order: 2,
+        },
+        {
+          catalogId: catalog.id,
+          value: 'COMPLETED',
+          label: 'Hoàn thành',
+          color: '#22c55e',
+          order: 3,
+        },
+        { catalogId: catalog.id, value: 'CANCELLED', label: 'Đã hủy', color: '#ef4444', order: 4 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeDemandPriorityCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'DEMAND_PRIORITY',
+        code: 'DEMAND_PRIORITY',
+        name: 'Mức độ ưu tiên nhu cầu',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'HIGH', label: 'Cao', color: '#ef4444', order: 0 },
+        { catalogId: catalog.id, value: 'MEDIUM', label: 'Trung bình', color: '#f59e0b', order: 1 },
+        { catalogId: catalog.id, value: 'LOW', label: 'Thấp', color: '#3b82f6', order: 2 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeActivityTypeCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'ACTIVITY_TYPE',
+        code: 'ACTIVITY_TYPE',
+        name: 'Loại hoạt động',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'CALL', label: 'Gọi điện', color: '#3b82f6', order: 0 },
+        { catalogId: catalog.id, value: 'MEETING', label: 'Gặp mặt', color: '#8b5cf6', order: 1 },
+        { catalogId: catalog.id, value: 'EMAIL', label: 'Email', color: '#06b6d4', order: 2 },
+        { catalogId: catalog.id, value: 'NOTE', label: 'Ghi chú', color: '#f59e0b', order: 3 },
+        { catalogId: catalog.id, value: 'VISIT', label: 'Thăm quan', color: '#22c55e', order: 4 },
+        { catalogId: catalog.id, value: 'SMS', label: 'Tin nhắn SMS', color: '#64748b', order: 5 },
+        { catalogId: catalog.id, value: 'OTHER', label: 'Khác', color: '#94a3b8', order: 6 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeActivityResultCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'ACTIVITY_RESULT',
+        code: 'ACTIVITY_RESULT',
+        name: 'Kết quả hoạt động',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'POSITIVE', label: 'Tích cực', color: '#22c55e', order: 0 },
+        { catalogId: catalog.id, value: 'NEUTRAL', label: 'Trung lập', color: '#f59e0b', order: 1 },
+        { catalogId: catalog.id, value: 'NEGATIVE', label: 'Tiêu cực', color: '#ef4444', order: 2 },
+        {
+          catalogId: catalog.id,
+          value: 'NO_ANSWER',
+          label: 'Không trả lời',
+          color: '#94a3b8',
+          order: 3,
+        },
+        {
+          catalogId: catalog.id,
+          value: 'CALLBACK',
+          label: 'Hẹn gọi lại',
+          color: '#3b82f6',
+          order: 4,
+        },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeTaskCategoryCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'TASK_CATEGORY',
+        code: 'TASK_CATEGORY',
+        name: 'Loại công việc',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        {
+          catalogId: catalog.id,
+          value: 'FOLLOW_UP',
+          label: 'Theo dõi',
+          color: '#3b82f6',
+          order: 0,
+        },
+        { catalogId: catalog.id, value: 'CALL_BACK', label: 'Gọi lại', color: '#8b5cf6', order: 1 },
+        { catalogId: catalog.id, value: 'MEETING', label: 'Cuộc họp', color: '#06b6d4', order: 2 },
+        { catalogId: catalog.id, value: 'DOCUMENT', label: 'Giấy tờ', color: '#f59e0b', order: 3 },
+        {
+          catalogId: catalog.id,
+          value: 'SITE_VISIT',
+          label: 'Khảo sát',
+          color: '#22c55e',
+          order: 4,
+        },
+        { catalogId: catalog.id, value: 'OTHER', label: 'Khác', color: '#94a3b8', order: 5 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeTaskPriorityCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'TASK_PRIORITY',
+        code: 'TASK_PRIORITY',
+        name: 'Mức độ ưu tiên công việc',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'HIGH', label: 'Cao', color: '#ef4444', order: 0 },
+        { catalogId: catalog.id, value: 'MEDIUM', label: 'Trung bình', color: '#f59e0b', order: 1 },
+        { catalogId: catalog.id, value: 'LOW', label: 'Thấp', color: '#3b82f6', order: 2 },
       ],
     });
 
