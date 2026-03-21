@@ -142,7 +142,7 @@ export function BaseDataGrid<T extends object>({
           {titleIcon}
           {title}
           {badgeCount !== undefined && badgeCount > 0 && (
-            <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">
+            <span className="bg-[#CFAF6E]/15 text-[#0B1F3A] text-xs px-1.5 py-0.5 rounded-full">
               {badgeCount}
             </span>
           )}
@@ -157,7 +157,7 @@ export function BaseDataGrid<T extends object>({
               placeholder={searchPlaceholder ?? 'Tìm kiếm...'}
               value={searchValue ?? ''}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
             />
           </div>
         )}
@@ -283,7 +283,7 @@ export function BaseDataGrid<T extends object>({
                                             action.variant === 'danger'
                                               ? 'text-red-600'
                                               : action.variant === 'primary'
-                                                ? 'text-blue-600'
+                                                ? 'text-[#CFAF6E]'
                                                 : 'text-gray-600'
                                           }
                                         >
@@ -363,7 +363,7 @@ export function BaseDataGrid<T extends object>({
                       onClick={() => goToPage(page)}
                       className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                         page === activePage
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-[#CFAF6E] text-white'
                           : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
                       }`}
                     >

@@ -98,7 +98,7 @@ function AddEntryForm({ taskTypeOptions, workspaceId, onSubmit, onCancel, isLoad
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border border-blue-200 rounded-xl p-4 bg-blue-50/50 space-y-3">
+    <form onSubmit={handleSubmit} className="border border-[#CFAF6E]/40 rounded-xl p-4 bg-[#F5F7FA]/50 space-y-3">
       {/* Row 1: Loại hình + Nội dung */}
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -109,7 +109,7 @@ function AddEntryForm({ taskTypeOptions, workspaceId, onSubmit, onCancel, isLoad
             value={taskType}
             onChange={(e) => setTaskType(e.target.value)}
             disabled={isLoading}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-60"
           >
             <option value="">{t('customer.care.taskTypePlaceholder')}</option>
             {taskTypeOptions.map((o) => (
@@ -134,7 +134,7 @@ function AddEntryForm({ taskTypeOptions, workspaceId, onSubmit, onCancel, isLoad
             rows={2}
             disabled={isLoading}
             autoFocus
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-60"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] resize-none disabled:opacity-60"
           />
         </div>
       </div>
@@ -172,7 +172,7 @@ function AddEntryForm({ taskTypeOptions, workspaceId, onSubmit, onCancel, isLoad
           placeholder={t('customer.care.resultDescriptionPlaceholder') || 'Nhập kết quả cuộc gọi, cuộc gặp...'}
           rows={2}
           disabled={isLoading}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-60"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] resize-none disabled:opacity-60"
         />
       </div>
 
@@ -189,7 +189,7 @@ function AddEntryForm({ taskTypeOptions, workspaceId, onSubmit, onCancel, isLoad
         <button
           type="submit"
           disabled={isLoading || !content.trim()}
-          className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 bg-[#CFAF6E] text-white text-sm rounded-lg hover:bg-[#B89655] disabled:opacity-50 transition-colors"
         >
           {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {t('customer.care.save')}
@@ -340,7 +340,7 @@ export function CustomerCareHistoryTab({
         <button
           type="button"
           onClick={() => toggleAddForm(true)}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors self-start"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#CFAF6E] bg-[#F5F7FA] hover:bg-[#CFAF6E]/15 border border-[#CFAF6E]/40 rounded-lg transition-colors self-start"
         >
           <Plus className="h-4 w-4" />
           {t('customer.care.addEntry')}
@@ -410,7 +410,7 @@ export function CustomerCareHistoryTab({
                       )}
                       {/* Creator */}
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="h-5 w-5 rounded-full shrink-0 bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-semibold overflow-hidden">
+                        <div className="h-5 w-5 rounded-full shrink-0 bg-[#CFAF6E]/15 text-[#0B1F3A] flex items-center justify-center text-[9px] font-semibold overflow-hidden">
                           {h.createdBy?.avatarUrl ? (
                             <img src={h.createdBy.avatarUrl} alt={authorName} className="h-full w-full object-cover" />
                           ) : (
@@ -492,7 +492,7 @@ export function CustomerCareHistoryTab({
                         <button
                           type="button"
                           onClick={() => { setEditContentId(h.id); setEditContentValue(h.content); }}
-                          className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                          className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-[#CFAF6E] transition-colors"
                           aria-label="Sửa nội dung"
                         >
                           <Pencil className="h-3 w-3" />
@@ -508,13 +508,13 @@ export function CustomerCareHistoryTab({
                           rows={3}
                           autoFocus
                           disabled={isSavingEdit}
-                          className="w-full px-2.5 py-1.5 text-sm border border-blue-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-60"
+                          className="w-full px-2.5 py-1.5 text-sm border border-[#CFAF6E] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] resize-none disabled:opacity-60"
                         />
                         <div className="flex gap-1.5 justify-end">
                           <button type="button" onClick={() => setEditContentId(null)} disabled={isSavingEdit} className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
                             <X className="h-3 w-3" /> Hủy
                           </button>
-                          <button type="button" onClick={() => handleSaveContent(h)} disabled={isSavingEdit || !editContentValue.trim()} className="flex items-center gap-1 px-2.5 py-1 text-xs text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                          <button type="button" onClick={() => handleSaveContent(h)} disabled={isSavingEdit || !editContentValue.trim()} className="flex items-center gap-1 px-2.5 py-1 text-xs text-white bg-[#CFAF6E] rounded-lg hover:bg-[#B89655] disabled:opacity-50">
                             {isSavingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Lưu
                           </button>
                         </div>
@@ -528,7 +528,7 @@ export function CustomerCareHistoryTab({
                           <button
                             type="button"
                             onClick={() => toggleExpand(h.id)}
-                            className="mt-1 flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-700"
+                            className="mt-1 flex items-center gap-0.5 text-xs text-[#CFAF6E] hover:text-[#0B1F3A]"
                           >
                             {isExpanded ? (
                               <><ChevronUp className="h-3.5 w-3.5" />{t('customer.care.showLess')}</>

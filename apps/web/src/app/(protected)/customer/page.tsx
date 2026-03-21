@@ -25,7 +25,7 @@ import { FieldConfigDialog } from '@/components/customer/field-config-dialog';
 const PAGE_SIZE = 20;
 
 const STATUS_STYLE: Record<string, string> = {
-  NEW: 'bg-blue-100 text-blue-700',
+  NEW: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   CONTACTED: 'bg-purple-100 text-purple-700',
   INTERESTED: 'bg-amber-100 text-amber-700',
   NEGOTIATING: 'bg-orange-100 text-orange-700',
@@ -36,7 +36,7 @@ const STATUS_STYLE: Record<string, string> = {
 const INTEREST_STYLE: Record<string, string> = {
   HOT: 'bg-red-100 text-red-700',
   WARM: 'bg-amber-100 text-amber-700',
-  COLD: 'bg-blue-100 text-blue-700',
+  COLD: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
 };
 
 export default function CustomerPage() {
@@ -199,7 +199,7 @@ export default function CustomerPage() {
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('customer.filter.allStatus')}</option>
           {statusOptions.map((o) => (
@@ -209,7 +209,7 @@ export default function CustomerPage() {
         <select
           value={filterInterestLevel}
           onChange={(e) => { setFilterInterestLevel(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('customer.filter.allInterestLevel')}</option>
           {interestLevelOptions.map((o) => (
@@ -229,7 +229,7 @@ export default function CustomerPage() {
         <button
           onClick={openCreateDialog}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0',
+            'flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors shrink-0',
             !canConfigFields && 'ml-auto',
           )}
         >
@@ -376,7 +376,7 @@ export default function CustomerPage() {
           .toUpperCase();
         return (
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full shrink-0 overflow-hidden bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold">
+            <div className="h-9 w-9 rounded-full shrink-0 overflow-hidden bg-[#CFAF6E]/15 text-[#0B1F3A] flex items-center justify-center text-xs font-semibold">
               {row.avatarUrl ? (
                 <img src={row.avatarUrl} alt={String(value)} className="h-full w-full object-cover" />
               ) : (
@@ -528,7 +528,7 @@ export default function CustomerPage() {
                 type="submit"
                 form="customer-form"
                 disabled={isSubmitting || isUploadingAvatar}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
               >
                 {(isSubmitting || isUploadingAvatar) && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editingId ? t('common.update') : t('common.addNew')}
@@ -549,7 +549,7 @@ export default function CustomerPage() {
         {editingId && (
           <div className="flex items-center gap-4 pb-5 mb-5 border-b border-gray-200">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-50 border-2 border-gray-200 flex items-center justify-center shrink-0">
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-[#F5F7FA] border-2 border-gray-200 flex items-center justify-center shrink-0">
                 {avatarPreviewUrl ? (
                   <img src={avatarPreviewUrl} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -615,7 +615,7 @@ export default function CustomerPage() {
                 className={cn(
                   'px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
                   editTab === tab.key
-                    ? 'border-blue-600 text-blue-600'
+                    ? 'border-[#CFAF6E] text-[#CFAF6E]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                 )}
               >
@@ -712,11 +712,11 @@ export default function CustomerPage() {
         {/* Customer info header */}
         {editingCustomer && (
           <div className="flex items-center gap-3 pb-4 mb-5 border-b border-gray-200">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 border border-gray-200 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#F5F7FA] border border-gray-200 flex items-center justify-center shrink-0">
               {editingCustomer.avatarUrl ? (
                 <img src={editingCustomer.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm font-semibold text-blue-600">
+                <span className="text-sm font-semibold text-[#CFAF6E]">
                   {(editingCustomer.fullName || '?').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
                 </span>
               )}
@@ -775,11 +775,11 @@ export default function CustomerPage() {
         {/* Customer info header */}
         {editingCustomer && (
           <div className="flex items-center gap-3 pb-4 mb-5 border-b border-gray-200">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 border border-gray-200 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#F5F7FA] border border-gray-200 flex items-center justify-center shrink-0">
               {editingCustomer.avatarUrl ? (
                 <img src={editingCustomer.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm font-semibold text-blue-600">
+                <span className="text-sm font-semibold text-[#CFAF6E]">
                   {(editingCustomer.fullName || '?').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
                 </span>
               )}
@@ -790,7 +790,7 @@ export default function CustomerPage() {
                 <button
                   type="button"
                   onClick={() => setShowCareHistoryForm(true)}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 rounded-lg text-xs font-medium transition-colors shrink-0 whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-[#F5F7FA] hover:bg-[#CFAF6E]/15 border border-[#CFAF6E]/40 text-[#CFAF6E] rounded-lg text-xs font-medium transition-colors shrink-0 whitespace-nowrap"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Thêm chăm sóc

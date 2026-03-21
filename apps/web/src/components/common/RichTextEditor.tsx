@@ -163,7 +163,7 @@ export function RichTextEditor({
   const getButtonClass = (isActive: boolean) =>
     `${baseButtonClass} ${
       isActive
-        ? 'bg-blue-100 border-blue-300 text-blue-700'
+        ? 'bg-[#CFAF6E]/15 border-[#CFAF6E] text-[#0B1F3A]'
         : 'bg-white border-gray-300 hover:bg-gray-100'
     }`;
 
@@ -624,7 +624,7 @@ export function RichTextEditor({
                 disabled={disabled}
                 className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${
                   isActive
-                    ? 'border-blue-400 ring-2 ring-blue-200 scale-110'
+                    ? 'border-[#CFAF6E] ring-2 ring-[#CFAF6E]/30 scale-110'
                     : 'border-gray-200 hover:scale-110'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title={`Màu chữ: ${item.label}`}

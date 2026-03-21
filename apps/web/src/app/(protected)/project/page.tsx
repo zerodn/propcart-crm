@@ -24,7 +24,7 @@ import { ProjectForm } from '@/components/project/project-form';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 
 const SALE_STATUS_COLOR: Record<string, string> = {
-  COMING_SOON: 'bg-blue-100 text-blue-700',
+  COMING_SOON: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   ON_SALE: 'bg-green-100 text-green-700',
   SOLD_OUT: 'bg-gray-100 text-gray-600',
 };
@@ -299,7 +299,7 @@ export default function ProjectPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
         >
           <Plus className="w-4 h-4" /> {t('common.addNew')}
         </button>

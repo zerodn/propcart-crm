@@ -81,14 +81,14 @@ export default function MembersPage() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setShowAddDialog(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
         >
           <UserPlus className="h-4 w-4" />
           {t('members.addMember')}
         </button>
         <button
           onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
         >
           <UserPlus className="h-4 w-4" />
           {t('members.invite')}
@@ -175,7 +175,7 @@ export default function MembersPage() {
         const isCurrentUser = row.userId === user?.id;
         return (
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-semibold overflow-hidden">
+            <div className="flex-shrink-0 w-9 h-9 bg-[#CFAF6E]/15 rounded-full flex items-center justify-center text-[#0B1F3A] text-xs font-semibold overflow-hidden">
               {row.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={row.avatarUrl} alt={fullName} className="w-full h-full object-cover" />
@@ -185,7 +185,7 @@ export default function MembersPage() {
             </div>
             <div>
               <p className="font-medium text-gray-900">{fullName}</p>
-              {isCurrentUser && <span className="text-xs text-blue-600">{t('members.label.currentUser')}</span>}
+              {isCurrentUser && <span className="text-xs text-[#CFAF6E]">{t('members.label.currentUser')}</span>}
             </div>
           </div>
         );
@@ -257,7 +257,7 @@ export default function MembersPage() {
         const colorMap: Record<string, string> = {
           PROBATION: 'bg-yellow-100 text-yellow-700',
           WORKING: 'bg-green-100 text-green-700',
-          ON_LEAVE: 'bg-blue-100 text-blue-700',
+          ON_LEAVE: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
           RESIGNED: 'bg-gray-100 text-gray-600',
           RETIRED: 'bg-purple-100 text-purple-700',
           FIRED: 'bg-red-100 text-red-700',
@@ -394,7 +394,7 @@ export default function MembersPage() {
               return (
                 <div
                   key={inv.id}
-                  className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
+                  className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:border-[#CFAF6E] hover:shadow-sm transition-all"
                 >
                   <div className="flex-shrink-0 w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                     <Clock className="h-5 w-5 text-orange-600" />

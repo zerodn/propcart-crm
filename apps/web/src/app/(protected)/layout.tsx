@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { PageProvider, usePageConfig } from '@/providers/page-provider';
+import { useAuth } from '@/providers/auth-provider';
 
 function PageActions() {
   const { config } = usePageConfig();
@@ -30,10 +33,37 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show nothing while checking auth or redirecting
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#CFAF6E] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Đang kiểm tra đăng nhập...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <PageProvider>
-      <LayoutInner>{children}</LayoutInner>
-    </PageProvider>
+    <AuthGuard>
+      <PageProvider>
+        <LayoutInner>{children}</LayoutInner>
+      </PageProvider>
+    </AuthGuard>
   );
 }

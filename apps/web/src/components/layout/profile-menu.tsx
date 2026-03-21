@@ -48,7 +48,7 @@ export function ProfileMenu() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-semibold overflow-hidden">
+        <div className="w-8 h-8 bg-[#CFAF6E]/15 text-[#0B1F3A] rounded-full flex items-center justify-center text-xs font-semibold overflow-hidden">
           <span>{initials}</span>
         </div>
         <span className="text-sm text-gray-700 font-medium max-w-[120px] truncate hidden sm:block">
@@ -65,7 +65,7 @@ export function ProfileMenu() {
           {/* User Info Section */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold overflow-hidden flex-shrink-0">
+              <div className="w-12 h-12 bg-[#CFAF6E]/15 text-[#0B1F3A] rounded-full flex items-center justify-center text-sm font-semibold overflow-hidden flex-shrink-0">
                 <span>{initials}</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -91,7 +91,7 @@ export function ProfileMenu() {
                     switchWorkspace(ws.id);
                     setOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-gray-50 transition-colors ${ws.id === workspace?.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
+                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-gray-50 transition-colors ${ws.id === workspace?.id ? 'bg-[#F5F7FA] text-[#0B1F3A]' : 'text-gray-700'}`}
                 >
                   <div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-md flex-shrink-0">
                     {ws.type === 'COMPANY' ? (
@@ -105,7 +105,7 @@ export function ProfileMenu() {
                     <p className="text-xs text-gray-400">{ws.role}</p>
                   </div>
                   {ws.id === workspace?.id && (
-                    <span className="text-xs text-blue-600 flex-shrink-0">
+                    <span className="text-xs text-[#CFAF6E] flex-shrink-0">
                       {t('common.current')}
                     </span>
                   )}

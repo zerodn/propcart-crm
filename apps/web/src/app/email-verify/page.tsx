@@ -47,7 +47,7 @@ function EmailVerifyContent() {
         ) : status === 'error' ? (
           <XCircle className="h-10 w-10 text-red-500 mx-auto" />
         ) : (
-          <div className="h-10 w-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin mx-auto" />
+          <div className="h-10 w-10 rounded-full border-2 border-[#CFAF6E] border-t-transparent animate-spin mx-auto" />
         )}
 
         <h1 className="text-lg font-semibold text-gray-900">Xac thuc email</h1>
@@ -56,7 +56,7 @@ function EmailVerifyContent() {
         {status !== 'loading' && (
           <Link
             href="/login"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#CFAF6E] text-white text-sm font-medium hover:bg-[#B89655]"
           >
             Ve trang dang nhap
           </Link>
@@ -71,7 +71,7 @@ export default function EmailVerifyPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="h-10 w-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+          <div className="h-10 w-10 rounded-full border-2 border-[#CFAF6E] border-t-transparent animate-spin" />
         </div>
       }
     >

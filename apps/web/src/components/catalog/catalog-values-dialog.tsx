@@ -81,7 +81,7 @@ export function CatalogValuesDialog({
           <button
             onClick={handleSave}
             disabled={saving || isLoading}
-            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {t('common.save')}
@@ -103,14 +103,14 @@ export function CatalogValuesDialog({
               value={v.value}
               onChange={(e) => updateValue(idx, 'value', e.target.value)}
               placeholder={t('catalogs.valuesDialog.valueCodePlaceholder')}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
             />
             <input
               type="text"
               value={v.label}
               onChange={(e) => updateValue(idx, 'label', e.target.value)}
               placeholder={t('catalogs.valuesDialog.valueLabelPlaceholder')}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
             />
             <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-2 py-1 h-10">
               <input
@@ -144,7 +144,7 @@ export function CatalogValuesDialog({
         {/* Add button */}
         <button
           onClick={addValue}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-[#CFAF6E] hover:text-[#CFAF6E] transition-colors"
         >
           <Plus className="h-4 w-4" />
           {t('catalogs.addValue')}

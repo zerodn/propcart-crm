@@ -208,7 +208,7 @@ export function MemberAddDialog({
             type="submit"
             form="member-add-form"
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -234,7 +234,7 @@ export function MemberAddDialog({
               onChange={(e) => setPhone(e.target.value)}
               placeholder={t('memberAdd.label.phonePlaceholder')}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
               autoFocus
               required
             />
@@ -250,7 +250,7 @@ export function MemberAddDialog({
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder={t('memberAdd.label.displayNamePlaceholder')}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
             />
           </div>
         </div>
@@ -266,7 +266,7 @@ export function MemberAddDialog({
               onChange={(e) => setRoleId(e.target.value)}
               disabled={isSubmitting}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
             >
               {rolesArray.length === 0 && (
                 <option value="">{t('memberAdd.label.loadingRoles')}</option>
@@ -287,7 +287,7 @@ export function MemberAddDialog({
               value={contractType}
               onChange={(e) => setContractType(e.target.value)}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
             >
               <option value="">-- {t('memberAdd.label.selectContractType')} --</option>
               {hdldOptions.map((opt) => (
@@ -308,7 +308,7 @@ export function MemberAddDialog({
             value={employmentStatus}
             onChange={(e) => setEmploymentStatus(e.target.value)}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
           >
             <option value="">-- {t('members.employmentStatus.unknown')} --</option>
             {employmentStatusOptions.map((opt) => (
@@ -330,7 +330,7 @@ export function MemberAddDialog({
             onChange={(e) => setWorkspaceEmail(e.target.value)}
             placeholder={t('memberAdd.label.workspaceEmailPlaceholder')}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           />
         </div>
 
@@ -344,7 +344,7 @@ export function MemberAddDialog({
               value={provinceCode}
               onChange={(e) => handleProvinceChange(e.target.value)}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
             >
               <option value="">{t('memberAdd.label.provincePlaceholder')}</option>
               {provinces.map((p) => (
@@ -363,7 +363,7 @@ export function MemberAddDialog({
               value={wardCode}
               onChange={(e) => handleWardChange(e.target.value)}
               disabled={isSubmitting || !provinceCode || wardLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
             >
               <option value="">
                 {wardLoading ? t('common.loading') : t('memberAdd.label.wardPlaceholder')}
@@ -388,7 +388,7 @@ export function MemberAddDialog({
             onChange={(e) => setAddressLine(e.target.value)}
             placeholder={t('memberAdd.label.addressLinePlaceholder')}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           />
         </div>
 

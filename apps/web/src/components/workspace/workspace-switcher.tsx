@@ -18,11 +18,11 @@ export function WorkspaceSwitcher() {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-left"
       >
-        <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg flex-shrink-0">
+        <div className="flex items-center justify-center w-8 h-8 bg-[#0B1F3A] rounded-lg flex-shrink-0">
           {workspace?.type === 'COMPANY' ? (
-            <Building2 className="h-4 w-4 text-white" />
+            <Building2 className="h-4 w-4 text-[#CFAF6E]" />
           ) : (
-            <User className="h-4 w-4 text-white" />
+            <User className="h-4 w-4 text-[#CFAF6E]" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export function WorkspaceSwitcher() {
                     switchWorkspace(ws.id);
                     setOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-gray-50 transition-colors ${ws.id === workspace?.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
+                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-gray-50 transition-colors ${ws.id === workspace?.id ? 'bg-[#F5F7FA] text-[#0B1F3A]' : 'text-gray-700'}`}
                 >
                   <div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-md flex-shrink-0">
                     {ws.type === 'COMPANY' ? (
@@ -63,7 +63,7 @@ export function WorkspaceSwitcher() {
                     <p className="text-xs text-gray-400">{ws.role}</p>
                   </div>
                   {ws.id === workspace?.id && (
-                    <span className="text-xs text-blue-600 flex-shrink-0">
+                    <span className="text-xs text-[#CFAF6E] flex-shrink-0">
                       {t('common.current')}
                     </span>
                   )}

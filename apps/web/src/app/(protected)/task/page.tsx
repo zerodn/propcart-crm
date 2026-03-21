@@ -24,7 +24,7 @@ const KANBAN_LIMIT = 200;
 
 const STATUS_STYLE: Record<string, string> = {
   TODO: 'bg-slate-100 text-slate-700',
-  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  IN_PROGRESS: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   REVIEW: 'bg-purple-100 text-purple-700',
   DONE: 'bg-green-100 text-green-700',
   CANCELLED: 'bg-red-100 text-red-700',
@@ -33,7 +33,7 @@ const STATUS_STYLE: Record<string, string> = {
 const PRIORITY_STYLE: Record<string, string> = {
   HIGH: 'bg-red-100 text-red-700',
   MEDIUM: 'bg-amber-100 text-amber-700',
-  LOW: 'bg-blue-100 text-blue-700',
+  LOW: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
 };
 
 export default function TaskPage() {
@@ -85,7 +85,7 @@ export default function TaskPage() {
             className={cn(
               'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
               viewMode === 'list'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-[#CFAF6E] text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
             )}
             aria-label={t('task.kanban.listView')}
@@ -99,7 +99,7 @@ export default function TaskPage() {
             className={cn(
               'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
               viewMode === 'kanban'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-[#CFAF6E] text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
             )}
             aria-label={t('task.kanban.kanbanView')}
@@ -111,7 +111,7 @@ export default function TaskPage() {
 
         <button
           onClick={() => { setEditingId(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
         >
           <Plus className="h-4 w-4" />
           {t('task.addBtn')}
@@ -372,7 +372,7 @@ export default function TaskPage() {
           <select
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
           >
             <option value="">{t('task.filter.allStatus')}</option>
             <option value="TODO">{t('task.status.TODO')}</option>
@@ -386,7 +386,7 @@ export default function TaskPage() {
         <select
           value={filterPriority}
           onChange={(e) => { setFilterPriority(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('task.filter.allPriority')}</option>
           {priorityOptions.map((o) => (
@@ -436,7 +436,7 @@ export default function TaskPage() {
         <>
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#CFAF6E]" />
             </div>
           ) : (
             <TaskKanbanBoard
@@ -472,7 +472,7 @@ export default function TaskPage() {
               type="submit"
               form="task-form"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? t('common.update') : t('common.addNew')}

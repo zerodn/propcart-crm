@@ -85,7 +85,7 @@ export default function NotificationsPage() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'INVITATION':
-        return <Mail className="h-5 w-5 text-blue-600" />;
+        return <Mail className="h-5 w-5 text-[#CFAF6E]" />;
       case 'PAYMENT':
         return <AlertCircle className="h-5 w-5 text-green-600" />;
       default:
@@ -158,7 +158,7 @@ export default function NotificationsPage() {
               className={cn(
                 'bg-white rounded-xl border p-4 transition-colors flex items-start gap-3',
                 !notification.read
-                  ? 'border-blue-200 bg-blue-50'
+                  ? 'border-[#CFAF6E]/40 bg-[#F5F7FA]'
                   : 'border-gray-200 hover:border-gray-300',
               )}
             >
@@ -182,7 +182,7 @@ export default function NotificationsPage() {
                   </div>
 
                   {!notification.read && (
-                    <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1" />
+                    <div className="flex-shrink-0 w-2 h-2 bg-[#CFAF6E] rounded-full mt-1" />
                   )}
                 </div>
               </div>

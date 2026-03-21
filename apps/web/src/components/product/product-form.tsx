@@ -963,7 +963,7 @@ export function ProductForm({
                     setForm({ ...form, priceWithoutVat: formatCurrencyInput(e.target.value) })
                   }
                   disabled={isSubmitting || isReadOnly || form.isContactForPrice}
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:border-gray-200 focus:border-[#CFAF6E] focus:ring-2 focus:ring-[#CFAF6E]/30"
                 />
               </div>
               <div>
@@ -979,7 +979,7 @@ export function ProductForm({
                     setForm({ ...form, priceWithVat: formatCurrencyInput(e.target.value) })
                   }
                   disabled={isSubmitting || isReadOnly || form.isContactForPrice}
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:border-gray-200 focus:border-[#CFAF6E] focus:ring-2 focus:ring-[#CFAF6E]/30"
                 />
               </div>
               <div>
@@ -1002,7 +1002,7 @@ export function ProductForm({
                   checked={form.isContactForPrice}
                   onChange={(e) => setForm({ ...form, isContactForPrice: e.target.checked })}
                   disabled={isSubmitting || isReadOnly}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-[#CFAF6E] border-gray-300 rounded focus:ring-[#CFAF6E]"
                 />
                 <span className="text-sm text-gray-700">Lien he (khong hien thi gia)</span>
               </label>
@@ -1013,7 +1013,7 @@ export function ProductForm({
                   checked={form.isHidden}
                   onChange={(e) => setForm({ ...form, isHidden: e.target.checked })}
                   disabled={isSubmitting || isReadOnly}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-[#CFAF6E] border-gray-300 rounded focus:ring-[#CFAF6E]"
                 />
                 <span className="text-sm text-gray-700">Sản phẩm ẩn</span>
               </label>
@@ -1029,7 +1029,7 @@ export function ProductForm({
                 'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm w-full',
                 isSubmitting || isReadOnly || isUploadingImages
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-50 text-blue-700 cursor-pointer',
+                  : 'bg-[#F5F7FA] text-[#0B1F3A] cursor-pointer',
               )}
             >
               {isUploadingImages ? (
@@ -1433,7 +1433,7 @@ export function ProductForm({
                                   SĐT: {member.phone || '---'} | Email: {member.email || '---'}
                                 </p>
                               </div>
-                              {exists && <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />}
+                              {exists && <Check className="h-4 w-4 flex-shrink-0 text-[#CFAF6E]" />}
                             </button>
                           );
                         })

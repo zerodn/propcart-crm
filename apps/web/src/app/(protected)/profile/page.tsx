@@ -320,7 +320,7 @@ export default function ProfilePage() {
             <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('profile.section.avatar')}</h3>
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-24 h-24 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-2xl font-semibold overflow-hidden">
+                <div className="w-24 h-24 bg-[#CFAF6E]/15 text-[#0B1F3A] rounded-full flex items-center justify-center text-2xl font-semibold overflow-hidden">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
                   ) : (
@@ -334,7 +334,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <div className="flex flex-col gap-2">
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#CFAF6E] text-white text-sm font-medium hover:bg-[#B89655] cursor-pointer">
                   <Camera className="h-4 w-4" />
                   {t('profile.avatar.upload')}
                   <input
@@ -376,7 +376,7 @@ export default function ProfilePage() {
               value={form.fullName}
               onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
               placeholder={t('profile.form.namePlaceholder')}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] text-sm"
             />
           </div>
 
@@ -388,7 +388,7 @@ export default function ProfilePage() {
                 value={form.email}
                 onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                 placeholder={t('profile.form.emailPlaceholder')}
-                className="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] text-sm"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
                 {isEmailVerified ? (
@@ -400,12 +400,12 @@ export default function ProfilePage() {
                     title={t('profile.sendVerifyEmail')}
                     disabled={!canVerifyEmail || sendingVerify}
                     onClick={handleSendVerify}
-                    className="p-1 rounded hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1 rounded hover:bg-[#F5F7FA] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {sendingVerify ? (
-                      <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                      <Loader2 className="h-5 w-5 text-[#CFAF6E] animate-spin" />
                     ) : (
-                      <MailCheck className="h-5 w-5 text-blue-600" />
+                      <MailCheck className="h-5 w-5 text-[#CFAF6E]" />
                     )}
                   </button>
                 )}
@@ -419,7 +419,7 @@ export default function ProfilePage() {
               value={form.fullAddress}
               onChange={(e) => setForm((prev) => ({ ...prev, fullAddress: e.target.value }))}
               placeholder={t('profile.form.addressPlaceholder')}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] text-sm"
             />
           </div>
 
@@ -435,7 +435,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#CFAF6E] text-white text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -472,7 +472,7 @@ export default function ProfilePage() {
               <option value="OTHER">{t('profile.documents.typePrefix')}{t('profile.documents.types.OTHER')}</option>
             </select>
 
-            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer whitespace-nowrap">
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#CFAF6E] text-white text-sm font-medium hover:bg-[#B89655] cursor-pointer whitespace-nowrap">
               {uploadingDocument ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -521,7 +521,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={() => openPreviewDialog(doc)}
-                        className="text-sm font-medium text-blue-600 hover:underline truncate block text-left w-full"
+                        className="text-sm font-medium text-[#CFAF6E] hover:underline truncate block text-left w-full"
                       >
                         {doc.fileName}
                       </button>
@@ -555,7 +555,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => downloadDocument(doc)}
-                      className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
+                      className="p-1.5 rounded-lg text-[#CFAF6E] hover:bg-[#F5F7FA]"
                       aria-label="download-document"
                       title={t('document.download')}
                     >

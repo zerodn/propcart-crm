@@ -113,7 +113,7 @@ export function WarehouseForm({
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
             placeholder="VD: Kho hàng chính"
           />
         </div>
@@ -125,7 +125,7 @@ export function WarehouseForm({
             onChange={(e) => setForm({ ...form, code: e.target.value })}
             required
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
             placeholder="VD: WH001"
           />
         </div>
@@ -139,7 +139,7 @@ export function WarehouseForm({
             onChange={(e) => setForm({ ...form, type: e.target.value })}
             required
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           >
             <option value="">-- Chọn loại kho --</option>
             {warehouseTypes.map((t) => (
@@ -155,7 +155,7 @@ export function WarehouseForm({
             value={form.status}
             onChange={(e) => setForm({ ...form, status: Number(e.target.value) })}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           >
             <option value={1}>Hoạt động</option>
             <option value={0}>Tạm dừng</option>
@@ -172,7 +172,7 @@ export function WarehouseForm({
             onChange={(e) => setForm({ ...form, latitude: e.target.value })}
             step="0.000001"
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
             placeholder="10.776589"
           />
         </div>
@@ -184,7 +184,7 @@ export function WarehouseForm({
             onChange={(e) => setForm({ ...form, longitude: e.target.value })}
             step="0.000001"
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
             placeholder="106.696721"
           />
         </div>
@@ -207,7 +207,7 @@ export function WarehouseForm({
           value={form.fullAddress}
           onChange={(e) => setForm({ ...form, fullAddress: e.target.value })}
           disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder="VD: 123 Nguyễn Hữu Cảnh..."
         />
       </div>
@@ -218,7 +218,7 @@ export function WarehouseForm({
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder="Mô tả chi tiết kho hàng..."
           rows={3}
         />

@@ -130,7 +130,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
             type="submit"
             form="invite-form"
             disabled={isLoading || !phone.trim()}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] disabled:opacity-50 transition-colors"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {isLoading ? t('members.inviteDialog.sendingBtn') : t('members.inviteDialog.sendBtn')}
@@ -165,7 +165,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
                         setIsCountryDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-100 transition-colors ${
-                        selectedCountry.code === country.code ? 'bg-blue-50 text-blue-700' : ''
+                        selectedCountry.code === country.code ? 'bg-[#F5F7FA] text-[#0B1F3A]' : ''
                       }`}
                     >
                       <span className="text-lg">{country.flag}</span>
@@ -187,7 +187,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
                 placeholder="901234567"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                className="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] focus:border-transparent"
                 required
               />
             </div>
@@ -205,7 +205,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
           <select
             value={roleCode}
             onChange={(e) => setRoleCode(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] bg-white"
           >
             {roles.map(({ code, label }) => (
               <option key={code} value={code}>

@@ -68,58 +68,70 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-        <button type="button" onClick={onBack} className="hover:text-gray-700">
-          <ArrowLeft className="h-4 w-4" />
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Back + Phone info */}
+      <div className="flex items-center gap-2.5 p-3 bg-white/10 border border-white/20 backdrop-blur-sm rounded-xl">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-white/15 text-white/70 hover:text-white transition-colors flex-shrink-0"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
         </button>
-        <span>
-          {t('auth.login.otpSentTo')} <strong className="text-gray-800">{phone}</strong>
-        </span>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="otp" className="text-sm font-medium text-gray-700">
-          {t('auth.login.enterOtp')}
-        </label>
-        <div className="relative">
-          <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            id="otp"
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="999999"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-center tracking-[0.4em] text-lg font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
+        <div className="min-w-0">
+          <p className="text-xs text-[#CFAF6E]/80">{t('auth.login.otpSentTo')}</p>
+          <p className="text-sm font-semibold text-white truncate">{phone}</p>
         </div>
       </div>
 
-      <div className="text-center text-sm text-gray-500">
+      {/* OTP input */}
+      <div className="space-y-2">
+        <label htmlFor="otp" className="text-sm font-medium text-white/70 flex items-center gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 text-[#CFAF6E]" />
+          {t('auth.login.enterOtp')}
+        </label>
+        <input
+          id="otp"
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          placeholder="● ● ● ● ● ●"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+          className="glass-input w-full h-14 px-4 rounded-xl text-center tracking-[0.6em] text-xl font-mono transition-all placeholder:tracking-[0.4em]"
+          required
+          autoFocus
+        />
+      </div>
+
+      {/* Resend timer */}
+      <div className="text-center">
         {canResend ? (
           <button
             type="button"
             onClick={handleResend}
-            className="text-blue-600 hover:underline font-medium"
+            className="inline-flex items-center gap-1.5 text-sm text-[#CFAF6E] hover:text-[#0B1F3A] font-medium transition-colors"
           >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
             {t('auth.login.resendOtp')}
           </button>
         ) : (
-          <span>
-            {t('auth.login.timeRemaining')} <strong className="text-gray-700">{timeLeft}s</strong>
-          </span>
+          <p className="text-sm text-white/50">
+            {t('auth.login.timeRemaining')}{' '}
+            <span className="font-semibold text-white/80 tabular-nums">{timeLeft}s</span>
+          </p>
         )}
       </div>
 
       <button
         type="submit"
         disabled={isLoading || otp.length !== 6}
-        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="glass-btn w-full flex items-center justify-center gap-2 h-12 px-4 bg-[#CFAF6E] text-white text-sm font-semibold rounded-xl hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-[#CFAF6E]/30"
       >
-        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
         {isLoading ? t('common.loading') : t('auth.login.verifyOtp')}
       </button>
     </form>

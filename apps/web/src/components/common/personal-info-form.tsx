@@ -125,7 +125,7 @@ export function PersonalInfoForm({
             value={data.provinceCode || ''}
             onChange={(e) => handleProvinceChange(e.target.value)}
             disabled={locationLoading || isDisabled}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
           >
             <option value="">{t('personalInfoForm.provincePlaceholder')}</option>
             {provinces.map((item) => (
@@ -142,7 +142,7 @@ export function PersonalInfoForm({
             value={data.wardCode || ''}
             onChange={(e) => handleWardChange(e.target.value)}
             disabled={!data.provinceCode || locationLoading || wardLoading || isDisabled}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
           >
             <option value="">{t('personalInfoForm.wardPlaceholder')}</option>
             {wards.map((item) => (
@@ -167,7 +167,7 @@ export function PersonalInfoForm({
                 value={data.gender || ''}
                 onChange={(e) => onChange({ ...data, gender: e.target.value })}
                 disabled={isDisabled}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
               >
                 <option value="">{t('personalInfoForm.genderPlaceholder')}</option>
                 <option value="MALE">{t('personalInfoForm.genderMale')}</option>
@@ -183,7 +183,7 @@ export function PersonalInfoForm({
                 value={data.dateOfBirth || ''}
                 onChange={(e) => onChange({ ...data, dateOfBirth: e.target.value })}
                 disabled={isDisabled}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
               />
             </div>
           </div>

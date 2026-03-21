@@ -88,7 +88,7 @@ export function CatalogForm({
             setErrors({ ...errors, type: '' });
           }}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           <option value="">{t('catalogs.form.typePlaceholder')}</option>
           {Object.entries(CATALOG_TYPES).map(([key, label]) => (
@@ -110,7 +110,7 @@ export function CatalogForm({
             setErrors({ ...errors, code: '' });
           }}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder="VD: APARTMENT, HOUSE"
         />
         {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
@@ -126,7 +126,7 @@ export function CatalogForm({
             setErrors({ ...errors, name: '' });
           }}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder={t('catalogs.form.namePlaceholder2')}
         />
         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
@@ -138,7 +138,7 @@ export function CatalogForm({
           value={parentId ?? ''}
           onChange={(e) => setParentId(e.target.value || null)}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           <option value="">{t('catalogs.noParent')}</option>
           {parentOptions.map((p) => (
@@ -201,7 +201,7 @@ export function CatalogForm({
           <button
             type="button"
             onClick={addValue}
-            className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600"
+            className="mt-2 inline-flex items-center gap-2 text-sm text-[#CFAF6E]"
           >
             <Plus className="h-4 w-4" /> {t('catalogs.addValue')}
           </button>

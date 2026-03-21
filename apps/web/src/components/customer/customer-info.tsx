@@ -46,7 +46,7 @@ function SortableInfoRow({ item, onUpdate, onDelete, isSubmitting }: SortableInf
   };
 
   const inputCls =
-    'w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500';
+    'w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-[#CFAF6E] focus:border-[#CFAF6E]';
 
   return (
     <tr ref={setNodeRef} style={style} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -295,7 +295,7 @@ export function CustomerInfoTab({
         type="button"
         onClick={handleAddRow}
         disabled={isSubmitting}
-        className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50"
+        className="flex items-center gap-2 px-3 py-2 text-sm text-[#CFAF6E] hover:bg-[#F5F7FA] dark:hover:bg-[#0F2A52]/20 rounded-lg transition-colors disabled:opacity-50"
       >
         {isSubmitting ? (
           <Loader2 className="h-4 w-4 animate-spin" />

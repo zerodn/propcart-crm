@@ -18,14 +18,14 @@ import { cn } from '@/lib/utils';
 const PAGE_SIZE = 20;
 
 const STATUS_STYLE: Record<string, string> = {
-  PLANNED: 'bg-blue-100 text-blue-700',
+  PLANNED: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   IN_PROGRESS: 'bg-purple-100 text-purple-700',
   COMPLETED: 'bg-green-100 text-green-700',
   CANCELLED: 'bg-red-100 text-red-700',
 };
 
 const TYPE_STYLE: Record<string, string> = {
-  CALL: 'bg-blue-100 text-blue-700',
+  CALL: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   MEETING: 'bg-purple-100 text-purple-700',
   EMAIL: 'bg-cyan-100 text-cyan-700',
   NOTE: 'bg-amber-100 text-amber-700',
@@ -39,7 +39,7 @@ const RESULT_STYLE: Record<string, string> = {
   NEUTRAL: 'bg-amber-100 text-amber-700',
   NEGATIVE: 'bg-red-100 text-red-700',
   NO_ANSWER: 'bg-gray-100 text-gray-600',
-  CALLBACK: 'bg-blue-100 text-blue-700',
+  CALLBACK: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
 };
 
 export default function ActivityPage() {
@@ -80,7 +80,7 @@ export default function ActivityPage() {
     actions: (
       <button
         onClick={() => { setEditingId(null); setShowForm(true); }}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
       >
         <Plus className="h-4 w-4" />
         {t('activity.addBtn')}
@@ -262,7 +262,7 @@ export default function ActivityPage() {
         <select
           value={filterType}
           onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('activity.filter.allType')}</option>
           {typeOptions.map((o) => (
@@ -273,7 +273,7 @@ export default function ActivityPage() {
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('activity.filter.allStatus')}</option>
           <option value="PLANNED">{t('activity.status.PLANNED')}</option>
@@ -330,7 +330,7 @@ export default function ActivityPage() {
               type="submit"
               form="activity-form"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? t('common.update') : t('common.addNew')}

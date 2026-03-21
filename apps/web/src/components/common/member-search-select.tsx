@@ -161,7 +161,7 @@ export function MemberSearchSelect(props: MemberSearchSelectProps) {
         <div className="relative" ref={containerRef}>
           <div
             className={cn(
-              'flex items-center gap-2 w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 cursor-text focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent',
+              'flex items-center gap-2 w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 cursor-text focus-within:ring-2 focus-within:ring-[#CFAF6E] focus-within:border-transparent',
               disabled && 'opacity-60 pointer-events-none',
             )}
             onClick={() => !disabled && setOpen(true)}
@@ -231,7 +231,7 @@ export function MemberSearchSelect(props: MemberSearchSelectProps) {
       <div className="relative" ref={containerRef}>
         <div
           className={cn(
-            'min-h-[38px] flex flex-wrap gap-1.5 items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 cursor-text focus-within:ring-2 focus-within:ring-blue-500',
+            'min-h-[38px] flex flex-wrap gap-1.5 items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 cursor-text focus-within:ring-2 focus-within:ring-[#CFAF6E]',
             disabled && 'opacity-60 pointer-events-none',
           )}
           onClick={() => !disabled && setOpen(true)}
@@ -241,13 +241,13 @@ export function MemberSearchSelect(props: MemberSearchSelectProps) {
             return (
               <span
                 key={id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#CFAF6E]/15 text-[#0B1F3A] text-xs font-medium"
               >
                 {member?.displayName || id}
                 <button
                   type="button"
                   onClick={(e) => removeBadge(id, e)}
-                  className="hover:text-blue-900"
+                  className="hover:text-[#0B1F3A]"
                   tabIndex={-1}
                 >
                   <X className="h-3 w-3" />
@@ -327,8 +327,8 @@ function DropdownList({ query, results, isSearching, isSelected, onSelect }: Dro
           type="button"
           onClick={() => onSelect(member)}
           className={cn(
-            'flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors',
-            selected && 'bg-blue-50 dark:bg-gray-700',
+            'flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F5F7FA] dark:hover:bg-gray-700 transition-colors',
+            selected && 'bg-[#F5F7FA] dark:bg-gray-700',
           )}
         >
           {/* Avatar */}
@@ -343,7 +343,7 @@ function DropdownList({ query, results, isSearching, isSelected, onSelect }: Dro
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={cn('text-sm font-medium text-gray-900 dark:text-gray-100 truncate', selected && 'text-blue-600')}>
+              <span className={cn('text-sm font-medium text-gray-900 dark:text-gray-100 truncate', selected && 'text-[#CFAF6E]')}>
                 {member.displayName || member.userId}
               </span>
               {member.employeeCode && (
@@ -360,7 +360,7 @@ function DropdownList({ query, results, isSearching, isSelected, onSelect }: Dro
           </div>
 
           {/* Checkmark */}
-          {selected && <Check className="h-4 w-4 text-blue-600 shrink-0" />}
+          {selected && <Check className="h-4 w-4 text-[#CFAF6E] shrink-0" />}
         </button>
       );
     });

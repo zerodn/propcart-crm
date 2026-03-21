@@ -21,7 +21,7 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
       className={cn(
         'bg-white rounded-xl border p-5 transition-all',
         isActive
-          ? 'border-blue-300 ring-2 ring-blue-100'
+          ? 'border-[#CFAF6E] ring-2 ring-[#CFAF6E]/20'
           : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
       )}
     >
@@ -30,7 +30,7 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
           <div
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center',
-              isActive ? 'bg-blue-600' : 'bg-gray-100',
+              isActive ? 'bg-[#CFAF6E]' : 'bg-gray-100',
             )}
           >
             {item.type === 'COMPANY' ? (
@@ -44,14 +44,14 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
             <span
               className={cn(
                 'text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block',
-                item.type === 'COMPANY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600',
+                item.type === 'COMPANY' ? 'bg-[#CFAF6E]/15 text-[#0B1F3A]' : 'bg-gray-100 text-gray-600',
               )}
             >
               {item.type === 'COMPANY' ? t('workspace.card.typeBusiness') : t('workspace.card.typePersonal')}
             </span>
           </div>
         </div>
-        {isActive && <CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+        {isActive && <CheckCircle2 className="h-5 w-5 text-[#CFAF6E] flex-shrink-0" />}
       </div>
 
       <div className="flex items-center justify-between">
@@ -64,11 +64,11 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
           {ROLE_LABELS[item.role] ?? item.role}
         </span>
         {isActive ? (
-          <span className="text-xs text-blue-600 font-medium">{t('workspace.card.current')}</span>
+          <span className="text-xs text-[#CFAF6E] font-medium">{t('workspace.card.current')}</span>
         ) : (
           <button
             onClick={() => switchWorkspace(item.id)}
-            className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            className="text-xs font-medium text-[#CFAF6E] hover:text-[#0B1F3A] hover:underline"
           >
             {t('workspace.card.switchTo')}
           </button>

@@ -46,7 +46,7 @@ export default function WarehousePage() {
           setEditingId(null);
           setShowForm(true);
         }}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
       >
         <Plus className="h-4 w-4" />
         {t('warehouse.action.create')}
@@ -124,7 +124,7 @@ export default function WarehousePage() {
       key: 'type',
       label: t('warehouse.label.type'),
       render: (value) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#CFAF6E]/15 text-[#0B1F3A]">
           {warehouseTypes.find((wt) => wt.value === value)?.label ||
             (typeof value === 'string' ? value : '—')}
         </span>
@@ -247,7 +247,7 @@ export default function WarehousePage() {
               type="submit"
               form="warehouse-form"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? t('common.update') : t('common.create')}

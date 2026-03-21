@@ -80,7 +80,7 @@ export const ROLE_LABELS: Record<string, string> = {
 };
 
 export const ROLE_COLORS: Record<string, string> = {
-  OWNER: 'bg-blue-100 text-blue-700',
+  OWNER: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   ADMIN: 'bg-violet-100 text-violet-700',
   MANAGER: 'bg-orange-100 text-orange-700',
   SALES: 'bg-green-100 text-green-700',

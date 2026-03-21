@@ -7,48 +7,52 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ── PropCart Brand System ───────────────────────────────────────────
+     * Primary (Trust/Authority): navy  #0B1F3A → hsl(214, 68%, 14%)
+     * Accent  (Premium/CTA):     gold  #CFAF6E → hsl(40,  50%, 62%)
+     * ───────────────────────────────────────────────────────────────── */
+    --background: 0 0% 100%;               /* #FFFFFF */
+    --foreground: 214 68% 14%;             /* #0B1F3A  navy text */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 214 68% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 214 68% 14%;
+    --primary: 40 50% 62%;                 /* #CFAF6E  gold — CTA buttons */
+    --primary-foreground: 0 0% 100%;       /* white text on gold */
+    --secondary: 220 20% 97%;              /* #F5F7FA  subtle bg */
+    --secondary-foreground: 214 68% 14%;   /* navy text */
+    --muted: 220 20% 97%;
+    --muted-foreground: 220 9% 46%;        /* #6B7280 */
+    --accent: 40 100% 97%;                 /* very light gold tint for hover bg */
+    --accent-foreground: 214 68% 14%;      /* navy */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;                 /* light gray border */
+    --input: 220 13% 91%;
+    --ring: 40 50% 62%;                    /* gold focus ring */
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 217.2 32.6% 17.5%;
-    --card-foreground: 210 40% 98%;
-    --popover: 217.2 32.6% 17.5%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 215 27.9% 33.3%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 214 68% 8%;              /* very dark navy */
+    --foreground: 0 0% 96%;
+    --card: 214 50% 13%;
+    --card-foreground: 0 0% 96%;
+    --popover: 214 50% 13%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 40 50% 62%;                 /* gold stays gold in dark mode */
+    --primary-foreground: 214 68% 8%;
+    --secondary: 214 38% 18%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 214 38% 18%;
+    --muted-foreground: 215 16% 60%;
+    --accent: 214 38% 18%;
+    --accent-foreground: 0 0% 96%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217.2 91.2% 59.8%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 22%;
+    --input: 214 32% 22%;
+    --ring: 40 50% 62%;                    /* gold focus ring in dark */
   }
 }
 
@@ -58,7 +62,89 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body, ui-sans-serif);
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading, ui-sans-serif);
+  }
+  button, [role='button'] {
+    font-family: var(--font-heading, ui-sans-serif);
+  }
+}
+
+/* =================================================================
+   Login Page — Glassmorphism Animations & Utilities
+   ================================================================= */
+@keyframes loginFadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes loginBubble1 {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(28px, -42px) scale(1.06); }
+  66%      { transform: translate(-18px, 22px) scale(0.96); }
+}
+@keyframes loginBubble2 {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  40%      { transform: translate(-32px, 28px) scale(1.08); }
+  70%      { transform: translate(22px, -18px) scale(0.94); }
+}
+@keyframes loginBubble3 {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  25%      { transform: translate(18px, 34px) scale(1.04); }
+  60%      { transform: translate(-22px, -14px) scale(0.97); }
+}
+@keyframes loginGradientPulse {
+  0%,100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+
+.login-card-anim      { animation: loginFadeInUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.login-bubble-1       { animation: loginBubble1 14s ease-in-out infinite; }
+.login-bubble-2       { animation: loginBubble2 11s ease-in-out infinite; }
+.login-bubble-3       { animation: loginBubble3 17s ease-in-out infinite; }
+.login-gradient-pulse { animation: loginGradientPulse 8s ease-in-out infinite; }
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: box-shadow 0.3s ease;
+}
+.glass-card:hover {
+  box-shadow: 0 30px 72px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Glass inputs */
+.glass-input {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: white;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.glass-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(207, 175, 110, 0.28);
+}
+
+/* Glass button (gold CTA) */
+.glass-btn {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease,
+              background-color 0.2s ease;
+}
+.glass-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+  box-shadow: 0 8px 32px rgba(207, 175, 110, 0.55);
+}
+.glass-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* =================================================================
@@ -105,8 +191,8 @@
 .dark input:focus:not([type="checkbox"]):not([type="radio"]),
 .dark textarea:focus,
 .dark select:focus {
-  outline-color: rgb(99 102 241);
-  border-color: rgb(99 102 241);
+  outline-color: rgb(207 175 110);   /* brand gold #CFAF6E */
+  border-color: rgb(207 175 110);
 }
 
 /* Dividers */

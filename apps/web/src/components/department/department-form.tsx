@@ -73,7 +73,7 @@ export function DepartmentForm({
             setErrors({ ...errors, name: '' });
           }}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder={t('departments.form.namePlaceholder')}
         />
         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
@@ -89,7 +89,7 @@ export function DepartmentForm({
             setErrors({ ...errors, code: '' });
           }}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder={t('departments.form.codePlaceholder')}
         />
         {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
@@ -101,7 +101,7 @@ export function DepartmentForm({
           value={parentId}
           onChange={(e) => setParentId(e.target.value)}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
         >
           <option value="">{t('departments.form.parentPlaceholder')}</option>
           {filteredParentOptions.map((option) => (
@@ -118,7 +118,7 @@ export function DepartmentForm({
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
         >
           <option value="">{t('departments.form.statusPlaceholder')}</option>
           {statusOptions.map((option) => (
@@ -135,7 +135,7 @@ export function DepartmentForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={isLoading}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
           placeholder={t('departments.form.descriptionPlaceholder')}
           rows={3}
         />

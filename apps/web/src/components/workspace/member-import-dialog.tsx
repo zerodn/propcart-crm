@@ -59,7 +59,7 @@ type Step = 'upload' | 'preview' | 'result';
 
 const ACTION_CONFIG = {
   CREATE: { icon: UserPlus, bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', dot: 'bg-green-500' },
-  UPDATE: { icon: Pencil, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+  UPDATE: { icon: Pencil, bg: 'bg-[#F5F7FA]', text: 'text-[#0B1F3A]', border: 'border-[#CFAF6E]/40', dot: 'bg-[#F5F7FA]0' },
   SKIP: { icon: AlertCircle, bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400' },
   ERROR: { icon: XCircle, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500' },
 };
@@ -223,7 +223,7 @@ export function MemberImportDialog({
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all ${
                     isActive
-                      ? 'bg-blue-600 border-blue-600 text-white'
+                      ? 'bg-[#CFAF6E] border-[#CFAF6E] text-white'
                       : isDone
                         ? 'bg-green-500 border-green-500 text-white'
                         : 'bg-white border-gray-300 text-gray-400'
@@ -232,7 +232,7 @@ export function MemberImportDialog({
                   {isDone ? '✓' : idx + 1}
                 </div>
                 <span
-                  className={`text-xs mt-1 font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}
+                  className={`text-xs mt-1 font-medium ${isActive ? 'text-[#CFAF6E]' : isDone ? 'text-green-600' : 'text-gray-400'}`}
                 >
                   {labels[idx]}
                 </span>
@@ -294,7 +294,7 @@ export function MemberImportDialog({
                 type="button"
                 onClick={handlePreview}
                 disabled={!selectedFile || isPreviewing}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
               >
                 {isPreviewing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -309,7 +309,7 @@ export function MemberImportDialog({
                 type="button"
                 onClick={handleImport}
                 disabled={isImporting || (preview?.summary.create === 0 && preview?.summary.update === 0)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
               >
                 {isImporting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -361,7 +361,7 @@ export function MemberImportDialog({
                 {t('memberImport.upload.selectFileLabel')}
               </label>
               <div
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#CFAF6E] hover:bg-[#F5F7FA]/30 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -397,7 +397,7 @@ export function MemberImportDialog({
                     <Upload className="h-12 w-12 text-gray-400" />
                     <p className="text-sm text-gray-600">
                       Kéo thả file vào đây hoặc{' '}
-                      <span className="text-blue-600 font-medium">{t('memberImport.upload.clickToSelect')}</span>
+                      <span className="text-[#CFAF6E] font-medium">{t('memberImport.upload.clickToSelect')}</span>
                     </p>
                     <p className="text-xs text-gray-400">{t('memberImport.upload.supportsFormats')}</p>
                   </div>
@@ -434,7 +434,7 @@ export function MemberImportDialog({
                 [
                   { key: 'ALL', label: `${t('common.all')} (${preview.rows.length})`, bg: 'bg-gray-100', active: 'bg-gray-700 text-white', text: 'text-gray-700' },
                   { key: 'CREATE', label: `${t('memberImport.rowAction.CREATE')} (${preview.summary.create})`, bg: 'bg-green-100', active: 'bg-green-600 text-white', text: 'text-green-700' },
-                  { key: 'UPDATE', label: `${t('memberImport.rowAction.UPDATE')} (${preview.summary.update})`, bg: 'bg-blue-100', active: 'bg-blue-600 text-white', text: 'text-blue-700' },
+                  { key: 'UPDATE', label: `${t('memberImport.rowAction.UPDATE')} (${preview.summary.update})`, bg: 'bg-[#CFAF6E]/15', active: 'bg-[#CFAF6E] text-white', text: 'text-[#0B1F3A]' },
                   { key: 'SKIP', label: `${t('memberImport.rowAction.SKIP')} (${preview.summary.skip})`, bg: 'bg-gray-100', active: 'bg-gray-500 text-white', text: 'text-gray-500' },
                   { key: 'ERROR', label: `${t('memberImport.rowAction.ERROR')} (${preview.summary.errors})`, bg: 'bg-red-100', active: 'bg-red-600 text-white', text: 'text-red-700' },
                 ] as const
@@ -501,7 +501,7 @@ export function MemberImportDialog({
                             <td className="px-3 py-2 text-gray-700 whitespace-nowrap max-w-[120px] truncate">{row.ward || '—'}</td>
                             <td className="px-3 py-2 max-w-[200px]">
                               {row.action === 'UPDATE' && row.existingName && (
-                                <span className="text-blue-600 text-xs">{t('memberImport.status.updateFrom', { name: row.existingName })}</span>
+                                <span className="text-[#CFAF6E] text-xs">{t('memberImport.status.updateFrom', { name: row.existingName })}</span>
                               )}
                               {row.action === 'ERROR' && row.errorMessage && (
                                 <span className="text-red-600 text-xs">{row.errorMessage}</span>

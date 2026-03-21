@@ -149,7 +149,7 @@ export default function PermissionsPage() {
                           className={cn(
                             'flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50',
                             hasPermission
-                              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                              ? 'bg-[#CFAF6E]/15 text-[#0B1F3A] hover:bg-[#CFAF6E]/25'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
                           )}
                           title={`Vai trò: ${ROLE_LABELS[role.code] || role.name}`}
@@ -175,8 +175,8 @@ export default function PermissionsPage() {
 
       {/* Summary */}
       {!isLoading && roles.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-sm text-blue-900">
+        <div className="bg-[#F5F7FA] border border-[#CFAF6E]/40 rounded-xl p-4">
+          <p className="text-sm text-[#0B1F3A]">
             <span className="font-medium">{roles.length}</span> vai trò •{' '}
             <span className="font-medium">{permissions.length}</span> quyền hạn
           </p>

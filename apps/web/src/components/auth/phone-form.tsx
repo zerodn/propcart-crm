@@ -66,23 +66,27 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Country + Phone row */}
       <div className="space-y-2">
-        {/* Country Code + Phone Input */}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-stretch">
           {/* Country Selector */}
-          <div className="relative w-24">
+          <div className="relative">
             <button
               type="button"
               onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-              className="w-full h-10 flex items-center justify-center gap-1 px-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+              className="glass-input h-12 flex items-center gap-1.5 px-3 rounded-xl text-sm font-medium text-white whitespace-nowrap hover:border-white/40 transition-all"
             >
-              <span className="text-lg">{selectedCountry.flag}</span>
+              <span className="text-base">{selectedCountry.flag}</span>
+              <span className="text-white/80">{selectedCountry.countryCode}</span>
+              <svg className="w-3 h-3 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
 
             {/* Dropdown */}
             {isCountryDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+              <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-1.5 overflow-hidden">
                 {COUNTRIES.map((country) => (
                   <button
                     key={country.code}
@@ -91,15 +95,15 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
                       setSelectedCountry(country);
                       setIsCountryDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-100 transition-colors ${
-                      selectedCountry.code === country.code ? 'bg-blue-50 text-blue-700' : ''
+                    className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                      selectedCountry.code === country.code ? 'bg-[#F5F7FA] text-[#0B1F3A]' : 'text-gray-700'
                     }`}
                   >
-                    <span className="text-lg">{country.flag}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{country.name}</div>
-                      <div className="text-xs text-gray-500">{country.countryCode}</div>
+                    <span className="text-base">{country.flag}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{country.name}</div>
                     </div>
+                    <span className="text-xs text-gray-400 font-mono">{country.countryCode}</span>
                   </button>
                 ))}
               </div>
@@ -108,31 +112,34 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
 
           {/* Phone Input */}
           <div className="relative flex-1">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="tel"
-              placeholder="901234567"
+              placeholder="901 234 567"
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              className="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="glass-input w-full h-12 px-4 rounded-xl text-sm transition-all"
               required
+              autoFocus
             />
           </div>
         </div>
 
-        {/* Format Info */}
-        <p className="text-xs text-gray-500">
-          📱 {selectedCountry.countryCode}
-          {phone.startsWith('0') ? phone.substring(1) : phone || '...'}
-        </p>
+        {/* Preview number */}
+        {phone && (
+          <p className="text-xs text-white/50 pl-1">
+            Số đầy đủ: <span className="font-medium text-white/80">
+              {selectedCountry.countryCode}{phone.startsWith('0') ? phone.substring(1) : phone}
+            </span>
+          </p>
+        )}
       </div>
 
       <button
         type="submit"
         disabled={isLoading || !phone.trim()}
-        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="glass-btn w-full flex items-center justify-center gap-2 h-12 px-4 bg-[#CFAF6E] text-white text-sm font-semibold rounded-xl hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-[#CFAF6E]/30"
       >
-        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
         {isLoading ? t('common.loading') : t('auth.login.sendOtp')}
       </button>
     </form>

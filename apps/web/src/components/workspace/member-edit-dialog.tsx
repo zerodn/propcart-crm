@@ -594,7 +594,7 @@ export function MemberEditDialog({
             type="submit"
             form="member-edit-form"
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {t('common.update')}
@@ -603,8 +603,8 @@ export function MemberEditDialog({
       }
     >
       <form id="member-edit-form" onSubmit={handleSubmit} className="space-y-5">
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs font-medium text-blue-700 mb-1">{t('memberEdit.label.baseInfo')}</p>
+        <div className="p-4 bg-[#F5F7FA] border border-[#CFAF6E]/40 rounded-lg">
+          <p className="text-xs font-medium text-[#0B1F3A] mb-1">{t('memberEdit.label.baseInfo')}</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600">
             <p>
               <span className="font-medium">{t('memberEdit.label.namePrefix')}</span> {member.user.fullName || t('memberEdit.label.notAvailable')}
@@ -695,7 +695,7 @@ export function MemberEditDialog({
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder={member.user.fullName || 'Nhập tên hiển thị'}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
                   />
                 </div>
 
@@ -722,7 +722,7 @@ export function MemberEditDialog({
                     onChange={(e) => setWorkspaceEmail(e.target.value)}
                     placeholder={member.user.email || 'Nhập email'}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
                   />
                 </div>
 
@@ -736,7 +736,7 @@ export function MemberEditDialog({
                     onChange={(e) => setWorkspacePhone(e.target.value)}
                     placeholder={member.user.phone || 'Nhập số điện thoại'}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
                   />
                 </div>
 
@@ -748,7 +748,7 @@ export function MemberEditDialog({
                     value={roleId}
                     onChange={(e) => setRoleId(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
                   >
                     {rolesArray.length === 0 && <option value="">{t('memberAdd.label.loadingRoles')}</option>}
                     {rolesArray.map((role) => (
@@ -767,7 +767,7 @@ export function MemberEditDialog({
                     value={contractType}
                     onChange={(e) => setContractType(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
                   >
                     <option value="">-- {t('memberAdd.label.selectContractType')} --</option>
                     {hdldOptions.map((opt) => (
@@ -786,7 +786,7 @@ export function MemberEditDialog({
                     value={employmentStatus}
                     onChange={(e) => setEmploymentStatus(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
                   >
                     <option value="">-- {t('members.employmentStatus.unknown')} --</option>
                     {employmentStatusOptions.length > 0
@@ -818,7 +818,7 @@ export function MemberEditDialog({
                     value={status}
                     onChange={(e) => setStatus(Number(e.target.value))}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50 bg-white"
                   >
                     {accountStatusOptions.length > 0
                       ? accountStatusOptions.map((opt) => (
@@ -861,7 +861,7 @@ export function MemberEditDialog({
                   onChange={(e) => setAddressLine(e.target.value)}
                   placeholder="Số nhà, tên đường..."
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
                 />
               </div>
             </div>
@@ -881,7 +881,7 @@ export function MemberEditDialog({
                     onClick={() => { setIsAddingDept(true); setNewDeptId(availableDepartments[0]?.id || ''); setNewDeptRoleId(deptRoleOptions[0]?.id || ''); }}
                     disabled={isAddingDept || availableDepartments.length === 0 || isDeptLoading}
                     title={availableDepartments.length === 0 && !isAddingDept ? 'Đã gán tất cả phòng ban có sẵn' : undefined}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0B1F3A] bg-[#F5F7FA] border border-[#CFAF6E]/40 rounded-lg hover:bg-[#CFAF6E]/15 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Thêm phòng ban
@@ -944,13 +944,13 @@ export function MemberEditDialog({
                             value={isPendingRole ? pendingRoleId : a.roleId}
                             onChange={(e) => setPendingRoleChange((prev) => ({ ...prev, [a.departmentId]: e.target.value }))}
                             disabled={isBusy}
-                            className="text-xs px-2 py-1.5 border border-gray-300 rounded-md bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="text-xs px-2 py-1.5 border border-gray-300 rounded-md bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-[#CFAF6E]"
                           >
                             {deptRoleOptions.map((r) => (
                               <option key={r.id} value={r.id}>{r.name}</option>
                             ))}
                           </select>
-                          {updatingDeptRole[a.departmentId] && <Loader2 className="h-4 w-4 animate-spin text-blue-500 flex-shrink-0" />}
+                          {updatingDeptRole[a.departmentId] && <Loader2 className="h-4 w-4 animate-spin text-[#CFAF6E] flex-shrink-0" />}
                           <button
                             type="button"
                             onClick={() => { setConfirmingRemoveDept(a.departmentId); setPendingRoleChange((prev) => { const n = { ...prev }; delete n[a.departmentId]; return n; }); }}
@@ -991,13 +991,13 @@ export function MemberEditDialog({
                   })}
 
                   {isAddingDept && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                      <Building2 className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                    <div className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#CFAF6E]/40 rounded-lg">
+                      <Building2 className="h-4 w-4 text-[#CFAF6E] flex-shrink-0" />
                       <select
                         value={newDeptId}
                         onChange={(e) => setNewDeptId(e.target.value)}
                         disabled={savingNewDept}
-                        className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-md bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-md bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-[#CFAF6E]"
                       >
                         <option value="">-- Chọn phòng ban --</option>
                         {availableDepartments.map((d) => (
@@ -1008,7 +1008,7 @@ export function MemberEditDialog({
                         value={newDeptRoleId}
                         onChange={(e) => setNewDeptRoleId(e.target.value)}
                         disabled={savingNewDept}
-                        className="text-xs px-2 py-1.5 border border-gray-300 rounded-md bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="text-xs px-2 py-1.5 border border-gray-300 rounded-md bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-[#CFAF6E]"
                       >
                         <option value="">-- Chọn vai trò --</option>
                         {deptRoleOptions.map((r) => (
@@ -1019,7 +1019,7 @@ export function MemberEditDialog({
                         type="button"
                         onClick={handleAddDeptConfirm}
                         disabled={savingNewDept || !newDeptId || !newDeptRoleId}
-                        className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-white bg-[#CFAF6E] rounded-md hover:bg-[#B89655] disabled:opacity-50 transition-colors"
                       >
                         {savingNewDept ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Xác nhận'}
                       </button>
@@ -1064,7 +1064,7 @@ export function MemberEditDialog({
                     <option value="OTHER">{t('memberEdit.docType.OTHER')}</option>
                   </select>
 
-                  <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 cursor-pointer disabled:opacity-50">
+                  <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#CFAF6E] text-white text-sm font-medium hover:bg-[#B89655] cursor-pointer disabled:opacity-50">
                     {isUploadingAttachment ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
@@ -1122,13 +1122,13 @@ export function MemberEditDialog({
                             <option value="OTHER">Khac</option>
                           </select>
                           {isUpdatingType && (
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-600 flex-shrink-0" />
+                            <Loader2 className="h-4 w-4 animate-spin text-[#CFAF6E] flex-shrink-0" />
                           )}
                           <button
                             type="button"
                             onClick={() => handleOpenPreview(doc)}
                             disabled={isSubmitting || isDeleting}
-                            className="flex-shrink-0 p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 disabled:opacity-50"
+                            className="flex-shrink-0 p-1 rounded hover:bg-[#F5F7FA] text-gray-400 hover:text-[#CFAF6E] disabled:opacity-50"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -1191,7 +1191,7 @@ export function MemberEditDialog({
               {isLoadingPreview ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <Loader2 className="h-8 w-8 animate-spin text-[#CFAF6E]" />
                     <p className="text-sm text-gray-500">Dang tai file...</p>
                   </div>
                 </div>

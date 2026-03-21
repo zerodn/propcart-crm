@@ -95,7 +95,7 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
             type="submit"
             form="catalog-modal-form"
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-[#CFAF6E] text-white rounded-lg hover:bg-[#B89655] transition-colors disabled:opacity-50"
           >
             {loading ? t('catalogs.saving') : t('common.save')}
           </button>
@@ -108,7 +108,7 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
           <select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
           >
             <option value="CUSTOM">{t('catalogs.types.CUSTOM')}</option>
             <option value="ROLE">{t('catalogs.types.ROLE')}</option>
@@ -125,7 +125,7 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
             placeholder={t('catalogs.codePlaceholder')}
             disabled={!!catalog}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:bg-gray-50"
           />
         </div>
 
@@ -136,7 +136,7 @@ export function CatalogFormModal({ catalog, onClose, onSuccess }: Props) {
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder={t('catalogs.namePlaceholder2')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
           />
         </div>
       </form>

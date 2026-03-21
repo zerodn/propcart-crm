@@ -56,8 +56,8 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-          <Building2 className="h-5 w-5 text-blue-600" />
+        <div className="w-10 h-10 bg-[#CFAF6E]/15 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Building2 className="h-5 w-5 text-[#CFAF6E]" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-900">{invitation.workspace.name}</h3>
@@ -96,7 +96,7 @@ export function InvitationCard({ invitation, onUpdate }: InvitationCardProps) {
               <button
                 onClick={handleAccept}
                 disabled={accepting || declining}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] disabled:opacity-50 transition-colors"
               >
                 {accepting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

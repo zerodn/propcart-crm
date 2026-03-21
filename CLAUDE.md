@@ -219,7 +219,42 @@ Breakpoints (Tailwind convention):
 - Images: dùng `next/image` với `sizes` + `priority` đúng context
 - Fonts: `next/font` để tránh layout shift (CLS = 0)
 - Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1
+- You must follow this color system inspired by a premium real estate brand. Do NOT invent new colors.
+  - [COLOR SYSTEM]
+    - Primary (Trust):
+      - primary: #0B1F3A
+      - primary-hover: #0F2A52
 
+    - Accent (Premium / Investment):
+      - accent: #CFAF6E
+      - accent-hover: #B89655
+    - Text:
+      - text-primary: #0B1F3A
+      - text-secondary: #4B5563
+      - text-muted: #9CA3AF
+      -  text-inverse: #FFFFFF
+    - Background:
+      - bg-default: #FFFFFF
+      - bg-subtle: #F5F7FA
+      - bg-dark: #0B1F3A
+    - Buttons:
+      - button-primary-bg: #CFAF6E
+      - button-primary-hover: #B89655
+      - button-primary-text: #FFFFFF
+      - button-secondary-border: #0B1F3A
+      - button-secondary-text: #0B1F3A
+      - button-secondary-hover-bg: #0B1F3A
+      - button-secondary-hover-text: #FFFFFF
+- Rules:
+  - Use dark blue for headers and authority elements
+  - Use gold only for CTA or highlights (not overused)
+  - Never use random colors outside this system
+  - Maintain a clean, premium, corporate real estate style
+  - Ensure strong contrast for readability
+- Use the following typography system:
+  - Headings: Montserrat (600, 700)
+  - Body text: Open Sans (400, 500)
+  - Buttons: Montserrat (500)
 ---
 
 ## Project Structure

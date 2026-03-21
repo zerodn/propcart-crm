@@ -57,7 +57,7 @@ export default function DepartmentPage() {
           setEditingId(null);
           setShowForm(true);
         }}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
       >
         <Plus className="h-4 w-4" />
         {t('department.addBtn')}
@@ -149,7 +149,7 @@ export default function DepartmentPage() {
               type="submit"
               form="department-form"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? t('common.update') : t('common.addNew')}
@@ -217,7 +217,7 @@ export default function DepartmentPage() {
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600">
+                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#F5F7FA] rounded text-xs text-[#CFAF6E]">
                     <Users className="h-3 w-3" />
                     {(dept.members || []).length} nhân sự
                   </div>
@@ -248,7 +248,7 @@ export default function DepartmentPage() {
                     setManagingDeptId(dept.id);
                     setShowMembersDialog(true);
                   }}
-                  className="w-full py-2 px-3 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
+                  className="w-full py-2 px-3 bg-[#F5F7FA] text-[#CFAF6E] text-sm font-medium rounded-lg hover:bg-[#CFAF6E]/15 transition-colors"
                 >
                   {t('departments.manageMembers')}
                 </button>

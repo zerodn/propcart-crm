@@ -233,7 +233,7 @@ export function DepartmentMembersDialog({
                       setShowUserDropdown(true);
                     }}
                     onFocus={() => setShowUserDropdown(true)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
                   />
                 );
               })()}
@@ -265,14 +265,14 @@ export function DepartmentMembersDialog({
                             setShowUserDropdown(false);
                             setSearchQuery('');
                           }}
-                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-[#F5F7FA] transition-colors border-b border-gray-100 last:border-0"
                         >
                           <div className="font-medium text-gray-900">
                             {member.displayName || member.phone || member.email}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             {member.employeeCode && (
-                              <span className="text-xs font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-mono text-[#CFAF6E] bg-[#F5F7FA] px-1.5 py-0.5 rounded">
                                 {member.employeeCode}
                               </span>
                             )}
@@ -290,7 +290,7 @@ export function DepartmentMembersDialog({
               <select
                 value={selectedRoleId}
                 onChange={(e) => setSelectedRoleId(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
               >
                 <option value="">{t('departments.membersDialog.selectRolePlaceholder')}</option>
                 {roleOptions.map((role) => (
@@ -303,7 +303,7 @@ export function DepartmentMembersDialog({
               <button
                 onClick={handleAddMember}
                 disabled={!selectedUserId || !selectedRoleId || submitting}
-                className="flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex items-center justify-center gap-2 py-2 px-4 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
               >
                 {submitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -372,7 +372,7 @@ export function DepartmentMembersDialog({
                           }
                         }}
                         disabled={isRowLoading}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-50"
                       >
                         {roleOptions.map((role) => (
                           <option key={role.id} value={role.id}>

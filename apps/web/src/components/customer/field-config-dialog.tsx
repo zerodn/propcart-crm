@@ -34,7 +34,7 @@ interface FieldConfigDialogProps {
 }
 
 const inputCls =
-  'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60';
+  'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] disabled:opacity-60';
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
 
 export function FieldConfigDialog({
@@ -237,7 +237,7 @@ export function FieldConfigDialog({
                         <p className="text-sm font-medium text-gray-900">{def.label}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs font-mono text-gray-400">{def.fieldKey}</span>
-                          <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-[#F5F7FA] text-[#CFAF6E] px-1.5 py-0.5 rounded">
                             {FIELD_TYPES.find((f) => f.value === def.fieldType)?.label || def.fieldType}
                           </span>
                           {def.required && (
@@ -253,7 +253,7 @@ export function FieldConfigDialog({
                           )}
                         </div>
                       </div>
-                      <button onClick={() => startEdit(def)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Sửa">
+                      <button onClick={() => startEdit(def)} className="p-1.5 text-gray-400 hover:text-[#CFAF6E] hover:bg-[#F5F7FA] rounded-lg" title="Sửa">
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button onClick={() => setDeleteId(def.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Xoá">
@@ -268,8 +268,8 @@ export function FieldConfigDialog({
 
           {/* Add form */}
           {showAddForm && (
-            <div className="border border-blue-200 bg-blue-50/30 rounded-lg p-4 space-y-3">
-              <p className="text-sm font-semibold text-blue-700">Thêm trường mới</p>
+            <div className="border border-[#CFAF6E]/40 bg-[#F5F7FA]/30 rounded-lg p-4 space-y-3">
+              <p className="text-sm font-semibold text-[#0B1F3A]">Thêm trường mới</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Nhãn hiển thị *</label>
@@ -315,7 +315,7 @@ export function FieldConfigDialog({
                 <button
                   onClick={handleCreate}
                   disabled={isCreating || !newLabel.trim() || !newFieldKey.trim()}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
                 >
                   {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
                   Lưu
@@ -331,7 +331,7 @@ export function FieldConfigDialog({
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1.5 px-4 py-2 border border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-colors w-full justify-center"
+              className="flex items-center gap-1.5 px-4 py-2 border border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-[#CFAF6E] hover:text-[#CFAF6E] hover:bg-[#F5F7FA]/30 transition-colors w-full justify-center"
             >
               <Plus className="h-4 w-4" />
               Thêm trường

@@ -28,7 +28,7 @@ const STATUS_COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'CANCELLED'] as
 
 const STATUS_ACCENT: Record<string, string> = {
   TODO: 'bg-slate-400',
-  IN_PROGRESS: 'bg-blue-500',
+  IN_PROGRESS: 'bg-[#F5F7FA]0',
   REVIEW: 'bg-purple-500',
   DONE: 'bg-green-500',
   CANCELLED: 'bg-red-400',
@@ -36,7 +36,7 @@ const STATUS_ACCENT: Record<string, string> = {
 
 const STATUS_BG: Record<string, string> = {
   TODO: 'bg-slate-50',
-  IN_PROGRESS: 'bg-blue-50/50',
+  IN_PROGRESS: 'bg-[#F5F7FA]/50',
   REVIEW: 'bg-purple-50/50',
   DONE: 'bg-green-50/50',
   CANCELLED: 'bg-red-50/40',
@@ -44,7 +44,7 @@ const STATUS_BG: Record<string, string> = {
 
 const COLUMN_RING: Record<string, string> = {
   TODO: 'ring-slate-300',
-  IN_PROGRESS: 'ring-blue-300',
+  IN_PROGRESS: 'ring-[#CFAF6E]/50',
   REVIEW: 'ring-purple-300',
   DONE: 'ring-green-300',
   CANCELLED: 'ring-red-300',
@@ -107,7 +107,7 @@ function KanbanColumn({
             className={cn(
               'flex flex-col items-center justify-center py-8 text-center',
               'rounded-lg border-2 border-dashed border-gray-200/80',
-              isOver && isDragActive && 'border-blue-300 bg-blue-50/30',
+              isOver && isDragActive && 'border-[#CFAF6E] bg-[#F5F7FA]/30',
             )}
           >
             <ListChecks className="h-6 w-6 text-gray-300 mb-1" />

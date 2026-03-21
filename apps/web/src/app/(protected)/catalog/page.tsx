@@ -35,7 +35,7 @@ export default function CatalogPage() {
           setEditingId(null);
           setShowForm(true);
         }}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
       >
         <Plus className="h-4 w-4" />
         Thêm danh mục
@@ -137,7 +137,7 @@ export default function CatalogPage() {
               type="submit"
               form="catalog-form"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? t('common.update') : t('common.addNew')}
@@ -206,7 +206,7 @@ export default function CatalogPage() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
           >
             <option value="">{t('catalogs.filter.allTypes')}</option>
             {Object.entries(CATALOG_TYPES).map(([key, label]) => (
@@ -290,7 +290,7 @@ export default function CatalogPage() {
                 {/* Left: name + badges */}
                 <div className="flex-1 min-w-0 flex items-center gap-2.5 flex-wrap">
                   <span className="font-medium text-gray-900 truncate">{item.name}</span>
-                  <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full shrink-0">
+                  <span className="text-xs bg-[#F5F7FA] text-[#CFAF6E] border border-[#CFAF6E]/20 px-2 py-0.5 rounded-full shrink-0">
                     {CATALOG_TYPES[item.type] || item.type}
                   </span>
                   <span className="text-xs text-gray-400 font-mono shrink-0">({item.code})</span>
@@ -320,7 +320,7 @@ export default function CatalogPage() {
                   </button>
                   <button
                     onClick={() => handleOpenEdit(item.id)}
-                    className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-[#CFAF6E] hover:text-[#0B1F3A] hover:bg-[#F5F7FA] rounded-lg transition-colors"
                     title={t('common.editInfo')}
                     aria-label={t('common.edit')}
                   >

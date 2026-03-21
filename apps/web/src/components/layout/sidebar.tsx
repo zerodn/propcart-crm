@@ -49,7 +49,7 @@ function NavLink({
         'group/nav relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
         collapsed && 'justify-center px-2',
         active
-          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+          ? 'bg-[#F5F7FA] text-[#0B1F3A] font-semibold border-l-2 border-[#CFAF6E] pl-[10px]'
           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
       )}
     >
@@ -105,8 +105,8 @@ export function Sidebar() {
       {/* Header: Logo + Collapse toggle */}
       <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Building2 className="h-4 w-4 text-white" />
+          <div className="w-7 h-7 bg-[#0B1F3A] rounded-lg flex items-center justify-center flex-shrink-0">
+            <Building2 className="h-4 w-4 text-[#CFAF6E]" />
           </div>
           {!collapsed && (
             <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">

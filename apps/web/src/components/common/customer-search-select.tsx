@@ -130,7 +130,7 @@ export function CustomerSearchSelect({
       <div className="relative" ref={containerRef}>
         <div
           className={cn(
-            'flex items-center gap-2 w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 cursor-text focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent',
+            'flex items-center gap-2 w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 cursor-text focus-within:ring-2 focus-within:ring-[#CFAF6E] focus-within:border-transparent',
             disabled && 'opacity-60 pointer-events-none',
           )}
           onClick={() => !disabled && setOpen(true)}
@@ -196,8 +196,8 @@ export function CustomerSearchSelect({
                   type="button"
                   onClick={() => handleSelect(customer)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors',
-                    isSelected && 'bg-blue-50 dark:bg-gray-700',
+                    'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F5F7FA] dark:hover:bg-gray-700 transition-colors',
+                    isSelected && 'bg-[#F5F7FA] dark:bg-gray-700',
                   )}
                 >
                   <div className="h-8 w-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
@@ -215,7 +215,7 @@ export function CustomerSearchSelect({
                     </div>
                   </div>
                   {isSelected && (
-                    <div className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                    <div className="h-2 w-2 rounded-full bg-[#F5F7FA]0 shrink-0" />
                   )}
                 </button>
               );

@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 const PAGE_SIZE = 20;
 
 const STATUS_STYLE: Record<string, string> = {
-  NEW: 'bg-blue-100 text-blue-700',
+  NEW: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   SEARCHING: 'bg-purple-100 text-purple-700',
   MATCHED: 'bg-amber-100 text-amber-700',
   COMPLETED: 'bg-green-100 text-green-700',
@@ -28,12 +28,12 @@ const STATUS_STYLE: Record<string, string> = {
 const PRIORITY_STYLE: Record<string, string> = {
   HIGH: 'bg-red-100 text-red-700',
   MEDIUM: 'bg-amber-100 text-amber-700',
-  LOW: 'bg-blue-100 text-blue-700',
+  LOW: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
 };
 
 const PURPOSE_STYLE: Record<string, string> = {
   BUY: 'bg-green-100 text-green-700',
-  RENT: 'bg-blue-100 text-blue-700',
+  RENT: 'bg-[#CFAF6E]/15 text-[#0B1F3A]',
   INVEST: 'bg-amber-100 text-amber-700',
 };
 
@@ -75,7 +75,7 @@ export default function DemandPage() {
     actions: (
       <button
         onClick={() => { setEditingId(null); setShowForm(true); }}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white text-sm font-medium rounded-lg hover:bg-[#B89655] transition-colors"
       >
         <Plus className="h-4 w-4" />
         {t('demand.addBtn')}
@@ -289,7 +289,7 @@ export default function DemandPage() {
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('demand.filter.allStatus')}</option>
           {statusOptions.map((o) => (
@@ -300,7 +300,7 @@ export default function DemandPage() {
         <select
           value={filterPriority}
           onChange={(e) => { setFilterPriority(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
         >
           <option value="">{t('demand.filter.allPriority')}</option>
           {priorityOptions.map((o) => (
@@ -356,7 +356,7 @@ export default function DemandPage() {
               type="submit"
               form="demand-form"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#CFAF6E] text-white rounded-lg text-sm font-medium hover:bg-[#B89655] disabled:opacity-50 transition-colors"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? t('common.update') : t('common.addNew')}

@@ -350,7 +350,7 @@ export function TowerFloorPlanEditor({
                         <div className="flex min-w-0 items-center gap-2">
                           <span
                             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
-                              marker.productId ? 'bg-green-600' : 'bg-blue-500'
+                              marker.productId ? 'bg-green-600' : 'bg-[#F5F7FA]0'
                             }`}
                           >
                             {index + 1}
@@ -413,7 +413,7 @@ export function TowerFloorPlanEditor({
           <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-4 py-3">
             <p className="text-xs text-gray-500">
               <span className="font-medium text-green-700">●</span> Đã gán sản phẩm &nbsp;
-              <span className="font-medium text-blue-500">●</span> Chưa gán
+              <span className="font-medium text-[#CFAF6E]">●</span> Chưa gán
             </p>
           </div>
         </div>

@@ -10,6 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Brand Color System ──────────────────────────────────────────
+        // Primary (Trust / Authority): dark navy
+        'brand-primary':       '#0B1F3A',
+        'brand-primary-hover': '#0F2A52',
+        // Accent (Premium / CTA): gold
+        'brand-accent':        '#CFAF6E',
+        'brand-accent-hover':  '#B89655',
+        // Text shades
+        'brand-text':          '#0B1F3A',
+        'brand-text-secondary':'#4B5563',
+        'brand-text-muted':    '#9CA3AF',
+        // Backgrounds
+        'brand-subtle':        '#F5F7FA',
+        'brand-dark':          '#0B1F3A',
+        // ── shadcn/ui CSS-variable tokens ──────────────────────────────
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -48,6 +63,14 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      fontFamily: {
+        // Montserrat — headings & buttons
+        heading: ['var(--font-heading)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Open Sans — body text
+        body:    ['var(--font-body)',    'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Override Tailwind's default `font-sans` → Open Sans
+        sans:    ['var(--font-body)',    'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
     },
   },

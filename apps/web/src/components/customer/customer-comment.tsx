@@ -193,9 +193,9 @@ function CommentInput({
                     e.preventDefault();
                     handleMentionSelect(m);
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 text-left"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 hover:bg-[#F5F7FA] dark:hover:bg-gray-700 text-left"
                 >
-                  <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold">
+                  <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[#CFAF6E]/15 text-[#0B1F3A] flex items-center justify-center text-xs font-semibold">
                     {m.avatarUrl ? (
                       <img src={m.avatarUrl} alt={name} className="h-full w-full object-cover" />
                     ) : (
@@ -239,7 +239,7 @@ function CommentInput({
             placeholder={placeholder}
             rows={rows}
             disabled={isLoading}
-            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-60"
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] resize-none disabled:opacity-60"
           />
 
           {/* dropdown is rendered via portal above — no inline dropdown here */}
@@ -260,7 +260,7 @@ function CommentInput({
             type="button"
             onClick={handleSubmit}
             disabled={isLoading || !content.trim()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#CFAF6E] text-white text-sm rounded-lg hover:bg-[#B89655] disabled:opacity-50 transition-colors"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -284,7 +284,7 @@ function CommentContent({ content }: { content: string }) {
     <span>
       {content.split(/(@[\w\u00C0-\u024F\u1E00-\u1EFF]+(?:\s[\w\u00C0-\u024F\u1E00-\u1EFF]+)*)/g).map((part, i) =>
         part.startsWith('@') ? (
-          <span key={i} className="text-blue-600 font-medium">{part}</span>
+          <span key={i} className="text-[#CFAF6E] font-medium">{part}</span>
         ) : (
           part
         ),
@@ -366,7 +366,7 @@ function CommentItem({
   return (
     <div className="flex gap-3" data-comment-id={comment.id}>
       {/* Avatar */}
-      <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold">
+      <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[#CFAF6E]/15 text-[#0B1F3A] flex items-center justify-center text-xs font-semibold">
         {avatar ? (
           <img src={avatar} alt={authorName} className="h-full w-full object-cover" />
         ) : (
@@ -406,7 +406,7 @@ function CommentItem({
           <button
             type="button"
             onClick={() => setShowReply((v) => !v)}
-            className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1"
+            className="text-xs font-medium text-gray-500 hover:text-[#CFAF6E] flex items-center gap-1"
           >
             <Reply className="h-3 w-3" />
             {t('customer.comment.reply')}
@@ -627,7 +627,7 @@ export function CustomerCommentTab({
         <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-2">
           Bình luận
           {comments.length > 0 && (
-            <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold normal-case leading-none">
+            <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-[#CFAF6E]/15 text-[#CFAF6E] text-[10px] font-bold normal-case leading-none">
               {comments.length}
             </span>
           )}

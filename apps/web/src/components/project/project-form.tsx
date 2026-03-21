@@ -2690,7 +2690,7 @@ export function ProjectForm({
                                         </p>
                                       </div>
                                       {exists && (
-                                        <Check className="h-4 w-4 flex-shrink-0 text-blue-600" />
+                                        <Check className="h-4 w-4 flex-shrink-0 text-[#CFAF6E]" />
                                       )}
                                     </button>
                                   );
@@ -3109,7 +3109,7 @@ export function ProjectForm({
 
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 {tower.unitCount && (
-                                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                  <span className="text-xs bg-[#CFAF6E]/15 text-[#CFAF6E] px-2 py-1 rounded">
                                     {tower.unitCount} căn
                                   </span>
                                 )}
@@ -3214,7 +3214,7 @@ export function ProjectForm({
                                 </span>
                               )}
                               {((item.videos && item.videos.length > 0) || item.videoUrl) && (
-                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                <span className="text-xs bg-[#CFAF6E]/15 text-[#CFAF6E] px-2 py-1 rounded">
                                   {item.videos && item.videos.length > 1
                                     ? `${item.videos.length} video`
                                     : 'Video'}

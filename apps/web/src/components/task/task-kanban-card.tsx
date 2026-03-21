@@ -10,13 +10,13 @@ import { Task } from '@/hooks/use-task';
 const PRIORITY_DOT: Record<string, string> = {
   HIGH: 'bg-red-500',
   MEDIUM: 'bg-amber-500',
-  LOW: 'bg-blue-400',
+  LOW: 'bg-[#CFAF6E]/60',
 };
 
 const PRIORITY_BG: Record<string, string> = {
   HIGH: 'bg-red-50 text-red-700 border-red-200',
   MEDIUM: 'bg-amber-50 text-amber-700 border-amber-200',
-  LOW: 'bg-blue-50 text-blue-700 border-blue-200',
+  LOW: 'bg-[#F5F7FA] text-[#0B1F3A] border-[#CFAF6E]/40',
 };
 
 interface KanbanCardProps {
@@ -61,9 +61,9 @@ function KanbanCardInner({
       style={style}
       className={cn(
         'group relative bg-white rounded-lg border border-gray-200 p-3 cursor-grab active:cursor-grabbing',
-        'hover:border-blue-300 hover:shadow-md transition-all duration-150',
+        'hover:border-[#CFAF6E] hover:shadow-md transition-all duration-150',
         isDragging && 'opacity-30 shadow-none',
-        isDragOverlay && 'shadow-xl border-blue-400 rotate-[2deg] scale-[1.02]',
+        isDragOverlay && 'shadow-xl border-[#CFAF6E] rotate-[2deg] scale-[1.02]',
         isOverdue && 'border-l-[3px] border-l-red-400',
       )}
       {...listeners}
@@ -81,7 +81,7 @@ function KanbanCardInner({
           e.stopPropagation();
           onEdit?.(task);
         }}
-        className="text-sm font-medium text-gray-900 text-left line-clamp-2 leading-snug hover:text-blue-600 transition-colors w-full"
+        className="text-sm font-medium text-gray-900 text-left line-clamp-2 leading-snug hover:text-[#CFAF6E] transition-colors w-full"
       >
         {task.title}
       </button>
@@ -134,7 +134,7 @@ function KanbanCardInner({
 
         {assigneeInitial && (
           <span
-            className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold"
+            className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#CFAF6E]/15 text-[#0B1F3A] text-[10px] font-semibold"
             title={assigneeName || ''}
           >
             {assigneeInitial}

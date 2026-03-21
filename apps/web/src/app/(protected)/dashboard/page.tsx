@@ -44,7 +44,7 @@ export default function DashboardPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-[#CFAF6E] rounded-xl flex items-center justify-center">
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -54,7 +54,7 @@ export default function DashboardPage() {
                   className={cn(
                     'text-xs px-2 py-0.5 rounded-full font-medium',
                     workspaceType === 'COMPANY'
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'bg-[#CFAF6E]/15 text-[#0B1F3A]'
                       : 'bg-gray-100 text-gray-600',
                   )}
                 >
@@ -93,13 +93,13 @@ export default function DashboardPage() {
             <Link
               key={href}
               href={href}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all group"
+              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#CFAF6E] hover:shadow-sm transition-all group"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                  <Icon className="h-4 w-4 text-blue-600" />
+                <div className="w-8 h-8 bg-[#F5F7FA] rounded-lg flex items-center justify-center group-hover:bg-[#CFAF6E]/15 transition-colors">
+                  <Icon className="h-4 w-4 text-[#CFAF6E]" />
                 </div>
-                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#CFAF6E] group-hover:translate-x-0.5 transition-all" />
               </div>
               <p className="text-sm font-semibold text-gray-900">{label}</p>
               <p className="text-xs text-gray-500 mt-0.5">{desc}</p>

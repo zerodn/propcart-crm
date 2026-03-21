@@ -68,7 +68,7 @@ export function ActivityForm({
   };
 
   const inputCls =
-    'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-60';
+    'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E] focus:border-transparent disabled:opacity-60';
   const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
   // Format default date for input
