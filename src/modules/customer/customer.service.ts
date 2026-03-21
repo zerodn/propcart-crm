@@ -8,7 +8,19 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MinioService } from '../../common/storage/minio.service';
-import { CreateCustomerDto, ListCustomerDto, UpdateCustomerDto } from './dto/index';
+import { ForbiddenException } from '@nestjs/common';
+import {
+  CreateCommentDto,
+  CreateCustomerDto,
+  CreateCustomerInfoDto,
+  CreateCareHistoryDto,
+  ListCustomerDto,
+  ReorderCustomerInfoDto,
+  UpdateCareHistoryDto,
+  UpdateCommentDto,
+  UpdateCustomerDto,
+  UpdateCustomerInfoDto,
+} from './dto/index';
 
 @Injectable()
 export class CustomerService {
@@ -20,21 +32,32 @@ export class CustomerService {
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateCustomerDto) {
-    // Check phone uniqueness within workspace
-    const existing = await this.prisma.customer.findFirst({
-      where: { workspaceId, phone: dto.phone, deletedAt: null },
-    });
-
-    if (existing) {
-      throw new BadRequestException('Số điện thoại đã tồn tại trong workspace');
+    // Check phone uniqueness within workspace (only when phone provided)
+    if (dto.phone) {
+      const existing = await this.prisma.customer.findFirst({
+        where: { workspaceId, phone: dto.phone, deletedAt: null },
+      });
+      if (existing) {
+        throw new BadRequestException('Số điện thoại đã tồn tại trong workspace');
+      }
     }
+
+    // Generate customer code: atomically increment workspace customerSeq
+    const workspace = await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { customerSeq: { increment: 1 } },
+      select: { customerSeq: true },
+    });
+    const customerCode = `KH${String(workspace.customerSeq).padStart(5, '0')}`;
 
     return this.prisma.customer.create({
       data: {
         workspaceId,
         createdByUserId: userId,
+        customerCode,
+        title: dto.title || null,
         fullName: dto.fullName,
-        phone: dto.phone,
+        phone: dto.phone || null,
         email: dto.email || null,
         gender: dto.gender || null,
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
@@ -50,6 +73,8 @@ export class CustomerService {
         status: dto.status || 'NEW',
         interestLevel: dto.interestLevel || null,
         assignedUserId: dto.assignedUserId || null,
+        assignees: dto.assignees ? JSON.parse(JSON.stringify(dto.assignees)) : undefined,
+        observers: dto.observers ? JSON.parse(JSON.stringify(dto.observers)) : undefined,
         tags: dto.tags ? JSON.parse(JSON.stringify(dto.tags)) : undefined,
         note: dto.note || null,
       },
@@ -151,8 +176,9 @@ export class CustomerService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {};
 
+    if (dto.title !== undefined) data.title = dto.title || null;
     if (dto.fullName !== undefined) data.fullName = dto.fullName;
-    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.phone !== undefined) data.phone = dto.phone || null;
     if (dto.email !== undefined) data.email = dto.email || null;
     if (dto.gender !== undefined) data.gender = dto.gender || null;
     if (dto.dateOfBirth !== undefined)
@@ -169,6 +195,10 @@ export class CustomerService {
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.interestLevel !== undefined) data.interestLevel = dto.interestLevel || null;
     if (dto.assignedUserId !== undefined) data.assignedUserId = dto.assignedUserId || null;
+    if (dto.assignees !== undefined)
+      data.assignees = dto.assignees ? JSON.parse(JSON.stringify(dto.assignees)) : null;
+    if (dto.observers !== undefined)
+      data.observers = dto.observers ? JSON.parse(JSON.stringify(dto.observers)) : null;
     if (dto.tags !== undefined) data.tags = dto.tags ? JSON.parse(JSON.stringify(dto.tags)) : null;
     if (dto.note !== undefined) data.note = dto.note || null;
     if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl || null;
@@ -316,5 +346,341 @@ export class CustomerService {
         },
       },
     };
+  }
+
+  // ===================== COMMENTS =====================
+
+  async listComments(workspaceId: string, customerId: string) {
+    await this.findById(customerId, workspaceId);
+    const rows = await this.prisma.customerComment.findMany({
+      where: { customerId, workspaceId, deletedAt: null, parentId: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+        replies: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            author: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+          },
+        },
+      },
+    });
+    return { data: rows };
+  }
+
+  async createComment(
+    workspaceId: string,
+    customerId: string,
+    authorId: string,
+    dto: CreateCommentDto,
+  ) {
+    await this.findById(customerId, workspaceId);
+    if (dto.parentId) {
+      const parent = await this.prisma.customerComment.findFirst({
+        where: { id: dto.parentId, customerId, workspaceId, deletedAt: null },
+      });
+      if (!parent) throw new NotFoundException('Bình luận gốc không tồn tại');
+    }
+    const comment = await this.prisma.customerComment.create({
+      data: {
+        workspaceId,
+        customerId,
+        authorId,
+        parentId: dto.parentId || null,
+        content: dto.content,
+        mentions: dto.mentions ? JSON.parse(JSON.stringify(dto.mentions)) : undefined,
+      },
+      include: {
+        author: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+        replies: true,
+      },
+    });
+    return { data: comment };
+  }
+
+  async updateComment(
+    workspaceId: string,
+    customerId: string,
+    commentId: string,
+    authorId: string,
+    dto: UpdateCommentDto,
+  ) {
+    const comment = await this.prisma.customerComment.findFirst({
+      where: { id: commentId, customerId, workspaceId, authorId, deletedAt: null },
+    });
+    if (!comment)
+      throw new NotFoundException('Bình luận không tồn tại hoặc bạn không có quyền sửa');
+    const updated = await this.prisma.customerComment.update({
+      where: { id: commentId },
+      data: {
+        content: dto.content,
+        mentions: dto.mentions ? JSON.parse(JSON.stringify(dto.mentions)) : undefined,
+      },
+      include: {
+        author: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+        replies: {
+          where: { deletedAt: null },
+          include: {
+            author: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+          },
+        },
+      },
+    });
+    return { data: updated };
+  }
+
+  async deleteComment(
+    workspaceId: string,
+    customerId: string,
+    commentId: string,
+    authorId: string,
+  ) {
+    const comment = await this.prisma.customerComment.findFirst({
+      where: { id: commentId, customerId, workspaceId, authorId, deletedAt: null },
+    });
+    if (!comment)
+      throw new NotFoundException('Bình luận không tồn tại hoặc bạn không có quyền xóa');
+    await this.prisma.customerComment.update({
+      where: { id: commentId },
+      data: { deletedAt: new Date() },
+    });
+    return { data: { success: true } };
+  }
+
+  // ===================== CUSTOMER INFOS =====================
+
+  async listInfos(workspaceId: string, customerId: string) {
+    await this.findById(customerId, workspaceId);
+    const rows = await this.prisma.customerInfo.findMany({
+      where: { customerId, workspaceId },
+      orderBy: { order: 'asc' },
+    });
+    return { data: rows };
+  }
+
+  async createInfo(workspaceId: string, customerId: string, dto: CreateCustomerInfoDto) {
+    await this.findById(customerId, workspaceId);
+    const maxRow = await this.prisma.customerInfo.findFirst({
+      where: { customerId, workspaceId },
+      orderBy: { order: 'desc' },
+    });
+    const nextOrder = (maxRow?.order ?? -1) + 1;
+    const info = await this.prisma.customerInfo.create({
+      data: {
+        workspaceId,
+        customerId,
+        category: dto.category || null,
+        info: dto.info || null,
+        description: dto.description || null,
+        order: dto.order ?? nextOrder,
+      },
+    });
+    return { data: info };
+  }
+
+  async updateInfo(
+    workspaceId: string,
+    customerId: string,
+    infoId: string,
+    dto: UpdateCustomerInfoDto,
+  ) {
+    const info = await this.prisma.customerInfo.findFirst({
+      where: { id: infoId, customerId, workspaceId },
+    });
+    if (!info) throw new NotFoundException('Thông tin không tồn tại');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {};
+    if (dto.category !== undefined) data.category = dto.category || null;
+    if (dto.info !== undefined) data.info = dto.info || null;
+    if (dto.description !== undefined) data.description = dto.description || null;
+    if (dto.order !== undefined) data.order = dto.order;
+    const updated = await this.prisma.customerInfo.update({ where: { id: infoId }, data });
+    return { data: updated };
+  }
+
+  async deleteInfo(workspaceId: string, customerId: string, infoId: string) {
+    const info = await this.prisma.customerInfo.findFirst({
+      where: { id: infoId, customerId, workspaceId },
+    });
+    if (!info) throw new NotFoundException('Thông tin không tồn tại');
+    await this.prisma.customerInfo.delete({ where: { id: infoId } });
+    return { data: { success: true } };
+  }
+
+  async reorderInfos(workspaceId: string, customerId: string, dto: ReorderCustomerInfoDto) {
+    await this.findById(customerId, workspaceId);
+    await Promise.all(
+      dto.ids.map((id, index) =>
+        this.prisma.customerInfo.updateMany({
+          where: { id, customerId, workspaceId },
+          data: { order: index },
+        }),
+      ),
+    );
+    return this.listInfos(workspaceId, customerId);
+  }
+
+  // ===================== CARE HISTORIES =====================
+
+  async listCareHistories(workspaceId: string, customerId: string) {
+    await this.findById(customerId, workspaceId);
+    const rows = await this.prisma.customerCareHistory.findMany({
+      where: { customerId, workspaceId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        createdBy: { select: { id: true, fullName: true, avatarUrl: true } },
+        assignedTo: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+    });
+
+    // Batch-resolve observer user info from JSON arrays
+    const allObserverIds = [
+      ...new Set(
+        rows.flatMap((r) => {
+          const obs = r.observers as string[] | null;
+          return Array.isArray(obs) ? obs : [];
+        }),
+      ),
+    ];
+
+    const observerMap = new Map<
+      string,
+      { id: string; fullName: string | null; avatarUrl: string | null }
+    >();
+    if (allObserverIds.length > 0) {
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: allObserverIds } },
+        select: { id: true, fullName: true, avatarUrl: true },
+      });
+      users.forEach((u) => observerMap.set(u.id, u));
+    }
+
+    const data = rows.map((r) => {
+      const observerIds = Array.isArray(r.observers) ? (r.observers as string[]) : [];
+      return {
+        ...r,
+        observerUsers: observerIds.map(
+          (id) => observerMap.get(id) || { id, fullName: null, avatarUrl: null },
+        ),
+      };
+    });
+
+    return { data };
+  }
+
+  async createCareHistory(
+    workspaceId: string,
+    customerId: string,
+    userId: string,
+    dto: CreateCareHistoryDto,
+  ) {
+    await this.findById(customerId, workspaceId);
+    const row = await this.prisma.customerCareHistory.create({
+      data: {
+        workspaceId,
+        customerId,
+        createdByUserId: userId,
+        content: dto.content,
+        taskType: dto.taskType || null,
+        taskId: dto.taskId || null,
+        resultDescription: dto.resultDescription || null,
+        assignedToUserId: dto.assignedToUserId || null,
+        observers: dto.observers ?? [],
+      },
+      include: {
+        createdBy: { select: { id: true, fullName: true, avatarUrl: true } },
+        assignedTo: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+    });
+    return { data: row };
+  }
+
+  async updateCareHistory(
+    workspaceId: string,
+    customerId: string,
+    historyId: string,
+    userId: string,
+    userRole: string,
+    dto: UpdateCareHistoryDto,
+  ) {
+    const row = await this.prisma.customerCareHistory.findFirst({
+      where: { id: historyId, customerId, workspaceId },
+    });
+    if (!row) throw new NotFoundException('Lịch sử chăm sóc không tồn tại');
+
+    const isCreator = row.createdByUserId === userId;
+    const isAssignee = row.assignedToUserId === userId;
+    const observerIds = Array.isArray(row.observers) ? (row.observers as string[]) : [];
+    const isObserver = observerIds.includes(userId);
+    const isAdmin = userRole === 'OWNER' || userRole === 'ADMIN';
+
+    // Full edit (content, taskType, assignee, observers): creator or OWNER/ADMIN only
+    const hasFullFields =
+      dto.content !== undefined ||
+      dto.taskType !== undefined ||
+      dto.taskId !== undefined ||
+      dto.assignedToUserId !== undefined ||
+      dto.observers !== undefined;
+    if (hasFullFields && !isCreator && !isAdmin) {
+      throw new ForbiddenException('Bạn không có quyền sửa lịch sử chăm sóc này');
+    }
+
+    // resultDescription: creator, assignee, observer, or OWNER/ADMIN
+    if (
+      dto.resultDescription !== undefined &&
+      !isCreator &&
+      !isAssignee &&
+      !isObserver &&
+      !isAdmin
+    ) {
+      throw new ForbiddenException('Bạn không có quyền cập nhật kết quả');
+    }
+
+    if (!hasFullFields && dto.resultDescription === undefined) {
+      throw new ForbiddenException('Không có trường nào để cập nhật');
+    }
+
+    const updated = await this.prisma.customerCareHistory.update({
+      where: { id: historyId },
+      data: {
+        ...(dto.content !== undefined && { content: dto.content }),
+        ...(dto.taskType !== undefined && { taskType: dto.taskType || null }),
+        ...(dto.taskId !== undefined && { taskId: dto.taskId || null }),
+        ...(dto.resultDescription !== undefined && {
+          resultDescription: dto.resultDescription || null,
+        }),
+        ...(dto.assignedToUserId !== undefined && {
+          assignedToUserId: dto.assignedToUserId || null,
+        }),
+        ...(dto.observers !== undefined && { observers: dto.observers }),
+      },
+      include: {
+        createdBy: { select: { id: true, fullName: true, avatarUrl: true } },
+        assignedTo: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+    });
+    return { data: updated };
+  }
+
+  async deleteCareHistory(
+    workspaceId: string,
+    customerId: string,
+    historyId: string,
+    userId: string,
+    userRole: string,
+  ) {
+    const row = await this.prisma.customerCareHistory.findFirst({
+      where: { id: historyId, customerId, workspaceId },
+    });
+    if (!row) throw new NotFoundException('Lịch sử chăm sóc không tồn tại');
+
+    // Check permission: creator or OWNER/ADMIN
+    const canDelete =
+      row.createdByUserId === userId || userRole === 'OWNER' || userRole === 'ADMIN';
+    if (!canDelete) throw new ForbiddenException('Bạn không có quyền xóa lịch sử chăm sóc này');
+
+    await this.prisma.customerCareHistory.delete({ where: { id: historyId } });
+    return { data: { success: true } };
   }
 }

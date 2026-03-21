@@ -56,11 +56,14 @@ model User {
   createdProjects     Project[]           @relation("ProjectCreator")
   createdCustomers    Customer[]          @relation("CustomerCreator")
   assignedCustomers   Customer[]          @relation("CustomerAssignee")
+  customerComments    CustomerComment[]   @relation("CustomerCommentAuthor")
   createdDemands      Demand[]            @relation("DemandCreator")
   assignedDemands     Demand[]            @relation("DemandAssignee")
   activities          Activity[]          @relation("ActivityCreator")
   createdTasks        Task[]              @relation("TaskCreator")
   assignedTasks       Task[]              @relation("TaskAssignee")
+  careHistories       CustomerCareHistory[] @relation("CareHistoryCreator")
+  assignedCareHistories CustomerCareHistory[] @relation("CareHistoryAssignee")
 
   @@index([email])
   @@map("users")
@@ -76,21 +79,24 @@ model Workspace {
   name        String
   ownerUserId String
   status      Int      @default(1) // 1=active, 0=inactive
+  customerSeq Int      @default(0) // Auto-increment counter for customer codes
 
   createdAt DateTime @default(now())
 
   // Relations
-  owner       User                  @relation(fields: [ownerUserId], references: [id])
-  members     WorkspaceMember[]
-  invitations WorkspaceInvitation[]
-  documents   UserDocument[]
-  warehouses  PropertyWarehouse[]
-  products    PropertyProduct[]
-  projects    Project[]
-  customers   Customer[]
-  demands     Demand[]
-  activities  Activity[]
-  tasks       Task[]
+  owner        User                  @relation(fields: [ownerUserId], references: [id])
+  members      WorkspaceMember[]
+  invitations  WorkspaceInvitation[]
+  documents    UserDocument[]
+  warehouses   PropertyWarehouse[]
+  products     PropertyProduct[]
+  projects     Project[]
+  customers    Customer[]
+  demands      Demand[]
+  activities   Activity[]
+  tasks        Task[]
+  careHistories CustomerCareHistory[]
+  customFieldDefinitions CustomFieldDefinition[]
 
   @@index([ownerUserId])
   @@index([type])
@@ -558,10 +564,12 @@ model Project {
 model Customer {
   id              String    @id @default(uuid())
   workspaceId     String
+  customerCode    String?                           // Mã khách hàng (e.g. KH00001)
 
   // Thông tin cơ bản
+  title           String?                           // Danh xưng (catalog: CUSTOMER_TITLE)
   fullName        String                            // Họ tên khách hàng
-  phone           String                            // Số điện thoại (unique per workspace)
+  phone           String?                           // Số điện thoại (optional)
   email           String?                           // Email
   gender          String?                           // MALE | FEMALE | OTHER
   dateOfBirth     DateTime?                         // Ngày sinh
@@ -583,7 +591,9 @@ model Customer {
 
   // Quản lý
   avatarUrl       String?                           // Ảnh đại diện khách hàng
-  assignedUserId  String?                           // Nhân viên phụ trách (WorkspaceMember.userId)
+  assignedUserId  String?                           // Nhân viên phụ trách chính (WorkspaceMember.userId)
+  assignees       Json?                             // string[] - Danh sách người chịu trách nhiệm (userIds)
+  observers       Json?                             // string[] - Danh sách người quan sát (userIds)
   tags            Json?                             // string[] - Nhãn khách hàng
   note            String?   @db.LongText            // Ghi chú
 
@@ -595,14 +605,16 @@ model Customer {
   updatedAt       DateTime  @updatedAt
 
   // Relations
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User      @relation("CustomerCreator", fields: [createdByUserId], references: [id])
-  assignedUser User?  @relation("CustomerAssignee", fields: [assignedUserId], references: [id])
-  demands      Demand[]
-  activities   Activity[]
-  tasks        Task[]
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy    User             @relation("CustomerCreator", fields: [createdByUserId], references: [id])
+  assignedUser User?            @relation("CustomerAssignee", fields: [assignedUserId], references: [id])
+  demands        Demand[]
+  activities     Activity[]
+  tasks          Task[]
+  comments       CustomerComment[]
+  infos          CustomerInfo[]
+  careHistories  CustomerCareHistory[]
 
-  @@unique([workspaceId, phone])
   @@index([workspaceId])
   @@index([workspaceId, status])
   @@index([workspaceId, interestLevel])
@@ -610,6 +622,76 @@ model Customer {
   @@index([workspaceId, source])
   @@index([workspaceId, deletedAt])
   @@map("customers")
+}
+
+model CustomerComment {
+  id          String    @id @default(uuid())
+  workspaceId String
+  customerId  String
+
+  authorId    String                                  // userId of author
+  parentId    String?                                 // for replies
+  content     String    @db.LongText
+  mentions    Json?                                   // string[] userIds mentioned
+
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  customer  Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  author    User              @relation("CustomerCommentAuthor", fields: [authorId], references: [id])
+  parent    CustomerComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   CustomerComment[] @relation("CommentReplies")
+
+  @@index([workspaceId, customerId])
+  @@index([customerId, parentId])
+  @@map("customer_comments")
+}
+
+model CustomerInfo {
+  id          String   @id @default(uuid())
+  workspaceId String
+  customerId  String
+
+  category    String?                                 // Thể loại
+  info        String?  @db.LongText                  // Thông tin
+  description String?  @db.LongText                  // Mô tả
+  order       Int      @default(0)                   // Thứ tự hiển thị
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, customerId])
+  @@index([customerId, order])
+  @@map("customer_infos")
+}
+
+model CustomerCareHistory {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  customerId      String
+
+  content         String   @db.LongText       // Nội dung chăm sóc
+  taskType        String?                     // Loại hình CSKH (catalog: LOAI_HINH_CSKH)
+  taskId          String?                     // Liên kết với Task (optional)
+  resultDescription String? @db.LongText     // Mô tả kết quả
+  
+  createdByUserId String
+  assignedToUserId String?                   // Người thực hiện
+  observers       Json?                      // string[] - Danh sách người quan sát (userIds)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdBy  User      @relation("CareHistoryCreator", fields: [createdByUserId], references: [id])
+  assignedTo User?     @relation("CareHistoryAssignee", fields: [assignedToUserId], references: [id])
+
+  @@index([workspaceId, customerId])
+  @@index([customerId])
+  @@map("customer_care_histories")
 }
 
 // ============================================================
@@ -775,5 +857,55 @@ model Task {
   @@index([workspaceId, dueDate])
   @@index([workspaceId, deletedAt])
   @@map("tasks")
+}
+
+// ============================================================
+// CUSTOM FIELD DEFINITIONS (cấu hình trường động)
+// ============================================================
+
+model CustomFieldDefinition {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  entity       String   // Loại đối tượng: 'CUSTOMER' | 'LEAD' | 'PROPERTY' ...
+  fieldKey     String   // Mã trường (duy nhất trong workspace+entity)
+  label        String   // Nhãn hiển thị
+  fieldType    String   // TEXT | NUMBER | SELECT | FILE
+  required     Boolean  @default(false)
+  maxLength    Int?     // Giới hạn ký tự (dùng cho TEXT)
+  catalogCode  String?  // Mã catalog nếu fieldType = SELECT
+  order        Int      @default(0)
+  active       Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  values    CustomFieldValue[]
+
+  @@unique([workspaceId, entity, fieldKey])
+  @@index([workspaceId, entity, active])
+  @@map("custom_field_definitions")
+}
+
+// ============================================================
+// CUSTOM FIELD VALUES (giá trị trường động)
+// ============================================================
+
+model CustomFieldValue {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  entity       String   // Phải trùng với definition.entity
+  entityId     String   // ID của đối tượng (e.g. customerId)
+  fieldKey     String   // Phải trùng với definition.fieldKey
+  value        String?  @db.LongText  // Giá trị (string hoá)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  definition CustomFieldDefinition @relation(fields: [workspaceId, entity, fieldKey], references: [workspaceId, entity, fieldKey], onDelete: Cascade)
+
+  @@unique([workspaceId, entity, entityId, fieldKey])
+  @@index([workspaceId, entity, entityId])
+  @@map("custom_field_values")
 }
 

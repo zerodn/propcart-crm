@@ -98,4 +98,31 @@ export const CATALOG_TYPES: Record<string, string> = {
   AMENITY: 'Tiện nghi',
   DISTRICT: 'Quận/Huyện',
   CITY: 'Thành phố/Tỉnh',
+  // Customer
+  CUSTOMER_STATUS: 'Trạng thái khách hàng',
+  CUSTOMER_SOURCE: 'Nguồn khách hàng',
+  CUSTOMER_GROUP: 'Nhóm khách hàng',
+  CUSTOMER_INTEREST_LEVEL: 'Mức độ quan tâm',
+  CUSTOMER_TITLE: 'Danh xưng khách hàng',
+  ACTIVITY_TYPE: 'Loại tác vụ hoạt động',
+};
+
+// Maps each catalog type to the menu(s) that use it — for the eye-icon usage indicator in /catalog
+export const CATALOG_USAGE_MAP: Record<string, { label: string; path: string }[]> = {
+  PROPERTY_TYPE:              [{ label: 'Bất động sản', path: '/real-estate' }, { label: 'Dự án', path: '/projects' }],
+  PROPERTY_DIRECTION:         [{ label: 'Bất động sản', path: '/real-estate' }],
+  PROPERTY_TRANSACTION_STATUS:[{ label: 'Bất động sản', path: '/real-estate' }],
+  PROPERTY_STATUS:            [{ label: 'Bất động sản', path: '/real-estate' }],
+  PRODUCT_TAG:                [{ label: 'Sản phẩm', path: '/products' }],
+  LISTING_TYPE:               [{ label: 'Bất động sản', path: '/real-estate' }],
+  PAYMENT_METHOD:             [{ label: 'Thanh toán', path: '/payments' }],
+  AMENITY:                    [{ label: 'Bất động sản', path: '/real-estate' }, { label: 'Dự án', path: '/projects' }],
+  DISTRICT:                   [{ label: 'Bất động sản', path: '/real-estate' }, { label: 'Khách hàng', path: '/customer' }],
+  CITY:                       [{ label: 'Bất động sản', path: '/real-estate' }, { label: 'Khách hàng', path: '/customer' }],
+  CUSTOMER_STATUS:            [{ label: 'Khách hàng', path: '/customer' }],
+  CUSTOMER_SOURCE:            [{ label: 'Khách hàng', path: '/customer' }],
+  CUSTOMER_GROUP:             [{ label: 'Khách hàng', path: '/customer' }],
+  CUSTOMER_INTEREST_LEVEL:    [{ label: 'Khách hàng', path: '/customer' }],
+  CUSTOMER_TITLE:             [{ label: 'Khách hàng', path: '/customer' }],
+  ACTIVITY_TYPE:              [{ label: 'Lịch sử CSKH (Khách hàng)', path: '/customer' }],
 };

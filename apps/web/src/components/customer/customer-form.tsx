@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, ChevronDown, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useI18n } from '@/providers/i18n-provider';
-import { cn } from '@/lib/utils';
 import type { CustomerFormData } from '@/hooks/use-customer';
+import { MemberSearchSelect } from '@/components/common/member-search-select';
 
 interface SelectOption {
   value: string;
@@ -17,6 +16,11 @@ interface LocationItem {
   name: string;
 }
 
+// MemberOption kept for backward compat (used as initialMembers source)
+export interface MemberOption {
+  userId: string;
+  displayName?: string | null;
+}
 interface CustomerFormProps {
   formId: string;
   onSubmit: (data: CustomerFormData) => void;
@@ -26,7 +30,10 @@ interface CustomerFormProps {
   interestLevelOptions?: SelectOption[];
   sourceOptions?: SelectOption[];
   groupOptions?: SelectOption[];
-  memberOptions?: { value: string; label: string }[];
+  titleOptions?: SelectOption[];
+  workspaceId: string;
+  /** Pre-populated member data for initial display of selected IDs */
+  workspaceMemberData?: MemberOption[];
 }
 
 export function CustomerForm({
@@ -38,7 +45,9 @@ export function CustomerForm({
   interestLevelOptions = [],
   sourceOptions = [],
   groupOptions = [],
-  memberOptions = [],
+  titleOptions = [],
+  workspaceId,
+  workspaceMemberData = [],
 }: CustomerFormProps) {
   const { t } = useI18n();
 
@@ -50,23 +59,32 @@ export function CustomerForm({
   const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
   const [isLoadingWards, setIsLoadingWards] = useState(false);
 
-  // AssignedUser search-select state
+  // AssignedUser single search-select
   const [assignedUserId, setAssignedUserId] = useState(initialData?.assignedUserId || '');
-  const [memberKeyword, setMemberKeyword] = useState(
-    () => memberOptions.find((m) => m.value === (initialData?.assignedUserId || ''))?.label || '',
+
+  // Multi-select: assignees + observers
+  const [assignees, setAssignees] = useState<string[]>(
+    Array.isArray(initialData?.assignees) ? (initialData.assignees as string[]) : [],
   );
-  const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
-  const memberDropdownRef = useRef<HTMLDivElement>(null);
+  const [observers, setObservers] = useState<string[]>(
+    Array.isArray(initialData?.observers) ? (initialData.observers as string[]) : [],
+  );
 
   // Re-sync when initialData changes (different customer opened in dialog)
   useEffect(() => {
     setProvinceCode(initialData?.provinceCode || '');
     setWardCode(initialData?.wardCode || '');
-    const uid = initialData?.assignedUserId || '';
-    setAssignedUserId(uid);
-    setMemberKeyword(memberOptions.find((m) => m.value === uid)?.label || '');
+    setAssignedUserId(initialData?.assignedUserId || '');
+    setAssignees(Array.isArray(initialData?.assignees) ? (initialData.assignees as string[]) : []);
+    setObservers(Array.isArray(initialData?.observers) ? (initialData.observers as string[]) : []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData?.assignedUserId, initialData?.provinceCode, initialData?.wardCode]);
+  }, [
+    initialData?.assignedUserId,
+    initialData?.provinceCode,
+    initialData?.wardCode,
+    JSON.stringify(initialData?.assignees),
+    JSON.stringify(initialData?.observers),
+  ]);
 
   // Fetch provinces once on mount
   useEffect(() => {
@@ -92,36 +110,10 @@ export function CustomerForm({
       .finally(() => setIsLoadingWards(false));
   }, [provinceCode]);
 
-  // Close member dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (memberDropdownRef.current && !memberDropdownRef.current.contains(e.target as Node)) {
-        setIsMemberDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const filteredMembers = memberKeyword.trim()
-    ? memberOptions.filter((m) => m.label.toLowerCase().includes(memberKeyword.toLowerCase()))
-    : memberOptions.slice(0, 25);
-
   const handleProvinceChange = (code: string) => {
     setProvinceCode(code);
     setWardCode('');
     setWards([]);
-  };
-
-  const handleMemberSelect = (option: { value: string; label: string }) => {
-    if (assignedUserId === option.value) {
-      setAssignedUserId('');
-      setMemberKeyword('');
-    } else {
-      setAssignedUserId(option.value);
-      setMemberKeyword(option.label);
-    }
-    setIsMemberDropdownOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -135,8 +127,9 @@ export function CustomerForm({
     const wName = wards.find((w) => String(w.code) === wardCode)?.name || undefined;
 
     const data: CustomerFormData = {
+      title: get('title') || undefined,
       fullName: get('fullName') || '',
-      phone: get('phone') || '',
+      phone: get('phone') || undefined,
       email: get('email') || undefined,
       gender: get('gender') || undefined,
       dateOfBirth: get('dateOfBirth') || undefined,
@@ -146,6 +139,8 @@ export function CustomerForm({
       status: get('status') || 'NEW',
       interestLevel: get('interestLevel') || undefined,
       assignedUserId: assignedUserId || undefined,
+      assignees: assignees.length > 0 ? assignees : undefined,
+      observers: observers.length > 0 ? observers : undefined,
       provinceCode: pCode,
       provinceName: pName,
       wardCode: wCode,
@@ -162,11 +157,38 @@ export function CustomerForm({
 
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-      {/* Row 1-3 — Basic info — 3 columns */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {/* Full Name */}
+      {/* Row 1: Danh xưng | Họ tên | Giới tính | Ngày sinh */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
-          <label className={labelCls}>{t('customer.form.fullName')} <span className="text-red-500">*</span></label>
+          <label className={labelCls}>{t('customer.form.title')}</label>
+          <select
+            name="title"
+            defaultValue={initialData?.title || ''}
+            disabled={isLoading}
+            className={inputCls}
+          >
+            <option value="">{t('customer.form.titlePlaceholder')}</option>
+            {titleOptions.length > 0 ? (
+              titleOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))
+            ) : (
+              <>
+                <option value="MR">Ông</option>
+                <option value="MRS">Bà</option>
+                <option value="MS">Chị</option>
+                <option value="MISS">Cô</option>
+                <option value="DR">Chú</option>
+                <option value="PROF">Bác</option>
+              </>
+            )}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>
+            {t('customer.form.fullName')} <span className="text-red-500">*</span>
+          </label>
           <input
             name="fullName"
             required
@@ -177,20 +199,45 @@ export function CustomerForm({
           />
         </div>
 
-        {/* Phone */}
         <div>
-          <label className={labelCls}>{t('customer.form.phone')} <span className="text-red-500">*</span></label>
+          <label className={labelCls}>{t('customer.form.gender')}</label>
+          <select
+            name="gender"
+            defaultValue={initialData?.gender || ''}
+            disabled={isLoading}
+            className={inputCls}
+          >
+            <option value="">{t('customer.form.genderPlaceholder')}</option>
+            <option value="MALE">{t('customer.form.genderMale')}</option>
+            <option value="FEMALE">{t('customer.form.genderFemale')}</option>
+            <option value="OTHER">{t('customer.form.genderOther')}</option>
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>{t('customer.form.dateOfBirth')}</label>
+          <input
+            name="dateOfBirth"
+            type="date"
+            defaultValue={initialData?.dateOfBirth ? initialData.dateOfBirth.slice(0, 10) : ''}
+            disabled={isLoading}
+            className={inputCls}
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Số điện thoại | Email */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>{t('customer.form.phone')}</label>
           <input
             name="phone"
-            required
             defaultValue={initialData?.phone || ''}
             disabled={isLoading}
             className={inputCls}
             placeholder={t('customer.form.phonePlaceholder')}
           />
         </div>
-
-        {/* Email */}
         <div>
           <label className={labelCls}>{t('customer.form.email')}</label>
           <input
@@ -202,88 +249,10 @@ export function CustomerForm({
             placeholder={t('customer.form.emailPlaceholder')}
           />
         </div>
-
-        {/* Gender */}
-        <div>
-          <label className={labelCls}>{t('customer.form.gender')}</label>
-          <select name="gender" defaultValue={initialData?.gender || ''} disabled={isLoading} className={inputCls}>
-            <option value="">{t('customer.form.genderPlaceholder')}</option>
-            <option value="MALE">{t('customer.form.genderMale')}</option>
-            <option value="FEMALE">{t('customer.form.genderFemale')}</option>
-            <option value="OTHER">{t('customer.form.genderOther')}</option>
-          </select>
-        </div>
-
-        {/* Date of Birth */}
-        <div>
-          <label className={labelCls}>{t('customer.form.dateOfBirth')}</label>
-          <input
-            name="dateOfBirth"
-            type="date"
-            defaultValue={initialData?.dateOfBirth ? initialData.dateOfBirth.slice(0, 10) : ''}
-            disabled={isLoading}
-            className={inputCls}
-          />
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className={labelCls}>{t('customer.form.status')}</label>
-          <select name="status" defaultValue={initialData?.status || 'NEW'} disabled={isLoading} className={inputCls}>
-            {statusOptions.length > 0 ? (
-              statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)
-            ) : (
-              <>
-                <option value="NEW">{t('customer.status.NEW')}</option>
-                <option value="CONTACTED">{t('customer.status.CONTACTED')}</option>
-                <option value="INTERESTED">{t('customer.status.INTERESTED')}</option>
-                <option value="NEGOTIATING">{t('customer.status.NEGOTIATING')}</option>
-                <option value="CONVERTED">{t('customer.status.CONVERTED')}</option>
-                <option value="LOST">{t('customer.status.LOST')}</option>
-              </>
-            )}
-          </select>
-        </div>
-
-        {/* Interest Level */}
-        <div>
-          <label className={labelCls}>{t('customer.form.interestLevel')}</label>
-          <select name="interestLevel" defaultValue={initialData?.interestLevel || ''} disabled={isLoading} className={inputCls}>
-            <option value="">{t('customer.form.interestLevelPlaceholder')}</option>
-            {interestLevelOptions.length > 0 ? (
-              interestLevelOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)
-            ) : (
-              <>
-                <option value="HOT">{t('customer.interestLevel.HOT')}</option>
-                <option value="WARM">{t('customer.interestLevel.WARM')}</option>
-                <option value="COLD">{t('customer.interestLevel.COLD')}</option>
-              </>
-            )}
-          </select>
-        </div>
-
-        {/* Source */}
-        <div>
-          <label className={labelCls}>{t('customer.form.source')}</label>
-          <select name="source" defaultValue={initialData?.source || ''} disabled={isLoading} className={inputCls}>
-            <option value="">{t('customer.form.sourcePlaceholder')}</option>
-            {sourceOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-
-        {/* Group */}
-        <div>
-          <label className={labelCls}>{t('customer.form.group')}</label>
-          <select name="group" defaultValue={initialData?.group || ''} disabled={isLoading} className={inputCls}>
-            <option value="">{t('customer.form.groupPlaceholder')}</option>
-            {groupOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
       </div>
 
-      {/* Row 4 — Province | Ward | Assigned User — 3 columns */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {/* Province */}
+      {/* Row 3: Tỉnh/Thành phố | Phường/Xã | Địa chỉ (col-span-2) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
           <label className={labelCls}>{t('personalInfoForm.province')}</label>
           <select
@@ -299,7 +268,6 @@ export function CustomerForm({
           </select>
         </div>
 
-        {/* Ward */}
         <div>
           <label className={labelCls}>{t('personalInfoForm.ward')}</label>
           <select
@@ -315,87 +283,104 @@ export function CustomerForm({
           </select>
         </div>
 
-        {/* Assigned User — search-as-you-type single select */}
-        <div>
-          <label className={labelCls}>{t('customer.form.assignedUser')}</label>
-          <div className="relative" ref={memberDropdownRef}>
-            {/* Trigger */}
-            <div
-              className={cn(
-                'flex items-center gap-2 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white cursor-text focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent dark:border-gray-600 dark:bg-gray-800',
-                isLoading && 'opacity-60 pointer-events-none',
-              )}
-            >
-              <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-              <input
-                type="text"
-                value={memberKeyword}
-                onChange={(e) => {
-                  setMemberKeyword(e.target.value);
-                  setIsMemberDropdownOpen(true);
-                  if (!e.target.value) setAssignedUserId('');
-                }}
-                onFocus={() => setIsMemberDropdownOpen(true)}
-                placeholder={t('customer.form.assignedUserPlaceholder')}
-                className="flex-1 border-none bg-transparent p-0 text-sm outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400"
-                disabled={isLoading}
-              />
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 text-gray-400 shrink-0 transition-transform',
-                  isMemberDropdownOpen && 'rotate-180',
-                )}
-              />
-            </div>
-
-            {/* Dropdown */}
-            {isMemberDropdownOpen && (
-              <div className="absolute z-30 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:bg-gray-800 dark:border-gray-700">
-                {filteredMembers.length === 0 ? (
-                  <div className="px-3 py-4 text-sm text-center text-gray-400">
-                    {t('customer.form.assignedUserNoResult')}
-                  </div>
-                ) : (
-                  filteredMembers.map((member) => (
-                    <button
-                      key={member.value}
-                      type="button"
-                      onClick={() => handleMemberSelect(member)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <span
-                        className={cn(
-                          'text-gray-900 dark:text-gray-100',
-                          assignedUserId === member.value && 'text-blue-600 font-medium',
-                        )}
-                      >
-                        {member.label}
-                      </span>
-                      {assignedUserId === member.value && (
-                        <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      )}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+        <div className="md:col-span-2">
+          <label className={labelCls}>{t('customer.form.address')}</label>
+          <input
+            name="address"
+            defaultValue={initialData?.address || ''}
+            disabled={isLoading}
+            className={inputCls}
+            placeholder={t('customer.form.addressPlaceholder')}
+          />
         </div>
       </div>
 
-      {/* Address */}
-      <div>
-        <label className={labelCls}>{t('customer.form.address')}</label>
-        <input
-          name="address"
-          defaultValue={initialData?.address || ''}
+      {/* Row 4: Nhóm khách hàng | Nguồn khách hàng | Mức quan tâm | Trạng thái */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label className={labelCls}>{t('customer.form.group')}</label>
+          <select name="group" defaultValue={initialData?.group || ''} disabled={isLoading} className={inputCls}>
+            <option value="">{t('customer.form.groupPlaceholder')}</option>
+            {groupOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>{t('customer.form.source')}</label>
+          <select name="source" defaultValue={initialData?.source || ''} disabled={isLoading} className={inputCls}>
+            <option value="">{t('customer.form.sourcePlaceholder')}</option>
+            {sourceOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>{t('customer.form.interestLevel')}</label>
+          <select name="interestLevel" defaultValue={initialData?.interestLevel || ''} disabled={isLoading} className={inputCls}>
+            <option value="">{t('customer.form.interestLevelPlaceholder')}</option>
+            {interestLevelOptions.length > 0 ? (
+              interestLevelOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))
+            ) : (
+              <>
+                <option value="HOT">{t('customer.interestLevel.HOT')}</option>
+                <option value="WARM">{t('customer.interestLevel.WARM')}</option>
+                <option value="COLD">{t('customer.interestLevel.COLD')}</option>
+              </>
+            )}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>{t('customer.form.status')}</label>
+          <select name="status" defaultValue={initialData?.status || 'NEW'} disabled={isLoading} className={inputCls}>
+            {statusOptions.length > 0 ? (
+              statusOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))
+            ) : (
+              <>
+                <option value="NEW">{t('customer.status.NEW')}</option>
+                <option value="CONTACTED">{t('customer.status.CONTACTED')}</option>
+                <option value="INTERESTED">{t('customer.status.INTERESTED')}</option>
+                <option value="NEGOTIATING">{t('customer.status.NEGOTIATING')}</option>
+                <option value="CONVERTED">{t('customer.status.CONVERTED')}</option>
+                <option value="LOST">{t('customer.status.LOST')}</option>
+              </>
+            )}
+          </select>
+        </div>
+      </div>
+
+      {/* Row 5: Nhân viên phụ trách | Người quan sát */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <MemberSearchSelect
+          mode="single"
+          workspaceId={workspaceId}
+          label={t('customer.form.assignedUser')}
+          placeholder={t('customer.form.assignedUserPlaceholder')}
+          value={assignedUserId}
+          onChange={setAssignedUserId}
           disabled={isLoading}
-          className={inputCls}
-          placeholder={t('customer.form.addressPlaceholder')}
+          initialMembers={workspaceMemberData}
+        />
+        <MemberSearchSelect
+          mode="multi"
+          workspaceId={workspaceId}
+          label={t('customer.form.observers')}
+          placeholder={t('customer.form.observersPlaceholder')}
+          values={observers}
+          onChange={setObservers}
+          disabled={isLoading}
+          initialMembers={workspaceMemberData}
         />
       </div>
 
-      {/* Note */}
+      {/* Ghi chú */}
       <div>
         <label className={labelCls}>{t('customer.form.note')}</label>
         <textarea

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ClipboardList, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { ClipboardList, Plus, Edit2, Trash2, Loader2, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import { usePageSetup } from '@/hooks/use-page-setup';
 import { useCatalog } from '@/hooks/use-catalog';
@@ -10,7 +10,7 @@ import { CatalogValuesDialog } from '@/components/catalog/catalog-values-dialog'
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { BaseDialog } from '@/components/common/base-dialog';
 import { GridSkeleton } from '@/components/common/skeleton';
-import { CATALOG_TYPES } from '@/types';
+import { CATALOG_TYPES, CATALOG_USAGE_MAP } from '@/types';
 
 export default function CatalogPage() {
   const { t } = useI18n();
@@ -23,6 +23,8 @@ export default function CatalogPage() {
   const [selectedType, setSelectedType] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showUsageId, setShowUsageId] = useState<string | null>(null);
+  const [viewValuesId, setViewValuesId] = useState<string | null>(null);
 
   usePageSetup({
     title: t('catalog.title'),
@@ -216,8 +218,52 @@ export default function CatalogPage() {
         </div>
       )}
 
+      {/* View Values Dialog (read-only) */}
+      {viewValuesId && (() => {
+        const viewItem = items.find((i) => i.id === viewValuesId);
+        if (!viewItem) return null;
+        return (
+          <BaseDialog
+            isOpen
+            onClose={() => setViewValuesId(null)}
+            title={`Danh sách giá trị — ${viewItem.name}`}
+            maxWidth="sm"
+            footer={
+              <button
+                onClick={() => setViewValuesId(null)}
+                className="w-full py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Đóng
+              </button>
+            }
+          >
+            <div className="space-y-1.5 py-1">
+              {(viewItem.values ?? []).length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-6">Chưa có giá trị nào</p>
+              ) : (
+                (viewItem.values ?? []).map((v, idx) => (
+                  <div
+                    key={v.value || idx}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    {v.color && (
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shrink-0 border border-gray-200"
+                        style={{ backgroundColor: v.color }}
+                      />
+                    )}
+                    <span className="text-sm font-medium text-gray-800 flex-1">{v.label}</span>
+                    <span className="text-xs text-gray-400 font-mono">{v.value}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </BaseDialog>
+        );
+      })()}
+
       {/* Loading State */}
-      {isLoading && <GridSkeleton cols={3} rows={2} />}
+      {isLoading && <GridSkeleton cols={1} rows={4} />}
 
       {/* Empty State */}
       {!isLoading && filteredItems.length === 0 && (
@@ -234,49 +280,87 @@ export default function CatalogPage() {
         </div>
       )}
 
-      {/* Grid */}
+      {/* List */}
       {!isLoading && filteredItems.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors flex flex-col"
-            >
-              {/* Content */}
-              <div className="flex-1 mb-4">
-                <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            <div key={item.id}>
+              {/* Main row */}
+              <div className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50/60 transition-colors">
+                {/* Left: name + badges */}
+                <div className="flex-1 min-w-0 flex items-center gap-2.5 flex-wrap">
+                  <span className="font-medium text-gray-900 truncate">{item.name}</span>
+                  <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full shrink-0">
                     {CATALOG_TYPES[item.type] || item.type}
                   </span>
-                  <span className="text-xs text-gray-400">({item.code})</span>
+                  <span className="text-xs text-gray-400 font-mono shrink-0">({item.code})</span>
                 </div>
-                {(item.values?.length ?? 0) > 0 && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    {item.values?.length ?? 0} giá trị
-                  </div>
-                )}
+
+                {/* Value count badge — clickable */}
+                <button
+                  onClick={() => (item.values?.length ?? 0) > 0 && setViewValuesId(item.id)}
+                  className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                    (item.values?.length ?? 0) > 0
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer'
+                      : 'bg-gray-50 text-gray-400 border-gray-200 cursor-default'
+                  }`}
+                >
+                  {item.values?.length ?? 0} giá trị
+                </button>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => setShowUsageId(showUsageId === item.id ? null : item.id)}
+                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Xem nơi sử dụng"
+                    aria-label="Xem nơi sử dụng"
+                  >
+                    {showUsageId === item.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => handleOpenEdit(item.id)}
+                    className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    title={t('common.editInfo')}
+                    aria-label={t('common.edit')}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title={t('catalogs.delete')}
+                    aria-label={t('common.delete')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t border-gray-100">
-                <button
-                  onClick={() => handleOpenEdit(item.id)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
-                  title={t('common.editInfo')}
-                >
-                  <Edit2 className="h-4 w-4" />
-                  {t('common.edit')}
-                </button>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
-                  title={t('catalogs.delete')}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {t('common.delete')}
-                </button>
-              </div>
+              {/* Usage panel (expandable sub-row) */}
+              {showUsageId === item.id && (
+                <div className="px-5 pb-4 bg-indigo-50/40 border-t border-indigo-100">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-400 mt-3 mb-2">
+                    Được dùng tại
+                  </p>
+                  {(CATALOG_USAGE_MAP[item.type] ?? []).length === 0 ? (
+                    <p className="text-xs text-gray-400">Chưa có menu nào sử dụng danh mục này.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(CATALOG_USAGE_MAP[item.type] ?? []).map((usage) => (
+                        <a
+                          key={usage.path}
+                          href={usage.path}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-indigo-200 text-xs text-indigo-700 font-medium hover:bg-indigo-100 transition-colors"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {usage.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

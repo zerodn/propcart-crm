@@ -9,13 +9,61 @@ export interface CustomerUser {
   fullName?: string;
   phone?: string;
   email?: string;
+  avatarUrl?: string;
+}
+
+export interface CustomerComment {
+  id: string;
+  workspaceId: string;
+  customerId: string;
+  authorId: string;
+  parentId?: string | null;
+  content: string;
+  mentions?: string[] | null;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  author?: { id: string; fullName?: string | null; avatarUrl?: string | null; phone?: string | null };
+  replies?: CustomerComment[];
+}
+
+export interface CustomerInfo {
+  id: string;
+  workspaceId: string;
+  customerId: string;
+  category?: string | null;
+  info?: string | null;
+  description?: string | null;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerCareHistory {
+  id: string;
+  workspaceId: string;
+  customerId: string;
+  content: string;
+  taskType?: string | null;
+  taskId?: string | null;
+  resultDescription?: string | null;
+  createdByUserId: string;
+  assignedToUserId?: string | null;
+  observers?: string[] | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: { id: string; fullName?: string | null; avatarUrl?: string | null };
+  assignedTo?: { id: string; fullName?: string | null; avatarUrl?: string | null } | null;
+  observerUsers?: { id: string; fullName?: string | null; avatarUrl?: string | null }[];
 }
 
 export interface Customer {
   id: string;
   workspaceId: string;
+  customerCode?: string | null;
+  title?: string | null;
   fullName: string;
-  phone: string;
+  phone?: string | null;
   email?: string | null;
   gender?: string | null;
   dateOfBirth?: string | null;
@@ -32,6 +80,8 @@ export interface Customer {
   interestLevel?: string | null;
   avatarUrl?: string | null;
   assignedUserId?: string | null;
+  assignees?: string[] | null;
+  observers?: string[] | null;
   tags?: string[] | null;
   note?: string | null;
   deletedAt?: string | null;
@@ -63,8 +113,9 @@ export interface CustomerListParams {
 }
 
 export type CustomerFormData = {
+  title?: string;
   fullName: string;
-  phone: string;
+  phone?: string;
   email?: string;
   gender?: string;
   dateOfBirth?: string;
@@ -80,6 +131,8 @@ export type CustomerFormData = {
   status?: string;
   interestLevel?: string;
   assignedUserId?: string;
+  assignees?: string[];
+  observers?: string[];
   tags?: string[];
   note?: string;
   avatarUrl?: string | null;
@@ -166,6 +219,134 @@ export function useCustomer() {
     }
   };
 
+  const listComments = async (customerId: string) => {
+    if (!workspace) return { data: [] as CustomerComment[] };
+    const res = await apiClient.get<{ data: CustomerComment[] }>(
+      `/workspaces/${workspace.id}/customers/${customerId}/comments`,
+    );
+    return res.data as { data: CustomerComment[] };
+  };
+
+  const createComment = async (
+    customerId: string,
+    payload: { content: string; parentId?: string; mentions?: string[] },
+  ) => {
+    if (!workspace) return;
+    const res = await apiClient.post(
+      `/workspaces/${workspace.id}/customers/${customerId}/comments`,
+      payload,
+    );
+    return res.data;
+  };
+
+  const updateComment = async (
+    customerId: string,
+    commentId: string,
+    payload: { content: string; mentions?: string[] },
+  ) => {
+    if (!workspace) return;
+    const res = await apiClient.patch(
+      `/workspaces/${workspace.id}/customers/${customerId}/comments/${commentId}`,
+      payload,
+    );
+    return res.data;
+  };
+
+  const deleteComment = async (customerId: string, commentId: string) => {
+    if (!workspace) return;
+    await apiClient.delete(
+      `/workspaces/${workspace.id}/customers/${customerId}/comments/${commentId}`,
+    );
+  };
+
+  const listInfos = async (customerId: string) => {
+    if (!workspace) return { data: [] as CustomerInfo[] };
+    const res = await apiClient.get<{ data: CustomerInfo[] }>(
+      `/workspaces/${workspace.id}/customers/${customerId}/infos`,
+    );
+    return res.data as { data: CustomerInfo[] };
+  };
+
+  const createInfo = async (
+    customerId: string,
+    payload: { category?: string; info?: string; description?: string },
+  ) => {
+    if (!workspace) return;
+    const res = await apiClient.post(
+      `/workspaces/${workspace.id}/customers/${customerId}/infos`,
+      payload,
+    );
+    return res.data;
+  };
+
+  const updateInfo = async (
+    customerId: string,
+    infoId: string,
+    payload: { category?: string; info?: string; description?: string },
+  ) => {
+    if (!workspace) return;
+    const res = await apiClient.patch(
+      `/workspaces/${workspace.id}/customers/${customerId}/infos/${infoId}`,
+      payload,
+    );
+    return res.data;
+  };
+
+  const deleteInfo = async (customerId: string, infoId: string) => {
+    if (!workspace) return;
+    await apiClient.delete(
+      `/workspaces/${workspace.id}/customers/${customerId}/infos/${infoId}`,
+    );
+  };
+
+  const reorderInfos = async (customerId: string, ids: string[]) => {
+    if (!workspace) return;
+    await apiClient.post(
+      `/workspaces/${workspace.id}/customers/${customerId}/infos/reorder`,
+      { ids },
+    );
+  };
+
+  const listCareHistories = async (customerId: string) => {
+    if (!workspace) return { data: [] as CustomerCareHistory[] };
+    const res = await apiClient.get<{ data: CustomerCareHistory[] }>(
+      `/workspaces/${workspace.id}/customers/${customerId}/care-histories`,
+    );
+    return res.data as { data: CustomerCareHistory[] };
+  };
+
+  const createCareHistory = async (
+    customerId: string,
+    payload: { content: string; taskType?: string; taskId?: string; resultDescription?: string; assignedToUserId?: string; observers?: string[] },
+  ) => {
+    if (!workspace) return;
+    const res = await apiClient.post(
+      `/workspaces/${workspace.id}/customers/${customerId}/care-histories`,
+      payload,
+    );
+    return res.data;
+  };
+
+  const updateCareHistory = async (
+    customerId: string,
+    historyId: string,
+    payload: { content?: string; taskType?: string; taskId?: string; resultDescription?: string; assignedToUserId?: string; observers?: string[] },
+  ) => {
+    if (!workspace) return;
+    const res = await apiClient.patch(
+      `/workspaces/${workspace.id}/customers/${customerId}/care-histories/${historyId}`,
+      payload,
+    );
+    return res.data;
+  };
+
+  const deleteCareHistory = async (customerId: string, historyId: string) => {
+    if (!workspace) return;
+    await apiClient.delete(
+      `/workspaces/${workspace.id}/customers/${customerId}/care-histories/${historyId}`,
+    );
+  };
+
   return {
     customers,
     meta,
@@ -175,5 +356,18 @@ export function useCustomer() {
     create,
     update,
     delete: deleteCustomer,
+    listComments,
+    createComment,
+    updateComment,
+    deleteComment,
+    listInfos,
+    createInfo,
+    updateInfo,
+    deleteInfo,
+    reorderInfos,
+    listCareHistories,
+    createCareHistory,
+    updateCareHistory,
+    deleteCareHistory,
   };
 }

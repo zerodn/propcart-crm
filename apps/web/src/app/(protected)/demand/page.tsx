@@ -341,7 +341,7 @@ export default function DemandPage() {
         isOpen={showForm}
         onClose={() => { setShowForm(false); setEditingId(null); }}
         title={editingId ? t('demand.editTitle') : t('demand.addTitle')}
-        maxWidth="3xl"
+        maxWidth="5xl"
         footer={
           <>
             <button
@@ -366,6 +366,7 @@ export default function DemandPage() {
       >
         <DemandForm
           formId="demand-form"
+          workspaceId={workspaceId}
           onSubmit={handleSubmit}
           isLoading={isSubmitting}
           propertyTypeOptions={propertyTypeOptions}
@@ -373,7 +374,11 @@ export default function DemandPage() {
           statusOptions={statusOptions}
           priorityOptions={priorityOptions}
           memberOptions={memberOptions}
-          customerOptions={customerOptions}
+          initialCustomer={editingDemand?.customer ? {
+            id: editingDemand.customer.id,
+            fullName: editingDemand.customer.fullName,
+            phone: editingDemand.customer.phone,
+          } : undefined}
           initialData={
             editingDemand
               ? {
@@ -386,6 +391,10 @@ export default function DemandPage() {
                   budgetUnit: editingDemand.budgetUnit || 'VND',
                   areaMin: editingDemand.areaMin ?? undefined,
                   areaMax: editingDemand.areaMax ?? undefined,
+                  provinceCode: editingDemand.provinceCode || '',
+                  provinceName: editingDemand.provinceName || '',
+                  wardCode: editingDemand.wardCode || '',
+                  wardName: editingDemand.wardName || '',
                   address: editingDemand.address || '',
                   status: editingDemand.status,
                   priority: editingDemand.priority || '',

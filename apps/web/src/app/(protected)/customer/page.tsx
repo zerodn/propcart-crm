@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Camera, ContactRound, Loader2, Plus, Trash2, User } from 'lucide-react';
+import { Camera, ContactRound, Edit2, History, Loader2, MessageSquare, Plus, Settings, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { useI18n } from '@/providers/i18n-provider';
@@ -13,8 +13,14 @@ import { BaseDataGrid, DataGridColumn } from '@/components/common/base-data-grid
 import { BaseDialog } from '@/components/common/base-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { CustomerForm } from '@/components/customer/customer-form';
+import { CustomerCommentTab } from '@/components/customer/customer-comment';
+import { CustomerInfoTab } from '@/components/customer/customer-info';
+import { CustomerCareHistoryTab } from '@/components/customer/customer-care-history';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
+import { useCustomFields } from '@/hooks/use-custom-fields';
+import { DynamicFieldRenderer } from '@/components/common/dynamic-field-renderer';
+import { FieldConfigDialog } from '@/components/customer/field-config-dialog';
 
 const PAGE_SIZE = 20;
 
@@ -34,7 +40,7 @@ const INTEREST_STYLE: Record<string, string> = {
 };
 
 export default function CustomerPage() {
-  const { workspace } = useAuth();
+  const { workspace, role } = useAuth();
   const { t } = useI18n();
   const workspaceId = workspace?.id || '';
 
@@ -47,13 +53,44 @@ export default function CustomerPage() {
     create,
     update,
     delete: deleteCustomer,
+    listComments,
+    createComment,
+    updateComment,
+    deleteComment,
+    listInfos,
+    createInfo,
+    updateInfo,
+    deleteInfo,
+    reorderInfos,
+    listCareHistories,
+    createCareHistory,
+    updateCareHistory,
+    deleteCareHistory,
   } = useCustomer();
 
   const { members } = useWorkspaceMembers(workspaceId);
   const { items: catalogs } = useCatalog();
+  const {
+    definitions: fieldDefs,
+    values: fieldValues,
+    isLoadingDefs,
+    isLoadingValues,
+    fetchDefinitions,
+    createDefinition,
+    updateDefinition,
+    deleteDefinition,
+    fetchValues,
+    saveValues,
+    setValues,
+  } = useCustomFields('CUSTOMER');
 
-  const [showForm, setShowForm] = useState(false);
+  const [showFieldConfig, setShowFieldConfig] = useState(false);
+  const canConfigFields = role === 'OWNER' || role === 'ADMIN';
+  const [showCareHistoryForm, setShowCareHistoryForm] = useState(false);
+
+  const [dialogMode, setDialogMode] = useState<'edit' | 'comments' | 'careHistory' | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTab, setEditTab] = useState<'info' | 'otherInfo'>('info');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,12 +109,24 @@ export default function CustomerPage() {
   const [filterInterestLevel, setFilterInterestLevel] = useState('');
 
   // Dialog helpers — defined before usePageSetup so openCreateDialog is in scope
-  const openEditDialog = (customer: Customer) => {
+  const openEditInfo = (customer: Customer) => {
     setEditingId(customer.id);
     setAvatarPreviewUrl(customer.avatarUrl || '');
     setAvatarFile(null);
     setAvatarCleared(false);
-    setShowForm(true);
+    setEditTab('info');
+    setDialogMode('edit');
+    fetchValues(customer.id);
+  };
+
+  const openComments = (customer: Customer) => {
+    setEditingId(customer.id);
+    setDialogMode('comments');
+  };
+
+  const openCareHistory = (customer: Customer) => {
+    setEditingId(customer.id);
+    setDialogMode('careHistory');
   };
 
   const openCreateDialog = () => {
@@ -85,16 +134,21 @@ export default function CustomerPage() {
     setAvatarPreviewUrl('');
     setAvatarFile(null);
     setAvatarCleared(false);
-    setShowForm(true);
+    setEditTab('info');
+    setValues({});
+    setDialogMode('edit');
   };
 
   const closeDialog = () => {
-    setShowForm(false);
+    setDialogMode(null);
     setEditingId(null);
+    setEditTab('info');
     if (avatarPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(avatarPreviewUrl);
     setAvatarPreviewUrl('');
     setAvatarFile(null);
     setAvatarCleared(false);
+    setValues({});
+    setShowCareHistoryForm(false);
   };
 
   // Catalog helpers — declared before usePageSetup so selects in actions are in scope
@@ -114,8 +168,19 @@ export default function CustomerPage() {
   const interestLevelOptions = useMemo(() => findCatalogValues(['customer_interest_level']), [catalogs]);
   const sourceOptions = useMemo(() => findCatalogValues(['customer_source']), [catalogs]);
   const groupOptions = useMemo(() => findCatalogValues(['customer_group']), [catalogs]);
+  const titleOptions = useMemo(() => findCatalogValues(['customer_title', 'danh_xung']), [catalogs]);
+  const careTaskTypeOptions = useMemo(() => findCatalogValues(['activity_type']), [catalogs]);
 
-  const memberOptions = useMemo(
+  const workspaceMemberData = useMemo(
+    () =>
+      members.map((m) => ({
+        userId: m.userId,
+        displayName: m.displayName || m.user?.fullName || m.workspacePhone || m.user?.phone || null,
+      })),
+    [members],
+  );
+
+  const memberCommentOptions = useMemo(
     () =>
       members.map((m) => ({
         value: m.userId,
@@ -127,7 +192,7 @@ export default function CustomerPage() {
   usePageSetup({
     title: t('customer.title'),
     subtitle: t('customer.subtitle'),
-    actionsKey: `${filterStatus}|${filterInterestLevel}`,
+    actionsKey: `${filterStatus}|${filterInterestLevel}|${canConfigFields}`,
     actions: (
       <div className="flex items-center gap-2 w-full">
         {/* Filters — left side */}
@@ -152,9 +217,21 @@ export default function CustomerPage() {
           ))}
         </select>
         {/* Add button — right side */}
+        {canConfigFields && (
+          <button
+            onClick={() => setShowFieldConfig(true)}
+            className="ml-auto flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shrink-0"
+          >
+            <Settings className="h-4 w-4" />
+            Cấu hình
+          </button>
+        )}
         <button
           onClick={openCreateDialog}
-          className="ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0"
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0',
+            !canConfigFields && 'ml-auto',
+          )}
         >
           <Plus className="h-4 w-4" />
           {t('customer.addBtn')}
@@ -162,6 +239,11 @@ export default function CustomerPage() {
       </div>
     ),
   });
+
+  // Fetch custom field definitions on mount
+  useEffect(() => {
+    if (workspaceId) fetchDefinitions();
+  }, [workspaceId, fetchDefinitions]);
 
   // Reload when filters/page change
   useEffect(() => {
@@ -246,6 +328,16 @@ export default function CustomerPage() {
         }
 
         await update(editingId, { ...data, avatarUrl: finalAvatarUrl ?? undefined });
+
+        // Save custom field values if any definitions exist
+        if (fieldDefs.length > 0) {
+          const fields = fieldDefs.map((d) => ({
+            fieldKey: d.fieldKey,
+            value: fieldValues[d.fieldKey] ?? null,
+          }));
+          await saveValues(editingId, fields);
+        }
+
         setEditingId(null);
       } else {
         await create(data);
@@ -293,7 +385,12 @@ export default function CustomerPage() {
             </div>
             <div>
               <div className="font-medium text-gray-900">{String(value || '—')}</div>
-              <div className="text-xs text-gray-500">{row.phone}</div>
+              <div className="text-xs text-gray-400 flex items-center gap-1.5">
+                {row.customerCode && (
+                  <span className="font-mono text-[10px] bg-gray-100 text-gray-500 px-1 rounded">{row.customerCode}</span>
+                )}
+                {row.phone && <span>{row.phone}</span>}
+              </div>
             </div>
           </div>
         );
@@ -387,42 +484,70 @@ export default function CustomerPage() {
         totalItems={meta.total}
         currentPage={page}
         onPageChange={setPage}
-        onEdit={(row) => openEditDialog(row)}
+        actions={[
+          {
+            icon: <Edit2 className="h-3.5 w-3.5" />,
+            label: 'Sửa thông tin',
+            onClick: (row) => openEditInfo(row),
+            variant: 'primary' as const,
+          },
+          {
+            icon: <MessageSquare className="h-3.5 w-3.5" />,
+            label: 'Xem bình luận',
+            onClick: (row) => openComments(row),
+          },
+          {
+            icon: <History className="h-3.5 w-3.5" />,
+            label: 'Lịch sử chăm sóc',
+            onClick: (row) => openCareHistory(row),
+          },
+        ]}
         onDelete={(row) => { setDeleteId(row.id); setShowDeleteConfirm(true); }}
       />
 
-      {/* Form Dialog */}
+      {/* ── Dialog 1: Sửa thông tin khách hàng ─────────────────────────── */}
       <BaseDialog
-        isOpen={showForm}
+        isOpen={dialogMode === 'edit'}
         onClose={closeDialog}
-        title={editingId ? t('customer.editTitle') : t('customer.addTitle')}
+        title={editingId
+          ? `${t('customer.editTitle')}${editingCustomer?.customerCode ? ` — ${editingCustomer.customerCode}` : ''}`
+          : t('customer.addTitle')}
         maxWidth="5xl"
         footer={
-          <>
+          editTab === 'info' || !editingId ? (
+            <>
+              <button
+                type="button"
+                onClick={closeDialog}
+                disabled={isSubmitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                form="customer-form"
+                disabled={isSubmitting || isUploadingAvatar}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {(isSubmitting || isUploadingAvatar) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editingId ? t('common.update') : t('common.addNew')}
+              </button>
+            </>
+          ) : (
             <button
               type="button"
               onClick={closeDialog}
-              disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              {t('common.cancel')}
+              {t('common.close') || t('common.cancel')}
             </button>
-            <button
-              type="submit"
-              form="customer-form"
-              disabled={isSubmitting || isUploadingAvatar}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {(isSubmitting || isUploadingAvatar) && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? t('common.update') : t('common.addNew')}
-            </button>
-          </>
+          )
         }
       >
         {/* Avatar section — only when editing */}
         {editingId && (
           <div className="flex items-center gap-4 pb-5 mb-5 border-b border-gray-200">
-            {/* Avatar circle */}
             <div className="relative">
               <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-50 border-2 border-gray-200 flex items-center justify-center shrink-0">
                 {avatarPreviewUrl ? (
@@ -437,8 +562,6 @@ export default function CustomerPage() {
                 </div>
               )}
             </div>
-
-            {/* Upload controls */}
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-700 mb-2">{t('customer.avatar.label')}</p>
               <div className="flex gap-2">
@@ -459,7 +582,6 @@ export default function CustomerPage() {
                     disabled={isSubmitting}
                   />
                 </label>
-
                 {avatarPreviewUrl && (
                   <button
                     type="button"
@@ -477,39 +599,248 @@ export default function CustomerPage() {
           </div>
         )}
 
-        <CustomerForm
-          formId="customer-form"
-          onSubmit={handleSubmit}
-          isLoading={isSubmitting}
-          statusOptions={statusOptions}
-          interestLevelOptions={interestLevelOptions}
-          sourceOptions={sourceOptions}
-          groupOptions={groupOptions}
-          memberOptions={memberOptions}
-          initialData={
-            editingCustomer
-              ? {
-                  fullName: editingCustomer.fullName,
-                  phone: editingCustomer.phone,
-                  email: editingCustomer.email || '',
-                  gender: editingCustomer.gender || '',
-                  dateOfBirth: editingCustomer.dateOfBirth || '',
-                  address: editingCustomer.address || '',
-                  provinceCode: editingCustomer.provinceCode || '',
-                  provinceName: editingCustomer.provinceName || '',
-                  wardCode: editingCustomer.wardCode || '',
-                  wardName: editingCustomer.wardName || '',
-                  source: editingCustomer.source || '',
-                  group: editingCustomer.group || '',
-                  status: editingCustomer.status,
-                  interestLevel: editingCustomer.interestLevel || '',
-                  assignedUserId: editingCustomer.assignedUserId || '',
-                  note: editingCustomer.note || '',
-                }
-              : undefined
-          }
-        />
+        {/* Sub-tabs within edit dialog (info / các ghi chú) — only when editing */}
+        {editingId && (
+          <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700 mb-5">
+            {(
+              [
+                { key: 'info', label: t('customer.tabs.info') },
+                { key: 'otherInfo', label: 'Các ghi chú' },
+              ] as { key: 'info' | 'otherInfo'; label: string }[]
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setEditTab(tab.key)}
+                className={cn(
+                  'px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
+                  editTab === tab.key
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {(!editingId || editTab === 'info') && (
+          <>
+          <CustomerForm
+            formId="customer-form"
+            onSubmit={handleSubmit}
+            isLoading={isSubmitting}
+            statusOptions={statusOptions}
+            interestLevelOptions={interestLevelOptions}
+            sourceOptions={sourceOptions}
+            groupOptions={groupOptions}
+            titleOptions={titleOptions}
+            workspaceId={workspaceId}
+            workspaceMemberData={workspaceMemberData}
+            initialData={
+              editingCustomer
+                ? {
+                    title: editingCustomer.title || '',
+                    fullName: editingCustomer.fullName,
+                    phone: editingCustomer.phone || '',
+                    email: editingCustomer.email || '',
+                    gender: editingCustomer.gender || '',
+                    dateOfBirth: editingCustomer.dateOfBirth || '',
+                    address: editingCustomer.address || '',
+                    provinceCode: editingCustomer.provinceCode || '',
+                    provinceName: editingCustomer.provinceName || '',
+                    wardCode: editingCustomer.wardCode || '',
+                    wardName: editingCustomer.wardName || '',
+                    source: editingCustomer.source || '',
+                    group: editingCustomer.group || '',
+                    status: editingCustomer.status,
+                    interestLevel: editingCustomer.interestLevel || '',
+                    assignedUserId: editingCustomer.assignedUserId || '',
+                    assignees: (editingCustomer.assignees as string[] | null) || [],
+                    observers: (editingCustomer.observers as string[] | null) || [],
+                    note: editingCustomer.note || '',
+                  }
+                : undefined
+            }
+          />
+
+          {/* Dynamic custom fields — shown below form when editing */}
+          {editingId && fieldDefs.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">Thông tin khác</h3>
+              <DynamicFieldRenderer
+                definitions={fieldDefs}
+                values={fieldValues}
+                onChange={(key, val) => setValues((prev) => ({ ...prev, [key]: val }))}
+                disabled={isSubmitting}
+                isLoading={isLoadingValues}
+              />
+            </div>
+          )}
+          </>
+        )}
+
+        {editingId && editTab === 'otherInfo' && (
+          <CustomerInfoTab
+            customerId={editingId}
+            listInfos={listInfos}
+            createInfo={createInfo}
+            updateInfo={updateInfo}
+            deleteInfo={deleteInfo}
+            reorderInfos={reorderInfos}
+          />
+        )}
       </BaseDialog>
+
+      {/* ── Dialog 2: Xem bình luận ─────────────────────────────────────── */}
+      <BaseDialog
+        isOpen={dialogMode === 'comments'}
+        onClose={closeDialog}
+        title={`${t('customer.tabs.comments')}${editingCustomer?.fullName ? ` — ${editingCustomer.fullName}` : ''}`}
+        maxWidth="4xl"
+        footer={
+          <button
+            type="button"
+            onClick={closeDialog}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {t('common.close') || 'Đóng'}
+          </button>
+        }
+      >
+        {/* Customer info header */}
+        {editingCustomer && (
+          <div className="flex items-center gap-3 pb-4 mb-5 border-b border-gray-200">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 border border-gray-200 flex items-center justify-center shrink-0">
+              {editingCustomer.avatarUrl ? (
+                <img src={editingCustomer.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-semibold text-blue-600">
+                  {(editingCustomer.fullName || '?').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{editingCustomer.fullName}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                {editingCustomer.customerCode && (
+                  <span className="text-xs font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{editingCustomer.customerCode}</span>
+                )}
+                {editingCustomer.phone && <span className="text-xs text-gray-500">{editingCustomer.phone}</span>}
+                {editingCustomer.email && <span className="text-xs text-gray-500">{editingCustomer.email}</span>}
+                {editingCustomer.status && (
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', STATUS_STYLE[editingCustomer.status] || 'bg-gray-100 text-gray-600')}>
+                    {resolveStatusLabel(editingCustomer.status)}
+                  </span>
+                )}
+                {editingCustomer.interestLevel && (
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', INTEREST_STYLE[editingCustomer.interestLevel] || 'bg-gray-100 text-gray-600')}>
+                    {resolveInterestLabel(editingCustomer.interestLevel)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {editingId && (
+          <CustomerCommentTab
+            customerId={editingId}
+            workspaceId={workspaceId}
+            memberOptions={memberCommentOptions}
+            listComments={listComments}
+            createComment={createComment}
+            updateComment={updateComment}
+            deleteComment={deleteComment}
+          />
+        )}
+      </BaseDialog>
+
+      {/* ── Dialog 3: Xem lịch sử chăm sóc ─────────────────────────────── */}
+      <BaseDialog
+        isOpen={dialogMode === 'careHistory'}
+        onClose={closeDialog}
+        title={`${t('customer.tabs.careHistory')}${editingCustomer?.fullName ? ` — ${editingCustomer.fullName}` : ''}`}
+        maxWidth="5xl"
+        footer={
+          <button
+            type="button"
+            onClick={closeDialog}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {t('common.close') || 'Đóng'}
+          </button>
+        }
+      >
+        {/* Customer info header */}
+        {editingCustomer && (
+          <div className="flex items-center gap-3 pb-4 mb-5 border-b border-gray-200">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-50 border border-gray-200 flex items-center justify-center shrink-0">
+              {editingCustomer.avatarUrl ? (
+                <img src={editingCustomer.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-semibold text-blue-600">
+                  {(editingCustomer.fullName || '?').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-gray-900 truncate">{editingCustomer.fullName}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowCareHistoryForm(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 rounded-lg text-xs font-medium transition-colors shrink-0 whitespace-nowrap"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Thêm chăm sóc
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {editingCustomer.customerCode && (
+                  <span className="text-xs font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{editingCustomer.customerCode}</span>
+                )}
+                {editingCustomer.phone && <span className="text-xs text-gray-500">{editingCustomer.phone}</span>}
+                {editingCustomer.email && <span className="text-xs text-gray-500">{editingCustomer.email}</span>}
+                {editingCustomer.status && (
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', STATUS_STYLE[editingCustomer.status] || 'bg-gray-100 text-gray-600')}>
+                    {resolveStatusLabel(editingCustomer.status)}
+                  </span>
+                )}
+                {editingCustomer.interestLevel && (
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', INTEREST_STYLE[editingCustomer.interestLevel] || 'bg-gray-100 text-gray-600')}>
+                    {resolveInterestLabel(editingCustomer.interestLevel)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {editingId && (
+          <CustomerCareHistoryTab
+            customerId={editingId}
+            workspaceId={workspaceId}
+            taskTypeOptions={careTaskTypeOptions}
+            memberOptions={memberCommentOptions}
+            listCareHistories={listCareHistories}
+            createCareHistory={createCareHistory}
+            updateCareHistory={updateCareHistory}
+            deleteCareHistory={deleteCareHistory}
+            showAddForm={showCareHistoryForm}
+            onToggleAddForm={setShowCareHistoryForm}
+          />
+        )}
+      </BaseDialog>
+
+      {/* ── Field Config Dialog ──────────────────────────────────────── */}
+      <FieldConfigDialog
+        isOpen={showFieldConfig}
+        onClose={() => setShowFieldConfig(false)}
+        definitions={fieldDefs}
+        onCreate={createDefinition}
+        onUpdate={updateDefinition}
+        onDelete={deleteDefinition}
+      />
 
       {/* Delete Confirm */}
       <ConfirmDialog
