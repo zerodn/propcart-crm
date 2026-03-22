@@ -4,24 +4,36 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, LogOut, UserCircle2, Building2, User } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { useWorkspaces } from '@/hooks/use-workspaces';
+import { useCurrentMember } from '@/hooks/use-current-member';
 import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS } from '@/types';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function ProfileMenu() {
   const { user, workspace, role, switchWorkspace, logout } = useAuth();
   const { workspaces } = useWorkspaces();
+  const { member } = useCurrentMember(workspace?.id);
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const normalizeText = (value?: string | null) =>
     value && value.trim().length > 0 ? value : null;
+
+  // Workspace identity takes priority over base account info
   const displayName =
+    normalizeText(member?.displayName) ??
     normalizeText(user?.fullName) ??
     normalizeText(user?.phone) ??
     normalizeText(user?.email) ??
     'Người dùng';
+  const contactLine =
+    normalizeText(member?.workspaceEmail) ??
+    normalizeText(member?.workspacePhone) ??
+    normalizeText(user?.email) ??
+    normalizeText(user?.phone);
+  const avatarUrl = member?.avatarUrl || user?.avatarUrl || null;
   const initials = displayName.slice(0, 2).toUpperCase() || 'PC';
 
   // Close menu when clicking outside
@@ -46,16 +58,20 @@ export function ProfileMenu() {
       {/* Profile Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
       >
-        <div className="w-8 h-8 bg-[#CFAF6E]/15 text-[#0B1F3A] rounded-full flex items-center justify-center text-xs font-semibold overflow-hidden">
-          <span>{initials}</span>
+        <div className="w-8 h-8 bg-[#CFAF6E]/15 dark:bg-[#CFAF6E]/25 text-[#0B1F3A] dark:text-[#CFAF6E] rounded-full flex items-center justify-center text-xs font-semibold overflow-hidden">
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt={displayName} width={32} height={32} className="w-full h-full object-cover" />
+          ) : (
+            <span>{initials}</span>
+          )}
         </div>
-        <span className="text-sm text-gray-700 font-medium max-w-[120px] truncate hidden sm:block">
+        <span className="text-sm text-gray-700 dark:text-white/80 font-medium max-w-[120px] truncate hidden sm:block">
           {displayName}
         </span>
         <ChevronDown
-          className={`h-4 w-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-gray-400 dark:text-white/50 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -66,11 +82,15 @@ export function ProfileMenu() {
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-[#CFAF6E]/15 text-[#0B1F3A] rounded-full flex items-center justify-center text-sm font-semibold overflow-hidden flex-shrink-0">
-                <span>{initials}</span>
+                {avatarUrl ? (
+                  <Image src={avatarUrl} alt={displayName} width={48} height={48} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{initials}</span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email || user?.phone}</p>
+                {contactLine && <p className="text-xs text-gray-500 truncate">{contactLine}</p>}
                 {role && (
                   <p className="text-xs text-gray-400 mt-1">{ROLE_LABELS[role] ?? role}</p>
                 )}

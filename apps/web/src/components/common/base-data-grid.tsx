@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical, Search } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useI18n } from '@/providers/i18n-provider';
+import { cn } from '@/lib/utils';
 
 export interface DataGridColumn<T = object> {
   key: string;
@@ -136,13 +137,13 @@ export function BaseDataGrid<T extends object>({
   }, [data.length, internalPage, totalPages]);
 
   const headerSection = (title || onSearchChange !== undefined || headerActions) ? (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200">
+    <div className="glass-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-4">
       {title && (
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-white/80 flex items-center gap-2">
           {titleIcon}
           {title}
           {badgeCount !== undefined && badgeCount > 0 && (
-            <span className="bg-[#CFAF6E]/15 text-[#0B1F3A] text-xs px-1.5 py-0.5 rounded-full">
+            <span className="bg-[#CFAF6E]/15 text-[#0B1F3A] dark:text-[#CFAF6E] text-xs px-1.5 py-0.5 rounded-full">
               {badgeCount}
             </span>
           )}
@@ -151,13 +152,13 @@ export function BaseDataGrid<T extends object>({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 ml-auto">
         {onSearchChange !== undefined && (
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" />
             <input
               type="text"
               placeholder={searchPlaceholder ?? 'Tìm kiếm...'}
               value={searchValue ?? ''}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]"
+              className="w-full sm:w-60 pl-10 pr-4 py-2 text-sm border border-gray-200 dark:border-white/15 rounded-lg bg-white/90 dark:bg-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#CFAF6E]/50 focus:border-[#CFAF6E]"
             />
           </div>
         )}
@@ -167,14 +168,14 @@ export function BaseDataGrid<T extends object>({
   ) : null;
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="flex flex-col">
+      <div className={cn('glass-content-card overflow-hidden', !isLoading && totalPages > 1 ? 'rounded-t-xl' : 'rounded-xl')}>
         {headerSection}
         {isLoading ? (
           <div className="animate-pulse">
-            <div className="h-12 bg-gray-100 border-b border-gray-200" />
+            <div className="h-12 bg-gray-100/70 dark:bg-white/5 border-b border-gray-200/60 dark:border-white/10" />
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 bg-white border-b border-gray-100" />
+              <div key={i} className="h-14 bg-white/50 dark:bg-white/[0.02] border-b border-gray-100/60 dark:border-white/[0.05]" />
             ))}
           </div>
         ) : data.length === 0 && !showTableWhenEmpty ? (
@@ -185,7 +186,7 @@ export function BaseDataGrid<T extends object>({
         ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50/80 dark:bg-white/[0.04] border-b border-gray-200/70 dark:border-white/10">
               <tr>
                 {/* STT Column */}
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-16">
@@ -210,13 +211,13 @@ export function BaseDataGrid<T extends object>({
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100/80 dark:divide-white/[0.06]">
               {currentData.map((row, rowIndex) => {
                 const globalIndex = startIndex + rowIndex;
                 return (
                   <tr
                     key={globalIndex}
-                    className={`hover:bg-gray-50 transition-colors ${
+                    className={`hover:bg-[#CFAF6E]/[0.04] dark:hover:bg-white/[0.04] transition-colors ${
                       onRowClick ? 'cursor-pointer' : ''
                     } ${rowClassName ? rowClassName(row, globalIndex) : ''}`}
                     onClick={() => onRowClick?.(row, globalIndex)}
@@ -328,13 +329,13 @@ export function BaseDataGrid<T extends object>({
 
       {/* Pagination */}
       {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
-          <div className="text-sm text-gray-600">
+        <div className="glass-content-card rounded-b-xl border-t border-gray-200/60 dark:border-white/10 flex items-center justify-between px-4 py-3 -mt-px">
+          <div className="text-sm text-gray-600 dark:text-white/60">
             Hiển thị{' '}
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-gray-900 dark:text-white">
               {startIndex + 1} - {Math.min(endIndex, totalCount)}
             </span>{' '}
-            trong tổng số <span className="font-medium text-gray-900">{totalCount}</span> bản ghi
+            trong tổng số <span className="font-medium text-gray-900 dark:text-white">{totalCount}</span> bản ghi
           </div>
 
           <div className="flex items-center gap-2">
@@ -342,7 +343,7 @@ export function BaseDataGrid<T extends object>({
             <button
               onClick={() => goToPage(activePage - 1)}
               disabled={activePage === 1}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-white/70 bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/15 rounded-lg hover:bg-gray-50 dark:hover:bg-white/15 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -363,8 +364,8 @@ export function BaseDataGrid<T extends object>({
                       onClick={() => goToPage(page)}
                       className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                         page === activePage
-                          ? 'bg-[#CFAF6E] text-white'
-                          : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          ? 'bg-[#CFAF6E] text-white shadow-sm shadow-[#CFAF6E]/30'
+                          : 'text-gray-700 dark:text-white/70 bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/15 hover:bg-gray-50 dark:hover:bg-white/15'
                       }`}
                     >
                       {page}
@@ -387,7 +388,7 @@ export function BaseDataGrid<T extends object>({
             <button
               onClick={() => goToPage(activePage + 1)}
               disabled={activePage === totalPages}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-white/70 bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/15 rounded-lg hover:bg-gray-50 dark:hover:bg-white/15 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

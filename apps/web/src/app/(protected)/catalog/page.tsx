@@ -110,7 +110,7 @@ export default function CatalogPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Form Modal */}
       <BaseDialog
         isOpen={showForm}
@@ -201,7 +201,7 @@ export default function CatalogPage() {
 
       {/* Type Filter */}
       {items.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="glass-content-card rounded-xl p-4">
           <label className="block text-sm font-medium text-gray-900 mb-2">{t('catalogs.filterByType')}</label>
           <select
             value={selectedType}
@@ -267,7 +267,7 @@ export default function CatalogPage() {
 
       {/* Empty State */}
       {!isLoading && filteredItems.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <div className="text-center py-16 glass-content-card rounded-xl">
           <ClipboardList className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="font-medium text-gray-900">
             {items.length === 0 ? t('catalogs.empty.title') : t('catalogs.empty.notFound')}
@@ -282,7 +282,7 @@ export default function CatalogPage() {
 
       {/* List */}
       {!isLoading && filteredItems.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        <div className="glass-content-card rounded-xl divide-y divide-gray-100">
           {filteredItems.map((item) => (
             <div key={item.id}>
               {/* Main row */}

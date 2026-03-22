@@ -34,6 +34,47 @@ export class WorkspaceService {
     });
   }
 
+  async getMyMember(workspaceId: string, userId: string) {
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId, status: 1 },
+      include: {
+        user: { select: { id: true, phone: true, email: true, fullName: true, status: true } },
+        role: { select: { id: true, code: true, name: true } },
+      },
+    });
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member record not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    return {
+      data: {
+        id: member.id,
+        userId: member.userId,
+        workspaceId: member.workspaceId,
+        roleId: member.roleId,
+        status: member.status,
+        joinedAt: member.joinedAt,
+        employeeCode: member.employeeCode,
+        displayName: member.displayName,
+        workspaceEmail: member.workspaceEmail,
+        workspacePhone: member.workspacePhone,
+        avatarUrl: member.avatarUrl,
+        gender: member.gender,
+        dateOfBirth: member.dateOfBirth,
+        workspaceCity: member.workspaceCity,
+        workspaceAddress: member.workspaceAddress,
+        addressLine: member.addressLine,
+        contractType: member.contractType,
+        employmentStatus: member.employmentStatus,
+        attachmentUrl: member.attachmentUrl,
+        user: member.user,
+        role: member.role,
+      },
+    };
+  }
+
   async getMemberDepartments(workspaceId: string, memberId: string) {
     // memberId is WorkspaceMember.id — resolve to userId first
     const member = await this.prisma.workspaceMember.findFirst({
@@ -144,6 +185,38 @@ export class WorkspaceService {
     };
   }
 
+  async updateWorkspace(workspaceId: string, userId: string, dto: { name: string }) {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, ownerUserId: true },
+    });
+
+    if (!workspace) {
+      throw new HttpException(
+        { code: 'WORKSPACE_NOT_FOUND', message: 'Workspace không tồn tại' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (workspace.ownerUserId !== userId) {
+      throw new HttpException(
+        {
+          code: 'FORBIDDEN',
+          message: 'Chỉ chủ sở hữu workspace mới có thể thực hiện thao tác này',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const updated = await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { name: dto.name.trim() },
+      select: { id: true, name: true, type: true },
+    });
+
+    return { data: updated };
+  }
+
   async updateMember(
     workspaceId: string,
     memberId: string,
@@ -189,6 +262,36 @@ export class WorkspaceService {
     let employeeCode: string | undefined;
     if (!member.employeeCode) {
       employeeCode = await this.generateNextEmployeeCode(workspaceId);
+    }
+
+    // Email conflict check: same logic as updateProfile
+    // If workspaceEmail is being set, verify it's not claimed by another verified user
+    if (dto.workspaceEmail) {
+      const normalizedEmail = dto.workspaceEmail.trim().toLowerCase();
+      dto.workspaceEmail = normalizedEmail;
+
+      const existingUser = await this.prisma.user.findFirst({
+        where: { email: normalizedEmail, id: { not: member.userId } },
+        select: { id: true, emailVerifiedAt: true },
+      });
+
+      if (existingUser) {
+        if (existingUser.emailVerifiedAt) {
+          throw new HttpException(
+            {
+              code: 'EMAIL_ALREADY_EXISTS',
+              message: 'Email đã được sử dụng bởi một tài khoản đã xác minh',
+            },
+            HttpStatus.CONFLICT,
+          );
+        } else {
+          // Email unverified on another account — clear it so this member can claim it
+          await this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: { email: null },
+          });
+        }
+      }
     }
 
     // Update member

@@ -74,6 +74,11 @@ fi
 
 # Step 3: Kill Node/npm processes
 echo -e "\n${RED}🔴 Killing Node.js processes...${NC}"
+# First: force-free ports in case the node binary is a different version
+# (e.g. Homebrew node) that pkill -9 node misses.
+cd "$PROJECT_DIR/apps/web" && npx --yes kill-port 3000 2>/dev/null || true
+npx --yes kill-port 3001 2>/dev/null || true
+cd "$PROJECT_DIR"
 pkill -9 node 2>/dev/null || true
 pkill -9 npm 2>/dev/null || true
 sleep 2

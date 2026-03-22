@@ -112,7 +112,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
@@ -124,7 +124,7 @@ export default function NotificationsPage() {
       {isLoading && (
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div key={i} className="glass-content-card rounded-xl p-4">
               <div className="flex items-start gap-3">
                 <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
                 <div className="flex-1 space-y-2">
@@ -139,7 +139,7 @@ export default function NotificationsPage() {
 
       {/* Empty State */}
       {!isLoading && notifications.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <div className="text-center py-16 glass-content-card rounded-xl">
           <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
           <p className="font-medium text-gray-900">{t('notifications.emptyState')}</p>
           <p className="text-sm text-gray-500 mt-1">{t('notifications.emptyDesc')}</p>
@@ -159,7 +159,7 @@ export default function NotificationsPage() {
                 'bg-white rounded-xl border p-4 transition-colors flex items-start gap-3',
                 !notification.read
                   ? 'border-[#CFAF6E]/40 bg-[#F5F7FA]'
-                  : 'border-gray-200 hover:border-gray-300',
+                  : 'border-gray-200',
               )}
             >
               <div className="flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</div>

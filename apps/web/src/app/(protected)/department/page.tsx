@@ -122,7 +122,7 @@ export default function DepartmentPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Form Dialog */}
       <BaseDialog
         isOpen={showForm}
@@ -190,7 +190,7 @@ export default function DepartmentPage() {
 
       {/* Empty State */}
       {!isLoading && departments.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+        <div className="text-center py-12 glass-content-card rounded-xl">
           <Building2 className="h-10 w-10 mx-auto mb-3 text-gray-300" />
           <p className="font-medium text-gray-900">Chưa có phòng ban nào</p>
           <p className="text-sm text-gray-500 mt-1">
@@ -205,7 +205,7 @@ export default function DepartmentPage() {
           {departments.map((dept) => (
             <div
               key={dept.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors flex flex-col"
+              className="glass-content-card rounded-xl p-4 transition-colors flex flex-col"
             >
               <div className="flex-1 mb-4">
                 <h3 className="font-medium text-gray-900 truncate">{dept.name}</h3>

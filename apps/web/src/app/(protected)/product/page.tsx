@@ -280,7 +280,7 @@ export default function ProductPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       <BaseDataGrid
         data={products}
         columns={columns}

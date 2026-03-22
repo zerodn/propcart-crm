@@ -501,7 +501,7 @@ export default function ProjectPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {isLoading ? (
         <div className="flex items-center justify-center h-60">
           <Loader2 className="w-8 h-8 animate-spin text-amber-500" />

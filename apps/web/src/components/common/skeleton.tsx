@@ -4,7 +4,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <div className="glass-content-card rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -35,7 +35,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 
 export function CardSkeleton() {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
+    <div className="glass-content-card rounded-xl p-6">
       <Skeleton className="h-6 w-48 mb-4" />
       <Skeleton className="h-4 w-full mb-2" />
       <Skeleton className="h-4 w-3/4 mb-4" />
@@ -59,7 +59,7 @@ export function GridSkeleton({ cols = 3, rows = 3 }: { cols?: number; rows?: num
 
 export function ProfileSkeleton() {
   return (
-    <div className="max-w-7xl space-y-6">
+    <div className="max-w-7xl space-y-[0.8rem]">
       <div>
         <Skeleton className="h-8 w-48 mb-2" />
         <Skeleton className="h-4 w-96" />
@@ -67,7 +67,7 @@ export function ProfileSkeleton() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <div className="glass-content-card rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-4 pb-4 border-b">
             <Skeleton className="h-24 w-24 rounded-full" />
             <div className="space-y-2">
@@ -85,7 +85,7 @@ export function ProfileSkeleton() {
         </div>
 
         {/* Right column */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="glass-content-card rounded-xl p-6">
           <Skeleton className="h-6 w-32 mb-4" />
           <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (

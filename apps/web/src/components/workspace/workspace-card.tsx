@@ -19,10 +19,10 @@ export function WorkspaceCard({ item }: WorkspaceCardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-xl border p-5 transition-all',
+        'glass-content-card rounded-xl p-5 transition-all',
         isActive
-          ? 'border-[#CFAF6E] ring-2 ring-[#CFAF6E]/20'
-          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
+          ? 'ring-2 ring-[#CFAF6E]/30'
+          : '',
       )}
     >
       <div className="flex items-start justify-between mb-4">

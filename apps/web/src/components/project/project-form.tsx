@@ -2216,7 +2216,7 @@ export function ProjectForm({
         maxWidth="6xl"
         footer={footer}
       >
-        <div className="flex h-[65vh] border border-gray-200 rounded-xl overflow-hidden bg-white">
+        <div className="glass-content-card rounded-xl flex h-[65vh] overflow-hidden">
           {/* Sidebar steps */}
           <aside className="w-48 flex-shrink-0 border-r border-gray-200 py-4 overflow-y-auto">
             <ul className="space-y-0.5 px-2">
@@ -2935,7 +2935,7 @@ export function ProjectForm({
               </>
             ) : isSubdivisionStep ? (
               <>
-                <div className="rounded-xl border border-gray-200 bg-white">
+                <div className="glass-content-card rounded-xl">
                   <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                     <h4 className="text-sm font-semibold text-gray-800">Phân khu</h4>
                     <button
@@ -3058,7 +3058,7 @@ export function ProjectForm({
                 </div>
 
                 {projectType === 'HIGH_RISE' && selectedSubdivision && (
-                  <div className="rounded-xl border border-gray-200 bg-white">
+                  <div className="glass-content-card rounded-xl">
                     <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                       <div className="text-sm font-semibold text-gray-800">
                         Danh sách tòa nhà - {selectedSubdivision.name}
@@ -3159,7 +3159,7 @@ export function ProjectForm({
               </>
             ) : isProgressStep ? (
               <>
-                <div className="rounded-xl border border-gray-200 bg-white">
+                <div className="glass-content-card rounded-xl">
                   <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                     <h4 className="text-sm font-semibold text-gray-800">Tiến độ</h4>
                     <button
@@ -3257,7 +3257,7 @@ export function ProjectForm({
               </>
             ) : isDocumentStep ? (
               <>
-                <div className="rounded-xl border border-gray-200 bg-white">
+                <div className="glass-content-card rounded-xl">
                   <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                     <h4 className="text-sm font-semibold text-gray-800">Tài liệu</h4>
                     <button
@@ -3507,7 +3507,7 @@ export function ProjectForm({
             </div>
 
             <div>
-              <div className="rounded-xl border border-gray-200 bg-white">
+              <div className="glass-content-card rounded-xl">
                 <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                   <h4 className="text-sm font-semibold text-gray-800">Videos</h4>
                   {progressDrawerMode !== 'view' && (
@@ -4609,7 +4609,7 @@ export function ProjectForm({
                   )}
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white">
+                <div className="glass-content-card rounded-xl">
                   <div className="border-b border-gray-200 px-4 py-3 text-sm text-gray-600">
                     Có {towerForm.fundProducts.length} sản phẩm đã chọn
                   </div>

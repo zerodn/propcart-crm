@@ -365,7 +365,7 @@ export default function TaskPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Filters — visible in both views */}
       <div className="flex flex-wrap items-center gap-3">
         {viewMode === 'list' && (

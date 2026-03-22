@@ -460,7 +460,7 @@ export default function CustomerPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">

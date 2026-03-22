@@ -46,14 +46,14 @@ export function LanguageSwitcher({ dropUp = false, dark = false }: LanguageSwitc
         className={
           dark
             ? 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/18 backdrop-blur-sm transition-colors text-sm text-white'
-            : 'flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm'
+            : 'flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-gray-200 dark:border-white/20 bg-white dark:bg-white/10 hover:bg-gray-50 dark:hover:bg-white/[0.18] transition-colors text-sm dark:text-white'
         }
         aria-label="Toggle language menu"
         aria-expanded={isOpen}
       >
         <span className="text-lg">{currentLang?.flag}</span>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${dark ? 'text-white/60' : 'text-gray-500'}`}
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${dark ? 'text-white/60' : 'text-gray-500 dark:text-white/60'}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

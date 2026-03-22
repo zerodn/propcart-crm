@@ -82,7 +82,7 @@ export default function PermissionsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
@@ -94,7 +94,7 @@ export default function PermissionsPage() {
       {isLoading && (
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div key={i} className="glass-content-card rounded-xl p-4">
               <Skeleton className="h-4 w-40 mb-4" />
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((j) => (
@@ -111,7 +111,7 @@ export default function PermissionsPage() {
 
       {/* Empty State */}
       {!isLoading && roles.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+        <div className="text-center py-12 glass-content-card rounded-xl">
           <Shield className="h-10 w-10 mx-auto mb-3 text-gray-300" />
           <p className="font-medium text-gray-900">Chưa có vai trò nào</p>
           <p className="text-sm text-gray-500 mt-1">Hãy tạo vai trò trước để gán quyền</p>
@@ -126,7 +126,7 @@ export default function PermissionsPage() {
               <h3 className="text-sm font-semibold text-gray-900 px-1">{module}</h3>
 
               {modulePerms.map((permission) => (
-                <div key={permission.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div key={permission.id} className="glass-content-card rounded-xl p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="font-medium text-gray-900">{permission.name}</p>

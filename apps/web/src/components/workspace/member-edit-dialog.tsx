@@ -618,8 +618,8 @@ export function MemberEditDialog({
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="border border-gray-200 rounded-xl p-4 space-y-6">
+        <div className="space-y-[0.8rem]">
+          <div className="border border-gray-200 rounded-xl p-4 space-y-[0.8rem]">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">{t('memberEdit.label.workspaceInfoSection')}</h4>
               <p className="text-xs text-gray-500 mt-1">

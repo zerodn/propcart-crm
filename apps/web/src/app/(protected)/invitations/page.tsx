@@ -21,11 +21,11 @@ export default function InvitationsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {isLoading && (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+            <div key={i} className="glass-content-card rounded-xl p-5">
               <div className="flex items-center gap-4">
                 <Skeleton className="w-10 h-10 rounded-xl" />
                 <div className="space-y-2 flex-1">

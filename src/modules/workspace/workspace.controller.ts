@@ -18,6 +18,7 @@ import { InvitationService } from './invitation.service';
 import { WorkspaceService } from './workspace.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
@@ -43,6 +44,17 @@ export class WorkspaceController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.invitationService.sendInvitation(workspaceId, dto, user);
+  }
+
+  // PATCH /workspaces/:workspaceId — Update workspace settings (owner only)
+  @Patch('workspaces/:workspaceId')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  updateWorkspace(
+    @Param('workspaceId') workspaceId: string,
+    @Body() dto: UpdateWorkspaceDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.workspaceService.updateWorkspace(workspaceId, user.sub, dto);
   }
 
   // GET /workspaces/:workspaceId/members — List workspace members
@@ -124,6 +136,13 @@ export class WorkspaceController {
     }
     const result = await this.workspaceService.importMembersExcel(workspaceId, file.buffer);
     return { data: result };
+  }
+
+  // GET /workspaces/:workspaceId/members/me — Get current user's own member record
+  @Get('workspaces/:workspaceId/members/me')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getMyMember(@Param('workspaceId') workspaceId: string, @CurrentUser() currentUser: JwtPayload) {
+    return this.workspaceService.getMyMember(workspaceId, currentUser.sub);
   }
 
   // PATCH /workspaces/:workspaceId/members/:memberId — Update member info (role, status)

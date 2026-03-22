@@ -20,7 +20,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       title={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
       aria-label="Chuyển đổi chế độ sáng/tối"
-      className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+      className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 dark:border-white/20 bg-white dark:bg-white/10 text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.18] transition-colors"
     >
       {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
     </button>

@@ -118,6 +118,76 @@
   box-shadow: 0 30px 72px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+/* =================================================================
+   Dashboard Layout — Glassmorphism Sidebar & Header (Light/Dark)
+   ================================================================= */
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.78);
+  border-right: 1px solid rgba(0, 0, 0, 0.07);
+}
+.dark .glass-sidebar {
+  background: rgba(11, 31, 58, 0.82);
+  border-right: 1px solid rgba(255, 255, 255, 0.09);
+}
+.glass-header {
+  background: rgba(255, 255, 255, 0.86);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+.dark .glass-header {
+  background: rgba(11, 31, 58, 0.86);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+.glass-content-card {
+  /* 90% opaque — content cards allow the most background bleed */
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.03);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-content-card:hover {
+  border-color: rgba(207, 175, 110, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+.dark .glass-content-card {
+  background: rgba(11, 31, 58, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+.dark .glass-content-card:hover {
+  background: rgba(11, 31, 58, 0.86);
+  border-color: rgba(207, 175, 110, 0.25);
+}
+/* Glass panel — for filter bars, search containers, sub-panels */
+.glass-panel {
+  background: rgba(249, 250, 251, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.dark .glass-panel {
+  background: rgba(15, 30, 55, 0.80);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Dashboard background animation */
+@keyframes dashboardGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.dashboard-bg {
+  background: linear-gradient(135deg, #020c1a 0%, #071d3d 25%, #0b2448 50%, #0f2a52 75%, #0b1f3a 100%);
+  background-size: 400% 400%;
+  animation: dashboardGradientShift 20s ease-in-out infinite;
+}
+
+@keyframes dashboardFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dashboard-fade-in { animation: dashboardFadeIn 0.4s ease-out both; }
+
 /* Glass inputs */
 .glass-input {
   background: rgba(255, 255, 255, 0.14);
@@ -202,3 +272,24 @@
 .dark ::-webkit-scrollbar-track { background: rgb(17 24 39); }
 .dark ::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
 .dark ::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }
+
+/* ── Dialog & SlideOver elevation in dark mode ──────────────────────────────
+   Page bg ≈ hsl(214,68%,8%) ≈ rgb(7 22 46). Global .dark .bg-white maps to
+   rgb(17 24 39) — nearly indistinguishable. Override with slate-800 and add
+   border + shadow so the panel clearly "floats" above the backdrop.           */
+.dark [data-dialog-panel] {
+  background-color: rgb(30 41 59) !important;   /* slate-800 — noticeably lighter than page */
+  border: 1px solid rgba(100 130 180 / 0.18);
+  box-shadow:
+    0 0 0 1px rgba(207 175 110 / 0.12),         /* subtle gold ring */
+    0 24px 64px rgba(0 0 0 / 0.75),             /* deep drop shadow */
+    0 8px 24px rgba(0 0 0 / 0.45);
+}
+
+.dark [data-slideover-panel] {
+  background-color: rgb(30 41 59) !important;
+  border-left: 1px solid rgba(100 130 180 / 0.18);
+  box-shadow:
+    -1px 0 0 rgba(207 175 110 / 0.12),          /* subtle gold edge */
+    -16px 0 48px rgba(0 0 0 / 0.65);
+}

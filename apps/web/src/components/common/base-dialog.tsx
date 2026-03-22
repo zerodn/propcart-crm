@@ -65,13 +65,14 @@ export function BaseDialog({
 
   const dialogContent = (
     <div
-      className={`fixed inset-0 ${zIndexClassName} flex items-center justify-center p-4 bg-black/40`}
+      className={`fixed inset-0 ${zIndexClassName} flex items-center justify-center p-4 bg-black/60`}
       style={{ margin: 0, padding: '1rem' }}
     >
       <div
         className={`bg-white rounded-2xl shadow-xl w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col`}
         role="dialog"
         aria-modal="true"
+        data-dialog-panel
       >
         {/* Header - Fixed */}
         {!hideHeader && (

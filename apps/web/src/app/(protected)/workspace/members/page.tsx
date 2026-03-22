@@ -17,8 +17,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { InviteModal } from '@/components/workspace/invite-modal';
-import { MemberEditDialog } from '@/components/workspace/member-edit-dialog';
-import { MemberAddDialog } from '@/components/workspace/member-add-dialog';
+import { MemberDialog, type MemberForDialog } from '@/components/workspace/member-dialog';
 import { MemberImportDialog } from '@/components/workspace/member-import-dialog';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { useWorkspaceInvitations, useDeclinedInvitations } from '@/hooks/use-invitations';
@@ -307,7 +306,7 @@ export default function MembersPage() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Workspace members list */}
       <BaseDataGrid<WorkspaceMember>
         data={members}
@@ -354,7 +353,7 @@ export default function MembersPage() {
 
       {/* Pending invitations sent from this workspace */}
       {isAdminOrOwner && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="glass-content-card rounded-xl p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
             <Clock className="h-4 w-4 text-gray-400" />
             {t('members.pending')}
@@ -433,7 +432,7 @@ export default function MembersPage() {
 
       {/* Declined invitations history */}
       {isAdminOrOwner && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="glass-content-card rounded-xl p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
             <XCircle className="h-4 w-4 text-red-400" />
             {t('members.invitation.declined')}
@@ -527,31 +526,24 @@ export default function MembersPage() {
         />
       )}
 
-      {showEditDialog && editingMember && (
-        <MemberEditDialog
-          isOpen={showEditDialog}
-          onClose={() => {
-            setShowEditDialog(false);
-            setEditingMember(null);
-          }}
-          onSuccess={handleEditSuccess}
-          workspaceId={workspace?.id || ''}
-          member={editingMember}
-          availableRoles={Array.isArray(roles) ? roles : []}
-        />
-      )}
-
-      {showAddDialog && (
-        <MemberAddDialog
-          isOpen={showAddDialog}
-          onClose={() => setShowAddDialog(false)}
-          onSuccess={() => {
+      <MemberDialog
+        isOpen={showEditDialog || showAddDialog}
+        onClose={() => {
+          setShowEditDialog(false);
+          setShowAddDialog(false);
+          setEditingMember(null);
+        }}
+        onSuccess={() => {
+          if (showEditDialog) {
+            handleEditSuccess();
+          } else {
             refetchMembers();
-          }}
-          workspaceId={workspace?.id || ''}
-          availableRoles={Array.isArray(roles) ? roles : []}
-        />
-      )}
+          }
+        }}
+        workspaceId={workspace?.id || ''}
+        member={editingMember as MemberForDialog | null}
+        availableRoles={Array.isArray(roles) ? roles : []}
+      />
 
       {showImportDialog && (
         <MemberImportDialog

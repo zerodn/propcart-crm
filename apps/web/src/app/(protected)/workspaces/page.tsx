@@ -14,7 +14,7 @@ export default function WorkspacesPage() {
   usePageSetup({ title: t('workspaces.title'), subtitle: t('workspaces.subtitle') });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {isLoading && <GridSkeleton cols={3} rows={1} />}
 
       {error && (

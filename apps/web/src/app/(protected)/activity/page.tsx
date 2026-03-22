@@ -256,7 +256,7 @@ export default function ActivityPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[0.8rem]">
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <select
