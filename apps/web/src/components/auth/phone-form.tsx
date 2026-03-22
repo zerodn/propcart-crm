@@ -5,9 +5,17 @@ import { toast } from 'sonner';
 import { Loader2, Phone } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import apiClient from '@/lib/api-client';
+import { SocialLoginButtons } from './social-login-buttons';
+import type { User, Workspace } from '@/types';
 
 interface PhoneFormProps {
   onSuccess: (phone: string) => void;
+  onSocialLoginSuccess?: (
+    accessToken: string,
+    refreshToken: string,
+    user: User,
+    workspace: Workspace,
+  ) => void;
 }
 
 const COUNTRIES = [
@@ -19,7 +27,7 @@ const COUNTRIES = [
   { code: 'my', countryCode: '+60', flag: '🇲🇾', name: 'Malaysia' },
 ] as const;
 
-export function PhoneForm({ onSuccess }: PhoneFormProps) {
+export function PhoneForm({ onSuccess, onSocialLoginSuccess }: PhoneFormProps) {
   const { t } = useI18n();
   const [selectedCountry, setSelectedCountry] = useState(
     COUNTRIES[0] as (typeof COUNTRIES)[number],
@@ -127,7 +135,8 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
         {/* Preview number */}
         {phone && (
           <p className="text-xs text-white/50 pl-1">
-            Số đầy đủ: <span className="font-medium text-white/80">
+            {t('auth.login.phonePreviewLabel')}{' '}
+            <span className="font-medium text-white/80">
               {selectedCountry.countryCode}{phone.startsWith('0') ? phone.substring(1) : phone}
             </span>
           </p>
@@ -142,6 +151,11 @@ export function PhoneForm({ onSuccess }: PhoneFormProps) {
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
         {isLoading ? t('common.loading') : t('auth.login.sendOtp')}
       </button>
+
+      {/* Social login buttons — only shown on phone step */}
+      {onSocialLoginSuccess && (
+        <SocialLoginButtons onSuccess={onSocialLoginSuccess} />
+      )}
     </form>
   );
 }

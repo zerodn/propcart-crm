@@ -3,7 +3,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -24,17 +23,13 @@ interface OtpRecord {
 
 @Injectable()
 export class AuthService {
-  private googleClient: OAuth2Client;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {
-    this.googleClient = new OAuth2Client(this.configService.get<string>('google.clientId'));
-  }
+  ) {}
 
   // ============================================================
   // SEND OTP
@@ -161,19 +156,15 @@ export class AuthService {
   async googleAuth(dto: GoogleAuthDto) {
     const { google_token, device_hash, platform } = dto;
 
-    // Verify Google token
+    // Verify access token by calling Google userinfo endpoint
     let googlePayload: { googleId: string; email: string; name: string };
     try {
-      const ticket = await this.googleClient.verifyIdToken({
-        idToken: google_token,
-        audience: this.configService.get<string>('google.clientId'),
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${google_token}` },
       });
-      const payload = ticket.getPayload()!;
-      googlePayload = {
-        googleId: payload.sub!,
-        email: payload.email!,
-        name: payload.name!,
-      };
+      if (!res.ok) throw new Error(`Google userinfo returned ${res.status}`);
+      const info = (await res.json()) as { sub: string; email: string; name: string };
+      googlePayload = { googleId: info.sub, email: info.email, name: info.name };
     } catch {
       throw new HttpException(
         { code: 'GOOGLE_TOKEN_INVALID', message: 'Invalid or expired Google token' },
@@ -182,30 +173,44 @@ export class AuthService {
     }
 
     // Find user by googleId or email
-    let user =
-      (await this.userService.findByGoogleId(googlePayload.googleId)) ||
-      (await this.userService.findByEmail(googlePayload.email));
+    const userByGoogleId = await this.userService.findByGoogleId(googlePayload.googleId);
+    const userByEmail = userByGoogleId
+      ? null
+      : await this.userService.findByEmail(googlePayload.email);
+
+    // If email matches an unverified account that was not created via Google,
+    // block auto-linking to prevent account hijacking.
+    if (userByEmail && !userByEmail.emailVerifiedAt) {
+      throw new HttpException(
+        {
+          code: 'EMAIL_EXISTS_UNVERIFIED',
+          email: googlePayload.email,
+          message:
+            'Email này đã được đăng ký nhưng chưa xác thực. Vui lòng đăng nhập bằng số điện thoại và OTP, sau đó xác thực email trong phần Hồ sơ để liên kết tài khoản Google.',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    let user = userByGoogleId || userByEmail;
 
     if (!user) {
+      // New user — create without requiring a phone number
       user = await this.userService.createUser({
         googleId: googlePayload.googleId,
         email: googlePayload.email,
+        fullName: googlePayload.name,
+        emailVerifiedAt: new Date(),
       });
-    } else if (!user.googleId) {
-      // Link google to existing account
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { googleId: googlePayload.googleId },
-      });
-    }
-
-    // If phone is missing, return temp token for phone linking
-    if (!user.phone) {
-      const tempToken = this.jwtService.sign(
-        { type: 'google_link', sub: user!.id, googleId: googlePayload.googleId },
-        { expiresIn: this.configService.get<string>('jwt.tempExpires') || '10m' },
-      );
-      return { data: { status: 'PHONE_REQUIRED', temp_token: tempToken } };
+    } else {
+      // Existing user — link googleId and mark email as verified if not already
+      const updates: Record<string, unknown> = {};
+      if (!user.googleId) updates.googleId = googlePayload.googleId;
+      if (!user.emailVerifiedAt) updates.emailVerifiedAt = new Date();
+      if (Object.keys(updates).length > 0) {
+        await this.prisma.user.update({ where: { id: user.id }, data: updates });
+        user = { ...user, ...updates } as typeof user;
+      }
     }
 
     // Block login for disabled or banned accounts
@@ -222,21 +227,20 @@ export class AuthService {
       );
     }
 
-    // User has phone — issue full tokens
+    // Ensure the user has a personal workspace
+    const existingWorkspace = await this.prisma.workspace.findFirst({
+      where: { ownerUserId: user.id, type: 'PERSONAL' },
+    });
+    if (!existingWorkspace) {
+      await this.createPersonalWorkspace(user.id, user.fullName || user.email || user.id);
+    }
+
     const workspace = await this.prisma.workspace.findFirst({
       where: { ownerUserId: user.id, type: 'PERSONAL' },
     });
 
-    if (!workspace) {
-      await this.createPersonalWorkspace(user.id, user.phone || user.email || user.id);
-    }
-
-    const freshWorkspace = await this.prisma.workspace.findFirst({
-      where: { ownerUserId: user.id, type: 'PERSONAL' },
-    });
-
     const device = await this.userService.upsertDevice(user.id, device_hash, platform);
-    return this.issueTokenResponse(user, freshWorkspace, device.id);
+    return this.issueTokenResponse(user, workspace, device.id);
   }
 
   // ============================================================

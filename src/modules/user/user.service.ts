@@ -40,7 +40,13 @@ export class UserService {
     return this.prisma.user.findFirst({ where: { email } });
   }
 
-  async createUser(data: { phone?: string; email?: string; googleId?: string }): Promise<User> {
+  async createUser(data: {
+    phone?: string;
+    email?: string;
+    googleId?: string;
+    fullName?: string;
+    emailVerifiedAt?: Date;
+  }): Promise<User> {
     return this.prisma.user.create({ data });
   }
 
@@ -104,14 +110,23 @@ export class UserService {
           email: normalizedEmail,
           id: { not: userId },
         },
-        select: { id: true },
+        select: { id: true, emailVerifiedAt: true },
       });
 
       if (existing) {
-        throw new HttpException(
-          { code: 'EMAIL_ALREADY_EXISTS', message: 'Email already in use' },
-          HttpStatus.CONFLICT,
-        );
+        if (existing.emailVerifiedAt) {
+          // Email is verified on another account — block
+          throw new HttpException(
+            { code: 'EMAIL_ALREADY_EXISTS', message: 'Email already in use' },
+            HttpStatus.CONFLICT,
+          );
+        } else {
+          // Email exists but unverified on another account — release it
+          await this.prisma.user.update({
+            where: { id: existing.id },
+            data: { email: null },
+          });
+        }
       }
     }
 

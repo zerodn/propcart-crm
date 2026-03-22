@@ -32,6 +32,7 @@ model User {
   emailVerifyToken    String?   @unique
   emailVerifyExpiresAt DateTime?
   googleId     String?  @unique
+  appleId      String?  @unique
   passwordHash String?
   status       Int      @default(1) // 1=active, 0=inactive, 2=banned
   avatarUrl    String?   // Avatar URL từ MinIO

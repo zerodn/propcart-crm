@@ -75,7 +75,7 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
           type="button"
           onClick={onBack}
           className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-white/15 text-white/70 hover:text-white transition-colors flex-shrink-0"
-          aria-label="Quay lại"
+          aria-label={t('common.back')}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
         </button>

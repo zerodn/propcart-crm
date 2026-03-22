@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { HttpStatus } from '@nestjs/common';
 import * as crypto from 'crypto';
 
 import { AuthService } from './auth.service';
@@ -27,6 +28,7 @@ const mockUser = {
   emailVerifyToken: null,
   emailVerifyExpiresAt: null,
   googleId: null,
+  appleId: null,
   passwordHash: null,
   status: 1,
   avatarUrl: null,
@@ -160,6 +162,9 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn().mockReturnValue('mock.access.token'),
+            decode: jest
+              .fn()
+              .mockReturnValue({ jti: 'mock-jti', exp: Math.floor(Date.now() / 1000) + 900 }),
           },
         },
         {
@@ -283,17 +288,36 @@ describe('AuthService', () => {
   // ─── googleAuth ────────────────────────────────────────────
 
   describe('googleAuth', () => {
-    it('should return PHONE_REQUIRED when user has no phone', async () => {
-      // Mock Google client verification
-      const userNoPhone = { ...mockUser, phone: null };
+    const googleUserInfo = { sub: 'google-id-1', email: 'test@gmail.com', name: 'Test User' };
+
+    const mockFetchSuccess = () =>
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(googleUserInfo),
+      } as unknown as Response);
+
+    const mockFetchFailure = () =>
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({}),
+      } as unknown as Response);
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('should create new user without phone and return tokens', async () => {
+      mockFetchSuccess();
+      const newUser = {
+        ...mockUser,
+        phone: null,
+        googleId: 'google-id-1',
+        email: 'test@gmail.com',
+      };
       userService.findByGoogleId.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(null);
-      userService.createUser.mockResolvedValue(userNoPhone);
-
-      // Mock Google client verification
-      service['googleClient'].verifyIdToken = jest.fn().mockResolvedValue({
-        getPayload: () => ({ sub: 'google-id-1', email: 'test@gmail.com', name: 'Test User' }),
-      });
+      userService.createUser.mockResolvedValue(newUser);
+      userService.upsertDevice.mockResolvedValue(mockDevice);
+      prisma.workspace.findFirst.mockResolvedValue(mockWorkspace);
 
       const result = await service.googleAuth({
         google_token: 'valid-google-token',
@@ -301,18 +325,17 @@ describe('AuthService', () => {
         platform: 'web',
       });
 
-      expect(result.data).toHaveProperty('status', 'PHONE_REQUIRED');
-      expect(result.data).toHaveProperty('temp_token');
+      expect(userService.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ googleId: 'google-id-1', emailVerifiedAt: expect.any(Date) }),
+      );
+      expect(result.data).toHaveProperty('access_token');
     });
 
-    it('should return tokens when user has phone', async () => {
+    it('should return tokens when user already has a phone', async () => {
+      mockFetchSuccess();
       userService.findByGoogleId.mockResolvedValue(mockUser);
       userService.upsertDevice.mockResolvedValue(mockDevice);
       prisma.workspace.findFirst.mockResolvedValue(mockWorkspace);
-
-      service['googleClient'].verifyIdToken = jest.fn().mockResolvedValue({
-        getPayload: () => ({ sub: 'google-id-1', email: 'test@gmail.com', name: 'Test User' }),
-      });
 
       const result = await service.googleAuth({
         google_token: 'valid-google-token',
@@ -323,8 +346,8 @@ describe('AuthService', () => {
       expect(result.data).toHaveProperty('access_token');
     });
 
-    it('should throw GOOGLE_TOKEN_INVALID when token verification fails', async () => {
-      service['googleClient'].verifyIdToken = jest.fn().mockRejectedValue(new Error('invalid'));
+    it('should throw GOOGLE_TOKEN_INVALID when userinfo returns non-ok', async () => {
+      mockFetchFailure();
 
       await expect(
         service.googleAuth({ google_token: 'bad-token', device_hash: 'h', platform: 'web' }),
@@ -334,6 +357,63 @@ describe('AuthService', () => {
           status: HttpStatus.UNAUTHORIZED,
         }),
       );
+    });
+
+    it('should throw EMAIL_EXISTS_UNVERIFIED when email matched but not verified', async () => {
+      mockFetchSuccess();
+      const unverifiedUser = {
+        ...mockUser,
+        phone: '+84901111111',
+        googleId: null,
+        email: 'test@gmail.com',
+        emailVerifiedAt: null,
+      };
+      userService.findByGoogleId.mockResolvedValue(null);
+      userService.findByEmail.mockResolvedValue(unverifiedUser);
+
+      await expect(
+        service.googleAuth({
+          google_token: 'valid-google-token',
+          device_hash: 'h',
+          platform: 'web',
+        }),
+      ).rejects.toThrow(
+        expect.objectContaining({
+          response: expect.objectContaining({
+            code: 'EMAIL_EXISTS_UNVERIFIED',
+            email: 'test@gmail.com',
+          }),
+          status: HttpStatus.CONFLICT,
+        }),
+      );
+
+      expect(userService.createUser).not.toHaveBeenCalled();
+    });
+
+    it('should auto-link when email matched and already verified', async () => {
+      mockFetchSuccess();
+      const verifiedUser = {
+        ...mockUser,
+        googleId: null,
+        email: 'test@gmail.com',
+        emailVerifiedAt: new Date(),
+      };
+      userService.findByGoogleId.mockResolvedValue(null);
+      userService.findByEmail.mockResolvedValue(verifiedUser);
+      userService.upsertDevice.mockResolvedValue(mockDevice);
+      prisma.user.update.mockResolvedValue({ ...verifiedUser, googleId: 'google-id-1' });
+      prisma.workspace.findFirst.mockResolvedValue(mockWorkspace);
+
+      const result = await service.googleAuth({
+        google_token: 'valid-google-token',
+        device_hash: 'hash-abc',
+        platform: 'web',
+      });
+
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ googleId: 'google-id-1' }) }),
+      );
+      expect(result.data).toHaveProperty('access_token');
     });
   });
 

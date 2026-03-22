@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, MapPin, Users, TrendingUp } from 'lucide-react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { PhoneForm } from '@/components/auth/phone-form';
 import { OtpForm } from '@/components/auth/otp-form';
 import { useAuth } from '@/providers/auth-provider';
@@ -34,12 +35,14 @@ export default function LoginPage() {
     router.push('/dashboard');
   };
 
-  return (
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+
+  const content = (
     /* NO overflow-hidden here — the dropdown must escape to display correctly */
     <div className="relative min-h-screen flex">
 
-      {/* ─── Background layer (overflow-hidden only here to clip bg elements) ─── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* ─── Background layer (overflow-hidden only here to clip bg elements) ─── */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* City night sky gradient */}
         <div
           className="absolute inset-0"
@@ -201,18 +204,18 @@ export default function LoginPage() {
         {/* Main heading — no forced linebreak, wraps naturally */}
         <h1 className="font-heading font-bold text-white leading-snug drop-shadow-lg"
           style={{ fontSize: 'clamp(1.75rem, 2.5vw, 2.5rem)', maxWidth: '560px' }}>
-          Không gian làm việc lý tưởng cho bất động sản chuyên nghiệp
+          {t('auth.login.tagline')}
         </h1>
         <p className="mt-5 text-white/60 text-base leading-relaxed" style={{ maxWidth: '460px' }}>
-          Nền tảng CRM đa thuê bao — quản lý khách hàng, dự án và nhân sự trong một hệ thống thống nhất.
+          {t('auth.login.taglineDesc')}
         </p>
 
         {/* Stats row */}
         <div className="mt-10 flex gap-5" style={{ maxWidth: '420px' }}>
           {[
-            { icon: Users, stat: '100k+', label: 'Người dùng' },
-            { icon: MapPin, stat: '50k+', label: 'Bất động sản' },
-            { icon: TrendingUp, stat: '99.9%', label: 'Uptime' },
+            { icon: Users, stat: '100k+', label: t('auth.login.statUsers') },
+            { icon: MapPin, stat: '50k+', label: t('auth.login.statProperties') },
+            { icon: TrendingUp, stat: '99.9%', label: t('auth.login.statUptime') },
           ].map(({ icon: Icon, stat, label }) => (
             <div key={label} className="flex-1 flex flex-col items-center text-center py-4 px-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <Icon className="h-5 w-5 text-[#CFAF6E] mb-2" />
@@ -238,7 +241,7 @@ export default function LoginPage() {
               <Building2 className="h-7 w-7 text-[#CFAF6E]" />
             </div>
             <p className="text-lg font-bold text-white font-heading">PropCart CRM</p>
-            <p className="text-sm text-white/55 mt-0.5">Không gian làm việc lý tưởng</p>
+            <p className="text-sm text-white/55 mt-0.5">{t('auth.login.mobileSubtitle')}</p>
           </div>
 
           {/* Glass Card */}
@@ -251,7 +254,7 @@ export default function LoginPage() {
               </div>
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-white font-heading leading-tight">
-                  {step === 'phone' ? 'Đăng nhập vào PropCart' : t('auth.login.enterOtp')}
+                  {step === 'phone' ? t('auth.login.loginTitle') : t('auth.login.enterOtp')}
                 </h2>
                 <p className="text-xs text-white/50 mt-1 leading-relaxed">
                   {step === 'phone' ? t('auth.login.enterPhone') : t('auth.login.verifyOtp')}
@@ -261,7 +264,7 @@ export default function LoginPage() {
 
             {/* Form */}
             {step === 'phone' ? (
-              <PhoneForm onSuccess={handlePhoneSuccess} />
+              <PhoneForm onSuccess={handlePhoneSuccess} onSocialLoginSuccess={handleOtpSuccess} />
             ) : (
               <OtpForm
                 phone={phone}
@@ -278,10 +281,15 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-white/30 mt-5">
-            © 2026 PropCart CRM · Dành cho nội bộ
+            {t('auth.login.copyright')}
           </p>
         </div>
       </div>
     </div>
   );
+
+  if (googleClientId) {
+    return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
+  }
+  return content;
 }

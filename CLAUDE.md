@@ -212,6 +212,7 @@ Breakpoints (Tailwind convention):
 
 ### UI/UX Rules
 
+- Mọi page đề hỗ trợ đa ngôn ngữ, tất cả các text đều phải được dịch sang các ngôn ngữ hỗ trợ.
 - Mọi action async phải có loading state
 - Mọi form phải có error state rõ ràng (inline validation)
 - Mọi trang phải có skeleton loading (không dùng spinner toàn trang)
