@@ -6,11 +6,16 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor: attach Bearer token
+// Request interceptor: attach Bearer token + disable browser HTTP cache for GET
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Prevent browser (especially Safari) from serving stale cached GET responses
+  if (!config.method || config.method.toLowerCase() === 'get') {
+    config.headers['Cache-Control'] = 'no-cache, no-store';
+    config.headers['Pragma'] = 'no-cache';
   }
   return config;
 });

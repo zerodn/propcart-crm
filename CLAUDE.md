@@ -211,7 +211,9 @@ Breakpoints (Tailwind convention):
 | Desktop    | 1024px+        |
 
 ### UI/UX Rules
-
+- Tái sử dụng các component dùng chung: Dialog, File, Slide View, Image view, Css
+- Upload file stream lên minio theo chuẩn hệ thống đảm bảo performance, ko chiếm bộ nhớ ram gây cao tải.
+- Đối với các thao tác xoá, cần xử lý confirm trước khi xoá
 - Mọi page đề hỗ trợ đa ngôn ngữ, tất cả các text đều phải được dịch sang các ngôn ngữ hỗ trợ.
 - Mọi action async phải có loading state
 - Mọi form phải có error state rõ ràng (inline validation)

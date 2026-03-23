@@ -46,6 +46,7 @@ export class UserService {
     googleId?: string;
     fullName?: string;
     emailVerifiedAt?: Date;
+    avatarUrl?: string;
   }): Promise<User> {
     return this.prisma.user.create({ data });
   }
@@ -93,7 +94,7 @@ export class UserService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const currentUser = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true },
+      select: { phone: true, email: true, emailVerifiedAt: true },
     });
 
     if (!currentUser) {
@@ -103,7 +104,42 @@ export class UserService {
       );
     }
 
+    // Phone linking: only allowed when current user has no phone (e.g. Google-only users)
+    let normalizedPhone: string | undefined;
+    if (dto.phone !== undefined) {
+      if (currentUser.phone) {
+        throw new HttpException(
+          { code: 'PHONE_ALREADY_SET', message: 'Cannot change an existing phone number' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      normalizedPhone = dto.phone.trim();
+      const phoneConflict = await this.prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+      });
+      if (phoneConflict) {
+        throw new HttpException(
+          { code: 'PHONE_ALREADY_EXISTS', message: 'Phone number already in use' },
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
     const normalizedEmail = dto.email?.trim().toLowerCase() || null;
+
+    const emailChanged = normalizedEmail !== (currentUser.email || null);
+
+    // Cannot change a verified email (Google / Apple / email-link verified)
+    if (emailChanged && currentUser.emailVerifiedAt) {
+      throw new HttpException(
+        {
+          code: 'EMAIL_VERIFIED_LOCKED',
+          message: 'Cannot change a verified email address',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     if (normalizedEmail) {
       const existing = await this.prisma.user.findFirst({
         where: {
@@ -130,8 +166,6 @@ export class UserService {
       }
     }
 
-    const emailChanged = normalizedEmail !== (currentUser.email || null);
-
     // Validate and parse dateOfBirth
     let parsedDateOfBirth: Date | null = null;
     if (dto.dateOfBirth && dto.dateOfBirth.trim()) {
@@ -144,6 +178,7 @@ export class UserService {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
+        ...(normalizedPhone !== undefined ? { phone: normalizedPhone } : {}),
         fullName: dto.fullName?.trim() || null,
         addressLine: dto.addressLine?.trim() || null,
         email: normalizedEmail,
@@ -153,7 +188,8 @@ export class UserService {
         districtName: dto.districtName || null,
         wardCode: dto.wardCode || null,
         wardName: dto.wardName || null,
-        avatarUrl: dto.avatarUrl || null,
+        // Only update avatarUrl when explicitly provided; omitting it preserves the existing value
+        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl || null } : {}),
         gender: dto.gender || null,
         dateOfBirth: parsedDateOfBirth,
         ...(emailChanged
@@ -490,6 +526,45 @@ export class UserService {
     const updated = await this.prisma.userDocument.update({
       where: { id: document.id },
       data: { documentType },
+      select: {
+        id: true,
+        documentType: true,
+        fileName: true,
+        fileType: true,
+        fileSize: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      data: {
+        ...updated,
+        downloadUrl: `/me/profile/documents/${updated.id}/download`,
+      },
+    };
+  }
+
+  async renameDocument(
+    userId: string,
+    workspaceId: string,
+    documentId: string,
+    fileName: string,
+  ) {
+    const document = await this.prisma.userDocument.findFirst({
+      where: { id: documentId, userId, workspaceId },
+      select: { id: true },
+    });
+
+    if (!document) {
+      throw new HttpException(
+        { code: 'DOCUMENT_NOT_FOUND', message: 'Document not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const updated = await this.prisma.userDocument.update({
+      where: { id: document.id },
+      data: { fileName: fileName.trim() },
       select: {
         id: true,
         documentType: true,

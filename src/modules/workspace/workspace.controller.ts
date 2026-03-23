@@ -57,6 +57,18 @@ export class WorkspaceController {
     return this.workspaceService.updateWorkspace(workspaceId, user.sub, dto);
   }
 
+  // POST /workspaces/:workspaceId/upload-logo — Upload workspace logo
+  @Post('workspaces/:workspaceId/upload-logo')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadWorkspaceLogo(
+    @Param('workspaceId') workspaceId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.workspaceService.uploadWorkspaceLogo(workspaceId, user.sub, file);
+  }
+
   // GET /workspaces/:workspaceId/members — List workspace members
   @Get('workspaces/:workspaceId/members')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)

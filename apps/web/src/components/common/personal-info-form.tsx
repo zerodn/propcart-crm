@@ -52,7 +52,7 @@ export function PersonalInfoForm({
         const response = await fetch('https://provinces.open-api.vn/api/v2/?depth=1');
         const provinceList = (await response.json()) as LocationItem[];
         setProvinces(provinceList || []);
-        console.log('[PersonalInfoForm] Loaded provinces:', provinceList.length);
+
       } catch (err) {
         console.error('Failed to load provinces:', err);
       } finally {

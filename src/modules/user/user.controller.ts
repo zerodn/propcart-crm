@@ -21,6 +21,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ListDocumentsDto } from './dto/list-documents.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { UpdateDocumentTypeDto } from './dto/update-document-type.dto';
+import { RenameDocumentDto } from './dto/rename-document.dto';
 import { Response } from 'express';
 
 interface UploadedDocumentFile {
@@ -113,6 +114,21 @@ export class UserController {
       user.workspaceId,
       documentId,
       dto.documentType,
+    );
+  }
+
+  @Patch('me/profile/documents/:documentId/name')
+  @UseGuards(JwtAuthGuard)
+  renameMyDocument(
+    @CurrentUser() user: JwtPayload,
+    @Param('documentId') documentId: string,
+    @Body() dto: RenameDocumentDto,
+  ) {
+    return this.userService.renameDocument(
+      user.sub,
+      user.workspaceId,
+      documentId,
+      dto.fileName,
     );
   }
 }

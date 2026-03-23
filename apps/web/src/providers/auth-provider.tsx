@@ -191,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (accessToken: string, refreshToken: string, user: User, workspace: Workspace) => {
       setTokens(accessToken, refreshToken);
       setWorkspaceName(workspace.name);
+      hasRefreshedRef.current = false;
       const payload = decodeJwt(accessToken);
       setState({
         user,
@@ -212,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ignore errors on logout
     } finally {
       clearTokens();
+      hasRefreshedRef.current = false;
       setState({
         user: null,
         workspace: null,
@@ -259,38 +261,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     try {
-      const { data } = await apiClient.get('/me/profile');
-      const profile = data?.data;
+      const [profileRes, workspacesRes] = await Promise.all([
+        apiClient.get('/me/profile'),
+        apiClient.get('/auth/workspaces'),
+      ]);
+      const profile = profileRes.data?.data;
       if (!profile) return;
 
-      setState((s) => ({
-        ...s,
-        user: {
-          id: profile.id,
-          phone: normalizeNullableText(profile.phone),
-          email: normalizeNullableText(profile.email),
-          fullName: normalizeNullableText(profile.fullName),
-          addressLine: normalizeNullableText(profile.addressLine),
-          provinceCode: normalizeNullableText(profile.provinceCode),
-          provinceName: normalizeNullableText(profile.provinceName),
-          districtCode: normalizeNullableText(profile.districtCode),
-          districtName: normalizeNullableText(profile.districtName),
-          wardCode: normalizeNullableText(profile.wardCode),
-          wardName: normalizeNullableText(profile.wardName),
-          emailVerifiedAt: profile.emailVerifiedAt ?? null,
-        },
-      }));
+      // Sync workspace name from server (prevents stale name from localStorage)
+      const workspacesList: Array<{ id: string; name: string; type: string }> =
+        workspacesRes.data?.data ?? [];
+      setState((s) => {
+        const freshWs = workspacesList.find((w) => w.id === s.workspace?.id);
+        if (freshWs && freshWs.name !== s.workspace?.name) {
+          setWorkspaceName(freshWs.name);
+        }
+        return {
+          ...s,
+          workspace:
+            freshWs && s.workspace
+              ? { ...s.workspace, name: freshWs.name }
+              : s.workspace,
+          user: {
+            id: profile.id,
+            phone: normalizeNullableText(profile.phone),
+            email: normalizeNullableText(profile.email),
+            fullName: normalizeNullableText(profile.fullName),
+            addressLine: normalizeNullableText(profile.addressLine),
+            provinceCode: normalizeNullableText(profile.provinceCode),
+            provinceName: normalizeNullableText(profile.provinceName),
+            districtCode: normalizeNullableText(profile.districtCode),
+            districtName: normalizeNullableText(profile.districtName),
+            wardCode: normalizeNullableText(profile.wardCode),
+            wardName: normalizeNullableText(profile.wardName),
+            emailVerifiedAt: profile.emailVerifiedAt ?? null,
+            avatarUrl: profile.avatarUrl ?? null,
+          },
+        };
+      });
     } catch {
       // Silent fail because this is a non-critical state refresh.
     }
   }, []);
 
+  // Run once when auth is ready — always fetch fresh user + workspace data from server
+  const hasRefreshedRef = useRef(false);
   useEffect(() => {
     if (!state.isAuthenticated) return;
     if (state.isLoading) return;
-    if (state.user?.fullName) return;
+    if (hasRefreshedRef.current) return;
+    hasRefreshedRef.current = true;
     void refreshProfile();
-  }, [refreshProfile, state.isAuthenticated, state.isLoading, state.user?.fullName]);
+  }, [refreshProfile, state.isAuthenticated, state.isLoading]);
 
   return (
     <AuthContext.Provider value={{ ...state, login, logout, switchWorkspace, refreshProfile, updateWorkspaceName }}>

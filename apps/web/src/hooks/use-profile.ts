@@ -8,6 +8,7 @@ export type DocumentTypeOption = (typeof DOCUMENT_TYPE_OPTIONS)[number];
 export type DocumentTypeValue = Exclude<DocumentTypeOption, 'ALL'>;
 
 export interface UpdateProfilePayload {
+  phone?: string;
   fullName?: string;
   addressLine?: string;
   email?: string;
@@ -74,7 +75,11 @@ export function useProfile() {
         payload,
       });
 
-      if (code === 'EMAIL_ALREADY_EXISTS') {
+      if (code === 'PHONE_ALREADY_EXISTS') {
+        toast.error('Số điện thoại này đã được sử dụng bởi tài khoản khác');
+      } else if (code === 'PHONE_ALREADY_SET') {
+        toast.error('Không thể thay đổi số điện thoại đã liên kết');
+      } else if (code === 'EMAIL_ALREADY_EXISTS') {
         toast.error('Email nay da duoc su dung');
       } else if (message && Array.isArray(message)) {
         // Validation errors from class-validator
@@ -191,6 +196,20 @@ export function useProfile() {
     return response.data as Blob;
   }, []);
 
+  const renameDocument = useCallback(
+    async (documentId: string, fileName: string) => {
+      try {
+        await apiClient.patch(`/me/profile/documents/${documentId}/name`, { fileName });
+        await fetchDocuments(activeDocumentType);
+        toast.success('Đã đổi tên tài liệu');
+      } catch {
+        toast.error('Không thể đổi tên tài liệu');
+        throw new Error('rename-document-failed');
+      }
+    },
+    [activeDocumentType, fetchDocuments],
+  );
+
   return {
     profile,
     documents,
@@ -204,6 +223,7 @@ export function useProfile() {
     deleteDocument,
     downloadDocument,
     fetchDocumentBlob,
+    renameDocument,
     activeDocumentType,
     setDocumentTypeFilter,
   };

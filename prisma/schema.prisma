@@ -78,6 +78,10 @@ model Workspace {
   id          String   @id @default(uuid())
   type        String   // 'PERSONAL' | 'COMPANY'
   name        String
+  code        String?  @unique // Mã workspace (unique toàn hệ thống)
+  address     String?  // Địa chỉ trụ sở
+  logoUrl     String?  // Logo URL từ MinIO
+  isPublic    Boolean  @default(false) // Cho phép tìm kiếm công khai để tham gia
   ownerUserId String
   status      Int      @default(1) // 1=active, 0=inactive
   customerSeq Int      @default(0) // Auto-increment counter for customer codes

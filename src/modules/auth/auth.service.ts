@@ -145,8 +145,109 @@ export class AuthService {
     // Upsert device
     const device = await this.userService.upsertDevice(user.id, device_hash, platform);
 
-    // Issue tokens
-    return this.issueTokenResponse(user, workspace, device.id);
+    // Detect Google orphan account (phone=null) sharing the same verified email
+    // If found, propose a merge so both identities resolve to one account.
+    let mergeSuggestion: {
+      mergeToken: string;
+      googleAccount: { fullName: string | null; email: string; avatarUrl: string | null };
+    } | undefined;
+
+    if (user.email && user.emailVerifiedAt) {
+      const googleOrphan = await this.prisma.user.findFirst({
+        where: {
+          email: user.email,
+          phone: null,
+          googleId: { not: null },
+          id: { not: user.id },
+          status: 1,
+        },
+        select: { id: true, fullName: true, email: true, avatarUrl: true },
+      });
+
+      if (googleOrphan) {
+        const mergeToken = uuidv4();
+        await this.cacheManager.set(
+          `merge:${mergeToken}`,
+          JSON.stringify({ phoneUserId: user.id, googleUserId: googleOrphan.id }),
+          5 * 60 * 1000, // 5 minutes
+        );
+        mergeSuggestion = {
+          mergeToken,
+          googleAccount: {
+            fullName: googleOrphan.fullName,
+            email: googleOrphan.email!,
+            avatarUrl: googleOrphan.avatarUrl,
+          },
+        };
+      }
+    }
+
+    const tokenResponse = await this.issueTokenResponse(user, workspace, device.id);
+    if (mergeSuggestion) {
+      (tokenResponse.data as Record<string, unknown>).mergeSuggestion = mergeSuggestion;
+    }
+    return tokenResponse;
+  }
+
+  // ============================================================
+  // ACCEPT MERGE
+  // ============================================================
+
+  async acceptMerge(phoneUserId: string, mergeToken: string) {
+    const raw = await this.cacheManager.get<string>(`merge:${mergeToken}`);
+    if (!raw) {
+      throw new HttpException(
+        { code: 'MERGE_TOKEN_INVALID', message: 'Merge token invalid or expired' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const { phoneUserId: storedPhoneId, googleUserId } = JSON.parse(raw) as {
+      phoneUserId: string;
+      googleUserId: string;
+    };
+
+    if (storedPhoneId !== phoneUserId) {
+      throw new HttpException(
+        { code: 'MERGE_TOKEN_MISMATCH', message: 'Merge token does not match current user' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const googleUser = await this.prisma.user.findUnique({ where: { id: googleUserId } });
+    if (!googleUser) {
+      throw new HttpException(
+        { code: 'MERGE_SOURCE_NOT_FOUND', message: 'Google account no longer exists' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Copy Google identity fields onto phone user (only if phone user lacks them)
+    const updates: Record<string, unknown> = { googleId: googleUser.googleId };
+    const phoneUser = await this.prisma.user.findUnique({ where: { id: phoneUserId } });
+    if (!phoneUser?.avatarUrl && googleUser.avatarUrl) updates.avatarUrl = googleUser.avatarUrl;
+    if (!phoneUser?.fullName && googleUser.fullName) updates.fullName = googleUser.fullName;
+
+    await this.prisma.$transaction([
+      // Merge into phone user
+      this.prisma.user.update({ where: { id: phoneUserId }, data: updates }),
+      // Disable Google orphan (keep record for audit; nullify google unique key handled below)
+      this.prisma.user.update({
+        where: { id: googleUserId },
+        data: { status: 0, googleId: null, email: null },
+      }),
+    ]);
+
+    await this.cacheManager.del(`merge:${mergeToken}`);
+
+    // Re-fetch updated phone user for fresh token response
+    const updatedUser = await this.prisma.user.findUnique({ where: { id: phoneUserId } });
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { ownerUserId: phoneUserId, type: 'PERSONAL' },
+    });
+    const device = await this.userService.upsertDevice(phoneUserId, '', 'merge');
+
+    return this.issueTokenResponse(updatedUser!, workspace, device.id);
   }
 
   // ============================================================
@@ -157,14 +258,19 @@ export class AuthService {
     const { google_token, device_hash, platform } = dto;
 
     // Verify access token by calling Google userinfo endpoint
-    let googlePayload: { googleId: string; email: string; name: string };
+    let googlePayload: { googleId: string; email: string; name: string; picture?: string };
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${google_token}` },
       });
       if (!res.ok) throw new Error(`Google userinfo returned ${res.status}`);
-      const info = (await res.json()) as { sub: string; email: string; name: string };
-      googlePayload = { googleId: info.sub, email: info.email, name: info.name };
+      const info = (await res.json()) as {
+        sub: string;
+        email: string;
+        name: string;
+        picture?: string;
+      };
+      googlePayload = { googleId: info.sub, email: info.email, name: info.name, picture: info.picture };
     } catch {
       throw new HttpException(
         { code: 'GOOGLE_TOKEN_INVALID', message: 'Invalid or expired Google token' },
@@ -201,12 +307,16 @@ export class AuthService {
         email: googlePayload.email,
         fullName: googlePayload.name,
         emailVerifiedAt: new Date(),
+        ...(googlePayload.picture ? { avatarUrl: googlePayload.picture } : {}),
       });
     } else {
       // Existing user — link googleId and mark email as verified if not already
       const updates: Record<string, unknown> = {};
       if (!user.googleId) updates.googleId = googlePayload.googleId;
       if (!user.emailVerifiedAt) updates.emailVerifiedAt = new Date();
+      // Backfill fullName and avatarUrl only if user hasn't set them yet
+      if (!user.fullName && googlePayload.name) updates.fullName = googlePayload.name;
+      if (!user.avatarUrl && googlePayload.picture) updates.avatarUrl = googlePayload.picture;
       if (Object.keys(updates).length > 0) {
         await this.prisma.user.update({ where: { id: user.id }, data: updates });
         user = { ...user, ...updates } as typeof user;
@@ -394,6 +504,10 @@ export class AuthService {
       id: m.workspace.id,
       type: m.workspace.type,
       name: m.workspace.name,
+      code: m.workspace.code,
+      address: m.workspace.address,
+      logoUrl: m.workspace.logoUrl,
+      isPublic: m.workspace.isPublic,
       role: m.role.code,
       is_active: m.workspace.id === currentUser.workspaceId,
     }));
@@ -612,6 +726,7 @@ export class AuthService {
           wardCode: user.wardCode,
           wardName: user.wardName,
           emailVerifiedAt: user.emailVerifiedAt,
+          avatarUrl: user.avatarUrl,
         },
         workspace: { id: workspace.id, type: workspace.type, name: workspace.name },
       },

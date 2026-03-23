@@ -270,6 +270,14 @@ export class CatalogService {
       await this.initializeTaskPriorityCatalog(workspaceId);
     }
 
+    // Auto-initialize document type catalog if it doesn't exist
+    const documentTypeCatalogExists = await this.prisma.catalog.findFirst({
+      where: { workspaceId, type: 'DOCUMENT_TYPE', code: 'DOCUMENT_TYPE' },
+    });
+    if (!documentTypeCatalogExists) {
+      await this.initializeDocumentTypeCatalog(workspaceId);
+    }
+
     return this.prisma.catalog.findMany({
       where,
       include: {
@@ -1193,6 +1201,29 @@ export class CatalogService {
         { catalogId: catalog.id, value: 'HIGH', label: 'Cao', color: '#ef4444', order: 0 },
         { catalogId: catalog.id, value: 'MEDIUM', label: 'Trung bình', color: '#f59e0b', order: 1 },
         { catalogId: catalog.id, value: 'LOW', label: 'Thấp', color: '#3b82f6', order: 2 },
+      ],
+    });
+
+    return catalog;
+  }
+
+  private async initializeDocumentTypeCatalog(workspaceId: string) {
+    const catalog = await this.prisma.catalog.create({
+      data: {
+        workspaceId,
+        type: 'DOCUMENT_TYPE',
+        code: 'DOCUMENT_TYPE',
+        name: 'Danh mục tài liệu',
+        parentId: null,
+      },
+    });
+
+    await this.prisma.catalogValue.createMany({
+      data: [
+        { catalogId: catalog.id, value: 'CCCD', label: 'CCCD/CMND', order: 0 },
+        { catalogId: catalog.id, value: 'HDLD', label: 'Hợp đồng lao động', order: 1 },
+        { catalogId: catalog.id, value: 'CHUNG_CHI', label: 'Chứng chỉ', order: 2 },
+        { catalogId: catalog.id, value: 'OTHER', label: 'Khác', order: 3 },
       ],
     });
 

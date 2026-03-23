@@ -185,7 +185,11 @@ export class WorkspaceService {
     };
   }
 
-  async updateWorkspace(workspaceId: string, userId: string, dto: { name: string }) {
+  async updateWorkspace(
+    workspaceId: string,
+    userId: string,
+    dto: { name?: string; code?: string; address?: string; logoUrl?: string; isPublic?: boolean },
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: { id: true, ownerUserId: true },
@@ -208,13 +212,88 @@ export class WorkspaceService {
       );
     }
 
+    // Check code uniqueness (exclude current workspace)
+    if (dto.code) {
+      const existing = await this.prisma.workspace.findFirst({
+        where: { code: dto.code, id: { not: workspaceId } },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new HttpException(
+          { code: 'WORKSPACE_CODE_TAKEN', message: 'Mã workspace đã được sử dụng' },
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (dto.name !== undefined) updateData.name = dto.name.trim();
+    if (dto.code !== undefined) updateData.code = dto.code.trim().toUpperCase();
+    if (dto.address !== undefined) updateData.address = dto.address.trim() || null;
+    if (dto.logoUrl !== undefined) updateData.logoUrl = dto.logoUrl || null;
+    if (dto.isPublic !== undefined) updateData.isPublic = dto.isPublic;
+
     const updated = await this.prisma.workspace.update({
       where: { id: workspaceId },
-      data: { name: dto.name.trim() },
-      select: { id: true, name: true, type: true },
+      data: updateData,
+      select: { id: true, name: true, type: true, code: true, address: true, logoUrl: true, isPublic: true },
     });
 
     return { data: updated };
+  }
+
+  async uploadWorkspaceLogo(workspaceId: string, userId: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new HttpException(
+        { code: 'FILE_REQUIRED', message: 'Logo file is required' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      throw new HttpException(
+        { code: 'INVALID_FILE_TYPE', message: 'Only image files are allowed' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new HttpException(
+        { code: 'FILE_TOO_LARGE', message: 'Maximum file size is 5MB' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, ownerUserId: true },
+    });
+    if (!workspace) {
+      throw new HttpException(
+        { code: 'WORKSPACE_NOT_FOUND', message: 'Workspace không tồn tại' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    if (workspace.ownerUserId !== userId) {
+      throw new HttpException(
+        { code: 'FORBIDDEN', message: 'Chỉ chủ sở hữu workspace mới có thể thực hiện thao tác này' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const uploaded = await this.minioService.uploadPropertyImage(workspaceId, {
+      buffer: file.buffer,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+      size: file.size,
+    });
+
+    await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { logoUrl: uploaded.fileUrl },
+    });
+
+    return { data: { logoUrl: uploaded.fileUrl, objectKey: uploaded.objectKey } };
   }
 
   async updateMember(

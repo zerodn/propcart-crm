@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Download, RotateCw, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 
@@ -30,6 +31,7 @@ export function BaseImagePreviewDialog({
   const [rotation, setRotation] = useState(0);
   const [zoom, setZoom] = useState(1);
   const { t } = useI18n();
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const safeIndex = currentIndex ?? 0;
   const currentItem = items[safeIndex];
@@ -45,6 +47,37 @@ export function BaseImagePreviewDialog({
     setRotation(0);
     setZoom(1);
   }, [isOpen, currentIndex]);
+
+  // Mouse-wheel zoom (non-passive so preventDefault works)
+  useEffect(() => {
+    const el = imageContainerRef.current;
+    if (!el || !isOpen) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom((prev) => Math.min(3, Math.max(0.5, Number((prev + delta).toFixed(2)))));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [isOpen]);
+
+  const handleDownload = useCallback(async () => {
+    if (onDownload) { onDownload(currentItem!); return; }
+    try {
+      const res = await fetch(currentItem!.src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentItem!.downloadFileName ?? currentItem!.title;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(currentItem!.src, '_blank');
+    }
+  }, [currentItem, onDownload]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,7 +108,7 @@ export function BaseImagePreviewDialog({
 
   if (!isOpen || !currentItem) return null;
 
-  return (
+  const content = (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75">
       <div className="absolute inset-0" onClick={onClose} />
 
@@ -98,7 +131,7 @@ export function BaseImagePreviewDialog({
           </button>
         </div>
 
-        <div className="flex h-full items-center justify-center overflow-auto px-6 pb-24 pt-24">
+        <div ref={imageContainerRef} className="flex h-full items-center justify-center overflow-auto px-6 pb-24 pt-24" style={{ cursor: zoom > 1 ? 'grab' : 'default' }}>
           <img
             src={currentItem.src}
             alt={currentItem.title}
@@ -176,7 +209,7 @@ export function BaseImagePreviewDialog({
 
           <button
             type="button"
-            onClick={() => onDownload?.(currentItem)}
+            onClick={handleDownload}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
             aria-label={t('document.download')}
             title={t('document.download')}
@@ -187,4 +220,7 @@ export function BaseImagePreviewDialog({
       </div>
     </div>
   );
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(content, document.body);
 }

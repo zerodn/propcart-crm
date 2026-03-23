@@ -52,6 +52,10 @@ export interface WorkspaceItem {
   id: string;
   type: 'PERSONAL' | 'COMPANY';
   name: string;
+  code: string | null;
+  address: string | null;
+  logoUrl: string | null;
+  isPublic: boolean;
   role: string; // role code: 'OWNER' | 'ADMIN' | ...
   is_active: boolean;
 }

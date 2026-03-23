@@ -16,6 +16,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { BaseDialog } from '../common/base-dialog';
+import { DocumentListPanel } from '@/components/common/document-list-panel';
 import apiClient from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useI18n } from '@/providers/i18n-provider';
@@ -70,17 +71,11 @@ export function MemberAddDialog({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Document state
-  const [attachmentType, setAttachmentType] = useState<'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER'>('OTHER');
   const [attachmentDocuments, setAttachmentDocuments] = useState<AttachmentDocument[]>([]);
   const [attachmentUrl, setAttachmentUrl] = useState('');
-  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [isLoadingAttachmentDocuments, setIsLoadingAttachmentDocuments] = useState(false);
   const [updatingAttachmentTypes, setUpdatingAttachmentTypes] = useState<Record<string, boolean>>({});
   const [deletingAttachmentIds, setDeletingAttachmentIds] = useState<Set<string>>(new Set());
-  const [previewingDocId, setPreviewingDocId] = useState<string | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string | null>(null);
-  const [previewDownloadUrl, setPreviewDownloadUrl] = useState<string | null>(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [downloadingDocIds, setDownloadingDocIds] = useState<Set<string>>(new Set());
 
   // Department state (pending assignments applied after member creation)
@@ -232,7 +227,6 @@ export function MemberAddDialog({
       setAvatarUrl('');
       setAvatarFile(null);
       setAttachmentUrl('');
-      setAttachmentType('OTHER');
       setPendingDepts([]);
       setIsAddingDept(false);
       setNewDeptId('');
@@ -308,14 +302,11 @@ export function MemberAddDialog({
     setAvatarFile(null);
   };
 
-  const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingAttachment(true);
+  const handleUploadAttachment = async (file: File, documentType: string) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('documentType', attachmentType);
+      formData.append('documentType', documentType);
       const { data } = await apiClient.post('/me/profile/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -328,7 +319,7 @@ export function MemberAddDialog({
           const newDoc: AttachmentDocument = {
             id: uploaded.id,
             fileName,
-            documentType: (uploaded.documentType || attachmentType) as AttachmentDocument['documentType'],
+            documentType: (uploaded.documentType || documentType) as AttachmentDocument['documentType'],
             downloadUrl,
             createdAt: uploaded.createdAt,
             fileSize: uploaded.fileSize,
@@ -349,9 +340,19 @@ export function MemberAddDialog({
       } else {
         toast.error(t('memberEdit.error.attachmentFailed'));
       }
-    } finally {
-      setIsUploadingAttachment(false);
-      e.target.value = '';
+    }
+  };
+
+  const handleRenameAttachment = async (documentId: string, fileName: string) => {
+    try {
+      await apiClient.patch(`/me/profile/documents/${documentId}/name`, { fileName });
+      setAttachmentDocuments((prev) =>
+        prev.map((d) => (d.id === documentId ? { ...d, fileName } : d)),
+      );
+      toast.success('Đã đổi tên tài liệu');
+    } catch {
+      toast.error('Không thể đổi tên tài liệu');
+      throw new Error('rename-failed');
     }
   };
 
@@ -388,28 +389,6 @@ export function MemberAddDialog({
         return updated;
       });
     }
-  };
-
-  const handleOpenPreview = async (doc: AttachmentDocument) => {
-    try {
-      setIsLoadingPreview(true);
-      setPreviewingDocId(doc.id);
-      setPreviewFileName(doc.fileName);
-      const response = await apiClient.get(doc.downloadUrl, { responseType: 'blob' });
-      setPreviewDownloadUrl(URL.createObjectURL(response.data));
-    } catch {
-      toast.error('Không thể mở file');
-      setPreviewingDocId(null);
-    } finally {
-      setIsLoadingPreview(false);
-    }
-  };
-
-  const handleClosePreview = () => {
-    if (previewDownloadUrl?.startsWith('blob:')) URL.revokeObjectURL(previewDownloadUrl);
-    setPreviewingDocId(null);
-    setPreviewFileName(null);
-    setPreviewDownloadUrl(null);
   };
 
   const handleDownloadDocument = async (doc: AttachmentDocument) => {
@@ -972,165 +951,37 @@ export function MemberAddDialog({
                 </h5>
                 <p className="text-xs text-gray-500 mt-1">{t('memberEdit.label.documentsHint')}</p>
               </div>
-
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <select
-                    value={attachmentType}
-                    onChange={(e) =>
-                      setAttachmentType(e.target.value as 'CCCD' | 'HDLD' | 'CHUNG_CHI' | 'OTHER')
-                    }
-                    disabled={isSubmitting || isUploadingAttachment}
-                    className="px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm"
-                  >
-                    <option value="CCCD">{t('memberEdit.docType.CCCD')}</option>
-                    <option value="HDLD">{t('memberEdit.docType.HDLD')}</option>
-                    <option value="CHUNG_CHI">{t('memberEdit.docType.CHUNG_CHI')}</option>
-                    <option value="OTHER">{t('memberEdit.docType.OTHER')}</option>
-                  </select>
-
-                  <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#CFAF6E] text-white text-sm font-medium hover:bg-[#B89655] cursor-pointer">
-                    {isUploadingAttachment ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4" />
-                    )}
-                    {t('memberEdit.label.uploadDocument')}
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                      onChange={handleUploadAttachment}
-                      disabled={isSubmitting || isUploadingAttachment}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  {isLoadingAttachmentDocuments ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 border border-gray-200 rounded-lg p-3">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Đang tải danh sách tài liệu...
-                    </div>
-                  ) : attachmentDocuments.length > 0 ? (
-                    attachmentDocuments.map((doc) => {
-                      const isUpdatingType = !!updatingAttachmentTypes[doc.id];
-                      const isDeleting = deletingAttachmentIds.has(doc.id);
-                      return (
-                        <div
-                          key={doc.id}
-                          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
-                        >
-                          <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-800 truncate">
-                              {doc.fileName}{' '}
-                              <span className="text-xs text-gray-500">
-                                ({formatFileSize(doc.fileSize)})
-                              </span>
-                            </p>
-                          </div>
-                          <select
-                            value={doc.documentType}
-                            onChange={(e) =>
-                              handleUpdateAttachmentType(
-                                doc.id,
-                                e.target.value as AttachmentDocument['documentType'],
-                              )
-                            }
-                            disabled={isSubmitting || isUpdatingType || isDeleting}
-                            className="px-2.5 py-1.5 rounded-md border border-gray-300 bg-white text-xs disabled:opacity-60"
-                          >
-                            <option value="CCCD">CCCD</option>
-                            <option value="HDLD">HDLD</option>
-                            <option value="CHUNG_CHI">Chứng chỉ</option>
-                            <option value="OTHER">Khác</option>
-                          </select>
-                          {isUpdatingType && (
-                            <Loader2 className="h-4 w-4 animate-spin text-[#CFAF6E] flex-shrink-0" />
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenPreview(doc)}
-                            disabled={isDeleting}
-                            className="flex-shrink-0 p-1 rounded hover:bg-[#F5F7FA] text-gray-400 hover:text-[#CFAF6E] disabled:opacity-50"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadDocument(doc)}
-                            disabled={isDeleting || downloadingDocIds.has(doc.id)}
-                            className="flex-shrink-0 p-1 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-50"
-                          >
-                            {downloadingDocIds.has(doc.id) ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDocument(doc.id)}
-                            disabled={isDeleting}
-                            className="flex-shrink-0 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 disabled:opacity-50"
-                          >
-                            {isDeleting ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-3">
-                      Chưa có tệp đính kèm nào.
-                    </div>
-                  )}
-                </div>
-              </div>
+              <DocumentListPanel
+                documents={attachmentDocuments}
+                isLoading={isLoadingAttachmentDocuments}
+                disabled={isSubmitting}
+                onUpload={handleUploadAttachment}
+                onDelete={(docId) => handleDeleteDocument(docId)}
+                deletingIds={deletingAttachmentIds}
+                onUpdateType={(docId, type) =>
+                  void handleUpdateAttachmentType(
+                    docId,
+                    type as AttachmentDocument['documentType'],
+                  )
+                }
+                updatingTypeIds={updatingAttachmentTypes}
+                onRename={handleRenameAttachment}
+                onFetchPreview={async (doc) => {
+                  const response = await apiClient.get(
+                    (doc as AttachmentDocument).downloadUrl,
+                    { responseType: 'blob' },
+                  );
+                  const blob = response.data as Blob;
+                  return { url: URL.createObjectURL(blob), mimeType: blob.type || '' };
+                }}
+                onDownload={(doc) => void handleDownloadDocument(doc as AttachmentDocument)}
+                downloadingIds={downloadingDocIds}
+              />
             </div>
           </div>
         </div>
       </form>
 
-      {/* Document preview panel */}
-      {previewingDocId && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-40"
-            onClick={handleClosePreview}
-          />
-          <div className="fixed right-0 top-0 bottom-0 w-full md:w-1/2 lg:w-2/5 bg-white shadow-xl z-50 flex flex-col animate-in slide-in-from-right">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">{previewFileName}</h3>
-              <button
-                onClick={handleClosePreview}
-                className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 flex-shrink-0"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              {isLoadingPreview ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#CFAF6E]" />
-                    <p className="text-sm text-gray-500">Đang tải file...</p>
-                  </div>
-                </div>
-              ) : previewDownloadUrl ? (
-                <iframe
-                  src={previewDownloadUrl}
-                  className="w-full h-full min-h-[500px] border-0"
-                  title={previewFileName || 'Preview'}
-                />
-              ) : null}
-            </div>
-          </div>
-        </>
-      )}
     </BaseDialog>
   );
 }

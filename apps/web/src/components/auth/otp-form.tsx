@@ -7,6 +7,7 @@ import { useI18n } from '@/providers/i18n-provider';
 import apiClient from '@/lib/api-client';
 import { getDeviceHash } from '@/lib/auth';
 import type { User, Workspace } from '@/types';
+import { MergeAccountDialog, type MergeSuggestion } from '@/components/auth/merge-account-dialog';
 
 interface OtpFormProps {
   phone: string;
@@ -20,6 +21,13 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
+  const [mergeState, setMergeState] = useState<{
+    suggestion: MergeSuggestion;
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+    workspace: Workspace;
+  } | null>(null);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -55,8 +63,13 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
         platform: 'web',
       });
 
-      const { access_token, refresh_token, user, workspace } = data.data;
-      onSuccess(access_token, refresh_token, user, workspace);
+      const { access_token, refresh_token, user, workspace, mergeSuggestion } = data.data;
+      if (mergeSuggestion) {
+        // Pause and show merge confirmation dialog
+        setMergeState({ suggestion: mergeSuggestion, accessToken: access_token, refreshToken: refresh_token, user, workspace });
+      } else {
+        onSuccess(access_token, refresh_token, user, workspace);
+      }
     } catch (err: unknown) {
       const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
       if (code === 'OTP_INVALID') toast.error(t('auth.errors.invalidOtp'));
@@ -134,6 +147,22 @@ export function OtpForm({ phone, onSuccess, onBack }: OtpFormProps) {
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
         {isLoading ? t('common.loading') : t('auth.login.verifyOtp')}
       </button>
+
+      {mergeState && (
+        <MergeAccountDialog
+          suggestion={mergeState.suggestion}
+          accessToken={mergeState.accessToken}
+          onMerged={(access_token, refresh_token, user, workspace) => {
+            setMergeState(null);
+            onSuccess(access_token, refresh_token, user, workspace);
+          }}
+          onSkip={() => {
+            const auth = mergeState;
+            setMergeState(null);
+            onSuccess(auth.accessToken, auth.refreshToken, auth.user, auth.workspace);
+          }}
+        />
+      )}
     </form>
   );
 }

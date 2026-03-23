@@ -58,6 +58,13 @@ export class AuthController {
     return this.authService.getWorkspaces(user);
   }
 
+  // POST /auth/accept-merge — Requires JWT (phone user accepting merge with Google orphan)
+  @Post('accept-merge')
+  @UseGuards(JwtAuthGuard)
+  acceptMerge(@Body('merge_token') mergeToken: string, @CurrentUser() user: JwtPayload) {
+    return this.authService.acceptMerge(user.sub, mergeToken);
+  }
+
   // POST /auth/logout — Requires JWT
   // Blacklists the current access token and revokes the refresh token
   @Post('logout')
