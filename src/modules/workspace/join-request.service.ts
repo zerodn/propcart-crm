@@ -208,7 +208,7 @@ export class JoinRequestService {
       orderBy: { createdAt: 'desc' },
       include: {
         workspace: {
-          select: { id: true, name: true, code: true, logoUrl: true, type: true },
+          select: { id: true, name: true, code: true, logoUrl: true, type: true, requireKyc: true },
         },
         documents: {
           select: {
@@ -264,9 +264,59 @@ export class JoinRequestService {
     if (status && ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(status)) {
       where.status = status;
     }
+    // For APPROVED tab: only show requests approved in the last 24 hours
+    if (status === 'APPROVED') {
+      where.reviewedAt = { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) };
+    }
 
     const requests = await this.prisma.workspaceJoinRequest.findMany({
       where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { id: true, fullName: true, phone: true, avatarUrl: true, email: true },
+        },
+        documents: {
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            fileUrl: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+        reviewer: {
+          select: { id: true, fullName: true },
+        },
+        rejectionHistory: {
+          select: {
+            id: true,
+            reason: true,
+            rejectedBy: true,
+            rejectedAt: true,
+            reviewer: { select: { id: true, fullName: true } },
+          },
+          orderBy: { rejectedAt: 'desc' },
+        },
+      },
+    });
+
+    return { data: requests };
+  }
+
+  // ─── Admin: get approval history for a specific member ──────────────────────
+
+  async getMemberJoinRequestHistory(
+    workspaceId: string,
+    adminUserId: string,
+    targetUserId: string,
+  ) {
+    await this.assertIsAdminOrOwner(workspaceId, adminUserId);
+
+    const requests = await this.prisma.workspaceJoinRequest.findMany({
+      where: { workspaceId, userId: targetUserId },
       orderBy: { createdAt: 'desc' },
       include: {
         user: {

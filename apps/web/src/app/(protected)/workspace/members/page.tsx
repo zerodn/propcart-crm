@@ -13,6 +13,8 @@ import {
   UserCog,
   Upload,
   Download,
+  History,
+  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
@@ -35,6 +37,8 @@ import {
   type DataGridAction,
 } from '@/components/common/base-data-grid';
 import { JoinRequestsPanel } from '@/components/workspace/join-requests-panel';
+import { MemberApprovalHistoryDialog } from '@/components/workspace/member-approval-history-dialog';
+import { KycReviewDialog } from '@/components/workspace/kyc-review-dialog';
 
 export default function MembersPage() {
   const { workspace, role, user } = useAuth();
@@ -50,6 +54,10 @@ export default function MembersPage() {
   const [memberSearch, setMemberSearch] = useState('');
   const [memberPage, setMemberPage] = useState(1);
   const MEMBER_PAGE_SIZE = 10;
+  const [showApprovalHistoryDialog, setShowApprovalHistoryDialog] = useState(false);
+  const [approvalHistoryMember, setApprovalHistoryMember] = useState<WorkspaceMember | null>(null);
+  const [showKycReviewDialog, setShowKycReviewDialog] = useState(false);
+  const [kycReviewMember, setKycReviewMember] = useState<WorkspaceMember | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [invitationToCancel, setInvitationToCancel] = useState<{
     id: string;
@@ -281,6 +289,29 @@ export default function MembersPage() {
         </span>
       ),
     },
+    ...(isAdminOrOwner && workspace?.requireKyc
+      ? [
+          {
+            key: 'kycStatus' as const,
+            label: t('kyc.title'),
+            render: (_v: unknown, row: WorkspaceMember) => {
+              const status = row.kycStatus ?? 'NONE';
+              const map: Record<string, { cls: string; label: string }> = {
+                NONE: { cls: 'bg-gray-100 text-gray-500', label: t('kyc.statusNone') },
+                SUBMITTED: { cls: 'bg-amber-100 text-amber-700', label: t('kyc.statusSubmitted') },
+                APPROVED: { cls: 'bg-green-100 text-green-700', label: t('kyc.statusApproved') },
+                REJECTED: { cls: 'bg-red-100 text-red-700', label: t('kyc.statusRejected') },
+              };
+              const cfg = map[status] ?? map.NONE;
+              return (
+                <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
+                  {cfg.label}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   const memberActions: DataGridAction<WorkspaceMember>[] = isAdminOrOwner
@@ -302,6 +333,22 @@ export default function MembersPage() {
           label: t('members.action.activate'),
           onClick: (row) => handleToggleStatus(row),
           show: (row) => row.userId !== user?.id && row.status === 0,
+        },
+        {
+          icon: <History className="h-3.5 w-3.5" />,
+          label: t('members.action.approvalHistory'),
+          onClick: (row) => {
+            setApprovalHistoryMember(row);
+            setShowApprovalHistoryDialog(true);
+          },
+        },
+        {
+          icon: <Shield className="h-3.5 w-3.5" />,
+          label: t('kyc.infoAction'),
+          onClick: (row: WorkspaceMember) => {
+            setKycReviewMember(row);
+            setShowKycReviewDialog(true);
+          },
         },
       ]
     : [];
@@ -576,6 +623,33 @@ export default function MembersPage() {
           setInvitationToCancel(null);
         }}
       />
+
+      {showApprovalHistoryDialog && approvalHistoryMember && workspace?.id && (
+        <MemberApprovalHistoryDialog
+          workspaceId={workspace.id}
+          member={approvalHistoryMember}
+          onClose={() => {
+            setShowApprovalHistoryDialog(false);
+            setApprovalHistoryMember(null);
+          }}
+        />
+      )}
+
+      {showKycReviewDialog && kycReviewMember && workspace?.id && (
+        <KycReviewDialog
+          workspaceId={workspace.id}
+          member={kycReviewMember}
+          onClose={() => {
+            setShowKycReviewDialog(false);
+            setKycReviewMember(null);
+          }}
+          onReviewed={() => {
+            setShowKycReviewDialog(false);
+            setKycReviewMember(null);
+            refetchMembers();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -741,6 +741,9 @@ export class AuthService {
         refresh_token: refreshToken,
         workspace: { id: workspace.id, type: workspace.type, name: workspace.name },
         role: membership.role.code,
+        requireKyc: workspace.requireKyc,
+        kycStatus: membership.kycStatus ?? 'NONE',
+        kycRejectionReason: membership.kycRejectionReason ?? null,
       },
     };
   }
@@ -763,7 +766,9 @@ export class AuthService {
       address: m.workspace.address,
       logoUrl: m.workspace.logoUrl,
       isPublic: m.workspace.isPublic,
+      requireKyc: m.workspace.requireKyc,
       role: m.role.code,
+      kycStatus: m.kycStatus ?? 'NONE',
       is_active: m.workspace.id === currentUser.workspaceId,
     }));
 

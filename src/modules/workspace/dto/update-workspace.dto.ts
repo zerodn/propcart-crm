@@ -9,7 +9,9 @@ export class UpdateWorkspaceDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  @Matches(/^[A-Z0-9_-]+$/, { message: 'Mã workspace chỉ gồm chữ IN HOA, số, gạch ngang, gạch dưới' })
+  @Matches(/^[A-Z0-9_-]+$/, {
+    message: 'Mã workspace chỉ gồm chữ IN HOA, số, gạch ngang, gạch dưới',
+  })
   code?: string;
 
   @IsOptional()
@@ -24,4 +26,8 @@ export class UpdateWorkspaceDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireKyc?: boolean;
 }

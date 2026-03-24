@@ -24,6 +24,7 @@ export interface WorkspaceMember {
   contractType?: string | null; // Loại HĐLĐ
   attachmentUrl?: string | null; // Tệp đính kèm
   employmentStatus?: string | null; // PROBATION, WORKING, ON_LEAVE, RESIGNED, RETIRED, FIRED
+  kycStatus?: 'NONE' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | null;
   user: {
     id: string;
     phone: string | null;

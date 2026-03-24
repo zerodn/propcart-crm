@@ -84,6 +84,49 @@ function RejectInline({ onConfirm, onCancel, loading }: RejectInlineProps) {
   );
 }
 
+interface ApproveConfirmProps {
+  name: string;
+  phone: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}
+
+function ApproveConfirm({ name, phone, onConfirm, onCancel, loading }: ApproveConfirmProps) {
+  const { t } = useI18n();
+  return (
+    <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
+      <p className="text-xs font-medium text-green-800">{t('workspace.joinRequest.adminApproveConfirmTitle')}</p>
+      <div className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
+        <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-green-700">
+          {name.slice(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-800">{name}</p>
+          <p className="text-xs text-gray-500">{phone}</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={onCancel}
+          disabled={loading}
+          className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+        >
+          {t('common.cancel')}
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+        >
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          {t('workspace.joinRequest.adminApproveConfirmBtn')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface RequestRowProps {
   req: JoinRequestAdmin;
   onApprove: (id: string) => void;
@@ -95,6 +138,7 @@ interface RequestRowProps {
 function RequestRow({ req, onApprove, onReject, approving, rejecting }: RequestRowProps) {
   const { t } = useI18n();
   const [showReject, setShowReject] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -167,7 +211,7 @@ function RequestRow({ req, onApprove, onReject, approving, rejecting }: RequestR
         {req.status === 'PENDING' && (
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              onClick={() => onApprove(req.id)}
+              onClick={() => { setShowApproveConfirm((v) => !v); setShowReject(false); }}
               disabled={approving || rejecting}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
               aria-label={t('workspace.joinRequest.adminApprove')}
@@ -176,7 +220,7 @@ function RequestRow({ req, onApprove, onReject, approving, rejecting }: RequestR
               {t('workspace.joinRequest.adminApprove')}
             </button>
             <button
-              onClick={() => setShowReject((v) => !v)}
+              onClick={() => { setShowReject((v) => !v); setShowApproveConfirm(false); }}
               disabled={approving || rejecting}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
               aria-label={t('workspace.joinRequest.adminReject')}
@@ -187,6 +231,22 @@ function RequestRow({ req, onApprove, onReject, approving, rejecting }: RequestR
           </div>
         )}
       </div>
+
+      {/* Approve confirm */}
+      {showApproveConfirm && req.status === 'PENDING' && (
+        <div className="px-4 pb-4">
+          <ApproveConfirm
+            name={req.user.fullName ?? '---'}
+            phone={req.user.phone ?? '---'}
+            loading={approving}
+            onCancel={() => setShowApproveConfirm(false)}
+            onConfirm={() => {
+              onApprove(req.id);
+              setShowApproveConfirm(false);
+            }}
+          />
+        </div>
+      )}
 
       {/* Reject inline form */}
       {showReject && (

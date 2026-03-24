@@ -45,6 +45,7 @@ interface AuthContextValue extends AuthState {
   switchWorkspace: (workspaceId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateWorkspaceName: (workspaceId: string, name: string) => void;
+  updateWorkspaceKyc: (kycStatus: Workspace['kycStatus']) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -232,18 +233,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data } = await apiClient.post('/auth/switch-workspace', {
           workspace_id: workspaceId,
         });
-        const { access_token, refresh_token, workspace } = data.data;
+        const { access_token, refresh_token, workspace, requireKyc, kycStatus, kycRejectionReason } = data.data;
         const payload = decodeJwt(access_token);
         setTokens(access_token, refresh_token);
         setWorkspaceName(workspace.name);
         setState((s) => ({
           ...s,
-          workspace,
+          workspace: { ...workspace, requireKyc, kycStatus: kycStatus ?? 'NONE', kycRejectionReason: kycRejectionReason ?? null },
           role: payload?.role ?? s.role,
           workspaceType: payload?.workspaceType ?? s.workspaceType,
         }));
         toast.success(t('workspace.switchSuccess', { name: workspace.name }));
-        router.refresh();
+        // Navigate to dashboard so server components fetch fresh data for the new
+        // workspace. Using push (not refresh) avoids concurrent-mode races where
+        // router.refresh() can re-render LayoutInner before the setState above is
+        // committed, causing workspace.requireKyc to appear undefined and the KYC
+        // gate not to show.
+        router.push('/dashboard');
       } catch {
         toast.error(t('workspace.switchError'));
       }
@@ -259,6 +265,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateWorkspaceKyc = useCallback((kycStatus: Workspace['kycStatus']) => {
+    setState((s) => {
+      if (!s.workspace) return s;
+      return { ...s, workspace: { ...s.workspace, kycStatus } };
+    });
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     try {
       const [profileRes, workspacesRes] = await Promise.all([
@@ -268,9 +281,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = profileRes.data?.data;
       if (!profile) return;
 
-      // Sync workspace name from server (prevents stale name from localStorage)
-      const workspacesList: Array<{ id: string; name: string; type: string }> =
-        workspacesRes.data?.data ?? [];
+      // Sync workspace data from server (prevents stale data from localStorage/JWT)
+      const workspacesList: Array<{
+        id: string;
+        name: string;
+        type: string;
+        requireKyc?: boolean;
+        kycStatus?: string | null;
+      }> = workspacesRes.data?.data ?? [];
       setState((s) => {
         const freshWs = workspacesList.find((w) => w.id === s.workspace?.id);
         if (freshWs && freshWs.name !== s.workspace?.name) {
@@ -280,7 +298,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ...s,
           workspace:
             freshWs && s.workspace
-              ? { ...s.workspace, name: freshWs.name }
+              ? {
+                  ...s.workspace,
+                  name: freshWs.name,
+                  requireKyc: freshWs.requireKyc,
+                  kycStatus: (freshWs.kycStatus ?? 'NONE') as Workspace['kycStatus'],
+                }
               : s.workspace,
           user: {
             id: profile.id,
@@ -315,7 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshProfile, state.isAuthenticated, state.isLoading]);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, switchWorkspace, refreshProfile, updateWorkspaceName }}>
+    <AuthContext.Provider value={{ ...state, login, logout, switchWorkspace, refreshProfile, updateWorkspaceName, updateWorkspaceKyc }}>
       {children}
     </AuthContext.Provider>
   );

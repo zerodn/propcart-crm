@@ -85,6 +85,7 @@ model Workspace {
   address     String?  // Địa chỉ trụ sở
   logoUrl     String?  // Logo URL từ MinIO
   isPublic    Boolean  @default(false) // Cho phép tìm kiếm công khai để tham gia
+  requireKyc  Boolean  @default(false) // Yêu cầu thành viên xác thực danh tính KYC trước khi truy cập
   ownerUserId String
   status      Int      @default(1) // 1=active, 0=inactive
   customerSeq Int      @default(0) // Auto-increment counter for customer codes
@@ -139,6 +140,13 @@ model WorkspaceMember {
   employmentStatus String?   // Trạng thái nhân sự: PROBATION, WORKING, ON_LEAVE, RESIGNED, RETIRED, FIRED
   attachmentUrl    String?   // Tệp đính kèm (URL)
 
+  // KYC (Know Your Customer) — workspace-scoped identity verification
+  kycStatus          String    @default("NONE")  // NONE | SUBMITTED | APPROVED | REJECTED
+  kycSubmittedAt     DateTime?
+  kycReviewedAt      DateTime?
+  kycReviewedBy      String?   // userId of admin who reviewed
+  kycRejectionReason String?
+
   // Relations
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
@@ -147,6 +155,7 @@ model WorkspaceMember {
   @@unique([workspaceId, userId])
   @@index([userId, workspaceId])
   @@index([roleId])
+  @@index([workspaceId, kycStatus])
   @@map("workspace_members")
 }
 

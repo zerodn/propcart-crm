@@ -40,6 +40,9 @@ export interface Workspace {
   id: string;
   type: 'PERSONAL' | 'COMPANY';
   name: string;
+  requireKyc?: boolean;
+  kycStatus?: 'NONE' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | null;
+  kycRejectionReason?: string | null;
 }
 
 export interface WorkspaceWithRole {
@@ -56,6 +59,8 @@ export interface WorkspaceItem {
   address: string | null;
   logoUrl: string | null;
   isPublic: boolean;
+  requireKyc: boolean;
+  kycStatus?: 'NONE' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | null;
   role: string; // role code: 'OWNER' | 'ADMIN' | ...
   is_active: boolean;
 }
@@ -68,6 +73,7 @@ export interface WorkspaceSearchResult {
   code: string | null;
   address: string | null;
   logoUrl: string | null;
+  requireKyc?: boolean;
 }
 
 // Join request document

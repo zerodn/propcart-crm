@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Building2, MapPin, CheckCircle2, Clock, XCircle, Loader2, ImageIcon, RotateCcw } from 'lucide-react';
+import { Search, Building2, MapPin, CheckCircle2, Clock, XCircle, Loader2, ImageIcon, RotateCcw, Shield } from 'lucide-react';
 import { useI18n } from '@/providers/i18n-provider';
 import apiClient from '@/lib/api-client';
 import { toast } from 'sonner';
 import { JoinRequestDialog } from './join-request-dialog';
+import { KycRequiredDialog } from './kyc-required-dialog';
 import type { WorkspaceSearchResult, JoinRequest } from '@/types';
 
 interface WorkspaceSearchSectionProps {
@@ -140,6 +141,12 @@ export function WorkspaceSearchSection({
   // For cancelling requests
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  // KYC dialog (profile-page non-blocking usage)
+  const [kycDialogWorkspaceId, setKycDialogWorkspaceId] = useState<string | null>(null);
+  const [kycDialogStatus, setKycDialogStatus] = useState<'NONE' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | null>(null);
+  const [kycDialogRejectionReason, setKycDialogRejectionReason] = useState<string | null>(null);
+  const [kycFetchingId, setKycFetchingId] = useState<string | null>(null);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load my requests on mount
@@ -228,6 +235,22 @@ export function WorkspaceSearchSection({
       previousDocCount: req.documents.length,
     });
     setDialogWorkspace(req.workspace);
+  };
+
+  const handleKycClick = async (workspaceId: string) => {
+    setKycFetchingId(workspaceId);
+    try {
+      const { data: res } = await apiClient.get(`/workspaces/${workspaceId}/me/kyc`);
+      const status = res?.data?.kycStatus ?? 'NONE';
+      const rejectionReason = res?.data?.kycRejectionReason ?? null;
+      setKycDialogStatus(status);
+      setKycDialogRejectionReason(rejectionReason);
+      setKycDialogWorkspaceId(workspaceId);
+    } catch {
+      toast.error(t('kyc.loadError'));
+    } finally {
+      setKycFetchingId(null);
+    }
   };
 
   // Determine if a search result workspace has a pending request already from myRequests
@@ -364,6 +387,21 @@ export function WorkspaceSearchSection({
                     {t('workspace.joinRequest.resendBtn')}
                   </button>
                 )}
+                {req.status === 'APPROVED' && req.workspace?.requireKyc && (
+                  <button
+                    onClick={() => handleKycClick(req.workspaceId)}
+                    disabled={kycFetchingId === req.workspaceId}
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#0B1F3A] border border-[#CFAF6E] rounded-lg hover:bg-[#CFAF6E]/10 disabled:opacity-50 transition-colors"
+                    aria-label={t('kyc.infoAction')}
+                  >
+                    {kycFetchingId === req.workspaceId ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Shield className="h-3 w-3 text-[#CFAF6E]" />
+                    )}
+                    {t('kyc.infoAction')}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -385,6 +423,23 @@ export function WorkspaceSearchSection({
           previousDocCount={resendData?.previousDocCount}
           onClose={() => { setDialogWorkspace(null); setResendData(null); }}
           onSuccess={handleDialogSuccess}
+        />
+      )}
+
+      {/* KYC Dialog (profile-page non-blocking) */}
+      {kycDialogWorkspaceId && kycDialogStatus !== null && (
+        <KycRequiredDialog
+          workspaceId={kycDialogWorkspaceId}
+          kycStatus={kycDialogStatus}
+          kycRejectionReason={kycDialogRejectionReason}
+          onKycSubmitted={() => {
+            setKycDialogStatus('SUBMITTED');
+          }}
+          onClose={() => {
+            setKycDialogWorkspaceId(null);
+            setKycDialogStatus(null);
+            setKycDialogRejectionReason(null);
+          }}
         />
       )}
     </div>

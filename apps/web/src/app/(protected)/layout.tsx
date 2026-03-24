@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/header';
 import { PageProvider, usePageConfig } from '@/providers/page-provider';
 import { useAuth } from '@/providers/auth-provider';
 import { BackgroundProvider, useBackground, getBackgroundStyle } from '@/providers/background-provider';
+import { KycBlockingPage } from '@/components/workspace/kyc-blocking-page';
 import { cn } from '@/lib/utils';
 
 function PageActions() {
@@ -45,6 +46,26 @@ function DashboardBackground() {
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
+  const { workspace, updateWorkspaceKyc } = useAuth();
+
+  // KYC gate: when workspace requires KYC and user hasn't been approved,
+  // render a completely separate page (no sidebar/header/nav).
+  // This prevents bypass via DevTools DOM deletion.
+  const showKyc =
+    workspace?.requireKyc === true &&
+    workspace?.kycStatus !== 'APPROVED';
+
+  if (showKyc && workspace) {
+    return (
+      <KycBlockingPage
+        workspaceId={workspace.id}
+        kycStatus={workspace.kycStatus ?? 'NONE'}
+        kycRejectionReason={workspace.kycRejectionReason}
+        onKycSubmitted={() => updateWorkspaceKyc('SUBMITTED')}
+      />
+    );
+  }
+
   return (
     <div className="relative min-h-screen">
       {/* Full-screen configurable background */}

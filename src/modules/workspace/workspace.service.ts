@@ -188,7 +188,14 @@ export class WorkspaceService {
   async updateWorkspace(
     workspaceId: string,
     userId: string,
-    dto: { name?: string; code?: string; address?: string; logoUrl?: string; isPublic?: boolean },
+    dto: {
+      name?: string;
+      code?: string;
+      address?: string;
+      logoUrl?: string;
+      isPublic?: boolean;
+      requireKyc?: boolean;
+    },
   ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -232,11 +239,21 @@ export class WorkspaceService {
     if (dto.address !== undefined) updateData.address = dto.address.trim() || null;
     if (dto.logoUrl !== undefined) updateData.logoUrl = dto.logoUrl || null;
     if (dto.isPublic !== undefined) updateData.isPublic = dto.isPublic;
+    if (dto.requireKyc !== undefined) updateData.requireKyc = dto.requireKyc;
 
     const updated = await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: updateData,
-      select: { id: true, name: true, type: true, code: true, address: true, logoUrl: true, isPublic: true },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        code: true,
+        address: true,
+        logoUrl: true,
+        isPublic: true,
+        requireKyc: true,
+      },
     });
 
     return { data: updated };
@@ -276,7 +293,10 @@ export class WorkspaceService {
     }
     if (workspace.ownerUserId !== userId) {
       throw new HttpException(
-        { code: 'FORBIDDEN', message: 'Chỉ chủ sở hữu workspace mới có thể thực hiện thao tác này' },
+        {
+          code: 'FORBIDDEN',
+          message: 'Chỉ chủ sở hữu workspace mới có thể thực hiện thao tác này',
+        },
         HttpStatus.FORBIDDEN,
       );
     }
@@ -1246,5 +1266,218 @@ export class WorkspaceService {
         objectKey: uploaded.objectKey,
       },
     };
+  }
+
+  // ─── KYC: member submits KYC ────────────────────────────────────────────────
+
+  async submitKyc(workspaceId: string, userId: string) {
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId, status: 1 },
+    });
+
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (member.kycStatus === 'APPROVED') {
+      throw new HttpException(
+        { code: 'KYC_ALREADY_APPROVED', message: 'KYC đã được chấp thuận' },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const updated = await this.prisma.workspaceMember.update({
+      where: { id: member.id },
+      data: {
+        kycStatus: 'SUBMITTED',
+        kycSubmittedAt: new Date(),
+        kycRejectionReason: null,
+      },
+      select: { kycStatus: true, kycSubmittedAt: true },
+    });
+
+    return { data: updated };
+  }
+
+  // ─── KYC: get own KYC status ─────────────────────────────────────────────────
+
+  async getMyKycStatus(workspaceId: string, userId: string) {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, requireKyc: true, name: true },
+    });
+    if (!workspace) {
+      throw new HttpException(
+        { code: 'WORKSPACE_NOT_FOUND', message: 'Workspace not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId, status: 1 },
+      select: {
+        kycStatus: true,
+        kycSubmittedAt: true,
+        kycReviewedAt: true,
+        kycRejectionReason: true,
+      },
+    });
+
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return {
+      data: {
+        requireKyc: workspace.requireKyc,
+        kycStatus: member.kycStatus,
+        kycSubmittedAt: member.kycSubmittedAt,
+        kycReviewedAt: member.kycReviewedAt,
+        kycRejectionReason: member.kycRejectionReason,
+      },
+    };
+  }
+
+  // ─── KYC: admin approve ───────────────────────────────────────────────────────
+
+  async approveKyc(workspaceId: string, adminUserId: string, targetUserId: string) {
+    await this.assertIsAdminOrOwner(workspaceId, adminUserId);
+
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: targetUserId, status: 1 },
+    });
+
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    await this.prisma.workspaceMember.update({
+      where: { id: member.id },
+      data: {
+        kycStatus: 'APPROVED',
+        kycReviewedAt: new Date(),
+        kycReviewedBy: adminUserId,
+        kycRejectionReason: null,
+      },
+    });
+
+    return { data: { success: true } };
+  }
+
+  // ─── KYC: admin reject ───────────────────────────────────────────────────────
+
+  async rejectKyc(workspaceId: string, adminUserId: string, targetUserId: string, reason?: string) {
+    await this.assertIsAdminOrOwner(workspaceId, adminUserId);
+
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: targetUserId, status: 1 },
+    });
+
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    await this.prisma.workspaceMember.update({
+      where: { id: member.id },
+      data: {
+        kycStatus: 'REJECTED',
+        kycReviewedAt: new Date(),
+        kycReviewedBy: adminUserId,
+        kycRejectionReason: reason ?? null,
+      },
+    });
+
+    return { data: { success: true } };
+  }
+
+  // ─── KYC: admin get member KYC documents ─────────────────────────────────────
+
+  async getMemberKycDocuments(workspaceId: string, adminUserId: string, targetUserId: string) {
+    await this.assertIsAdminOrOwner(workspaceId, adminUserId);
+
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: targetUserId, status: 1 },
+      select: {
+        kycStatus: true,
+        kycSubmittedAt: true,
+        kycReviewedAt: true,
+        kycRejectionReason: true,
+        user: {
+          select: { id: true, fullName: true, phone: true, avatarUrl: true },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new HttpException(
+        { code: 'MEMBER_NOT_FOUND', message: 'Member not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Fetch CCCD documents scoped to this workspace
+    const documents = await this.prisma.userDocument.findMany({
+      where: {
+        userId: targetUserId,
+        workspaceId,
+        documentType: 'CCCD',
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        fileName: true,
+        fileType: true,
+        fileSize: true,
+        fileUrl: true,
+        createdAt: true,
+        documentType: true,
+      },
+    });
+
+    return { data: { ...member, documents } };
+  }
+
+  // ─── KYC: admin list pending KYC ─────────────────────────────────────────────
+
+  async listPendingKyc(workspaceId: string, adminUserId: string) {
+    await this.assertIsAdminOrOwner(workspaceId, adminUserId);
+
+    const members = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId, kycStatus: 'SUBMITTED', status: 1 },
+      include: {
+        user: { select: { id: true, fullName: true, phone: true, avatarUrl: true } },
+        role: { select: { code: true, name: true } },
+      },
+      orderBy: { kycSubmittedAt: 'asc' },
+    });
+
+    return { data: members.map((m) => ({ ...m, userId: m.userId })) };
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  private async assertIsAdminOrOwner(workspaceId: string, userId: string) {
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId, status: 1 },
+      include: { role: true },
+    });
+    if (!member || !['ADMIN', 'OWNER'].includes(member.role.code)) {
+      throw new HttpException(
+        { code: 'FORBIDDEN', message: 'Chỉ Admin/Owner mới có quyền thực hiện' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
   }
 }

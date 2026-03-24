@@ -309,6 +309,17 @@ export class WorkspaceController {
     return this.joinRequestService.getWorkspaceJoinRequests(workspaceId, user.sub, status);
   }
 
+  // GET /workspaces/:workspaceId/members/:memberId/approval-history — Admin: get member approval history
+  @Get('workspaces/:workspaceId/members/:memberId/approval-history')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getMemberApprovalHistory(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.joinRequestService.getMemberJoinRequestHistory(workspaceId, user.sub, memberId);
+  }
+
   // POST /workspaces/:workspaceId/join-requests/:requestId/approve — Admin: approve
   @Post('workspaces/:workspaceId/join-requests/:requestId/approve')
   @UseGuards(JwtAuthGuard, WorkspaceGuard)
@@ -331,5 +342,62 @@ export class WorkspaceController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.joinRequestService.rejectJoinRequest(workspaceId, requestId, user.sub, reason);
+  }
+
+  // ─── KYC Endpoints ───────────────────────────────────────────────────────────
+
+  // GET /workspaces/:workspaceId/me/kyc — member: get own KYC status
+  @Get('workspaces/:workspaceId/me/kyc')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getMyKycStatus(@Param('workspaceId') workspaceId: string, @CurrentUser() user: JwtPayload) {
+    return this.workspaceService.getMyKycStatus(workspaceId, user.sub);
+  }
+
+  // POST /workspaces/:workspaceId/me/kyc/submit — member: submit KYC
+  @Post('workspaces/:workspaceId/me/kyc/submit')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  submitKyc(@Param('workspaceId') workspaceId: string, @CurrentUser() user: JwtPayload) {
+    return this.workspaceService.submitKyc(workspaceId, user.sub);
+  }
+
+  // GET /workspaces/:workspaceId/kyc/pending — admin: list pending KYC
+  @Get('workspaces/:workspaceId/kyc/pending')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  listPendingKyc(@Param('workspaceId') workspaceId: string, @CurrentUser() user: JwtPayload) {
+    return this.workspaceService.listPendingKyc(workspaceId, user.sub);
+  }
+
+  // GET /workspaces/:workspaceId/members/:memberId/kyc-documents — admin: view member KYC docs
+  @Get('workspaces/:workspaceId/members/:memberId/kyc-documents')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getMemberKycDocuments(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.workspaceService.getMemberKycDocuments(workspaceId, user.sub, memberId);
+  }
+
+  // POST /workspaces/:workspaceId/members/:memberId/kyc/approve — admin: approve KYC
+  @Post('workspaces/:workspaceId/members/:memberId/kyc/approve')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  approveKyc(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.workspaceService.approveKyc(workspaceId, user.sub, memberId);
+  }
+
+  // POST /workspaces/:workspaceId/members/:memberId/kyc/reject — admin: reject KYC
+  @Post('workspaces/:workspaceId/members/:memberId/kyc/reject')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  rejectKyc(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @Body('reason') reason: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.workspaceService.rejectKyc(workspaceId, user.sub, memberId, reason);
   }
 }

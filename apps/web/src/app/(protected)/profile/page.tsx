@@ -86,6 +86,7 @@ export default function ProfilePage() {
   const [workspaceAddresses, setWorkspaceAddresses] = useState<Record<string, string>>({});
   const [workspaceLogos, setWorkspaceLogos] = useState<Record<string, string>>({});
   const [workspaceIsPublic, setWorkspaceIsPublic] = useState<Record<string, boolean>>({});
+  const [workspaceRequireKyc, setWorkspaceRequireKyc] = useState<Record<string, boolean>>({});
   const [savingWorkspaceId, setSavingWorkspaceId] = useState<string | null>(null);
   const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
   const [logoPreviewWsId, setLogoPreviewWsId] = useState<string | null>(null);
@@ -115,6 +116,11 @@ export default function ProfilePage() {
     setWorkspaceIsPublic((prev) => {
       const next = { ...prev };
       workspaces.forEach((ws) => { if (!(ws.id in next)) next[ws.id] = ws.isPublic ?? false; });
+      return next;
+    });
+    setWorkspaceRequireKyc((prev) => {
+      const next = { ...prev };
+      workspaces.forEach((ws) => { if (!(ws.id in next)) next[ws.id] = ws.requireKyc ?? false; });
       return next;
     });
   }, [workspaces]);
@@ -208,6 +214,7 @@ export default function ProfilePage() {
         code: (workspaceCodes[wsId] ?? '').trim() || undefined,
         address: (workspaceAddresses[wsId] ?? '').trim() || undefined,
         isPublic: workspaceIsPublic[wsId] ?? false,
+        requireKyc: workspaceRequireKyc[wsId] ?? false,
       });
       updateWorkspaceName(wsId, name);
       void refetchWorkspaces();
@@ -742,6 +749,27 @@ export default function ProfilePage() {
                             </span>
                             <p className="text-xs text-gray-400 mt-0.5">
                               {t('profile.workspaceSettings.isPublicHint')}
+                            </p>
+                          </label>
+                        </div>
+
+                        {/* requireKyc checkbox */}
+                        <div className="md:col-span-2 flex items-start gap-3 pt-1">
+                          <input
+                            type="checkbox"
+                            id={`ws-kyc-${ws.id}`}
+                            checked={workspaceRequireKyc[ws.id] ?? false}
+                            onChange={(e) =>
+                              setWorkspaceRequireKyc((prev) => ({ ...prev, [ws.id]: e.target.checked }))
+                            }
+                            className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#CFAF6E] cursor-pointer"
+                          />
+                          <label htmlFor={`ws-kyc-${ws.id}`} className="cursor-pointer">
+                            <span className="text-sm font-medium text-gray-700">
+                              {t('profile.workspaceSettings.requireKycLabel')}
+                            </span>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {t('profile.workspaceSettings.requireKycHint')}
                             </p>
                           </label>
                         </div>
