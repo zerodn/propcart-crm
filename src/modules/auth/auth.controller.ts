@@ -6,6 +6,9 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SwitchWorkspaceDto } from './dto/switch-workspace.dto';
+import { LinkPhoneForGoogleDto } from './dto/link-phone-for-google.dto';
+import { VerifyEmailLinkGoogleDto } from './dto/verify-email-link-google.dto';
+import { EmailVerifySendOtpDto } from './dto/email-verify-send-otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtPayload } from './strategies/jwt.strategy';
@@ -36,6 +39,27 @@ export class AuthController {
   @Post('google')
   googleAuth(@Body() dto: GoogleAuthDto) {
     return this.authService.googleAuth(dto);
+  }
+
+  // POST /auth/google/link-phone — Public, called after PHONE_REQUIRED response
+  @Post('google/link-phone')
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  linkPhoneForGoogleUser(@Body() dto: LinkPhoneForGoogleDto) {
+    return this.authService.linkPhoneForGoogleUser(dto);
+  }
+
+  // POST /auth/google/email-verify-send-otp — Public, validates phone then sends OTP
+  @Post('google/email-verify-send-otp')
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  emailVerifySendOtp(@Body() dto: EmailVerifySendOtpDto) {
+    return this.authService.emailVerifySendOtp(dto);
+  }
+
+  // POST /auth/google/verify-email-link — Public, called after EMAIL_EXISTS_UNVERIFIED response
+  @Post('google/verify-email-link')
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  verifyEmailAndLinkGoogle(@Body() dto: VerifyEmailLinkGoogleDto) {
+    return this.authService.verifyEmailAndLinkGoogle(dto);
   }
 
   // POST /auth/refresh — Public (uses refresh token)

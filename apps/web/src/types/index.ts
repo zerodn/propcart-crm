@@ -60,6 +60,65 @@ export interface WorkspaceItem {
   is_active: boolean;
 }
 
+// Workspace search result (public workspaces)
+export interface WorkspaceSearchResult {
+  id: string;
+  type: 'PERSONAL' | 'COMPANY';
+  name: string;
+  code: string | null;
+  address: string | null;
+  logoUrl: string | null;
+}
+
+// Join request document
+export interface JoinRequestDocument {
+  id: string;
+  requestId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  fileUrl: string;
+  createdAt: string;
+}
+
+// Join request (user-side view)
+export interface JoinRequest {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  message: string | null;
+  rejectionReason: string | null;
+  requestedRole: string | null;
+  provinceCode: string | null;
+  provinceName: string | null;
+  wardCode: string | null;
+  wardName: string | null;
+  addressLine: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  workspace: WorkspaceSearchResult;
+  documents: JoinRequestDocument[];
+}
+
+// Join request (admin-side view includes user info)
+export interface JoinRequestAdmin extends Omit<JoinRequest, 'workspace'> {
+  user: {
+    id: string;
+    fullName: string | null;
+    phone: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+  };
+  reviewer: { id: string; fullName: string | null } | null;
+  rejectionHistory: {
+    id: string;
+    reason: string | null;
+    rejectedAt: string;
+    reviewer: { id: string; fullName: string | null };
+  }[];
+}
+
 export interface Invitation {
   id: string;
   workspaceId: string;

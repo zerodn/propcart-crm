@@ -74,6 +74,7 @@ export function PhoneForm({ onSuccess, onSocialLoginSuccess }: PhoneFormProps) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Country + Phone row */}
       <div className="space-y-2">
@@ -152,10 +153,15 @@ export function PhoneForm({ onSuccess, onSocialLoginSuccess }: PhoneFormProps) {
         {isLoading ? t('common.loading') : t('auth.login.sendOtp')}
       </button>
 
-      {/* Social login buttons — only shown on phone step */}
-      {onSocialLoginSuccess && (
-        <SocialLoginButtons onSuccess={onSocialLoginSuccess} />
-      )}
     </form>
+
+    {/* Social login buttons — rendered OUTSIDE the form to avoid nested <form> elements
+        (nested forms cause the dialog submit button to submit the outer phone form) */}
+    {onSocialLoginSuccess && (
+      <div className="mt-5">
+        <SocialLoginButtons onSuccess={onSocialLoginSuccess} />
+      </div>
+    )}
+  </>
   );
 }

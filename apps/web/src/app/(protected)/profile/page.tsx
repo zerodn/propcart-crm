@@ -22,6 +22,7 @@ import { useWorkspaces } from '@/hooks/use-workspaces';
 import { PersonalInfoForm, type LocationFormData } from '@/components/common/personal-info-form';
 import { ProfileSkeleton } from '@/components/common/skeleton';
 import { WorkspaceProfileTab } from '@/components/profile/workspace-profile-tab';
+import { WorkspaceSearchSection } from '@/components/workspace/workspace-search-section';
 import apiClient from '@/lib/api-client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -296,17 +297,17 @@ export default function ProfilePage() {
   if (isLoading) return <ProfileSkeleton />;
 
   return (
-    <div className="space-y-[0.8rem]">
-      {/* ─── Tab bar ─── */}
-      <div className="glass-content-card rounded-xl p-1.5 flex items-center gap-1 overflow-x-auto">
+    <div className="glass-content-card rounded-xl">
+      {/* ─── Tab navigation ─── */}
+      <div className="flex items-center gap-0 px-2 pt-1 border-b border-gray-200 overflow-x-auto">
         {/* Personal tab */}
         <button
           onClick={() => setActiveTab('personal')}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+            'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px',
             activeTab === 'personal'
-              ? 'bg-[#0B1F3A] text-white'
-              : 'text-gray-600 hover:bg-gray-100',
+              ? 'border-[#0B1F3A] text-[#0B1F3A]'
+              : 'border-transparent text-gray-500 hover:text-gray-700',
           )}
         >
           <User className="h-3.5 w-3.5" />
@@ -319,10 +320,10 @@ export default function ProfilePage() {
             key={ws.id}
             onClick={() => setActiveTab(ws.id)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+              'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px',
               activeTab === ws.id
-                ? 'bg-[#CFAF6E] text-white'
-                : 'text-gray-600 hover:bg-gray-100',
+                ? 'border-[#CFAF6E] text-[#CFAF6E]'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
             )}
           >
             {ws.type === 'COMPANY' ? (
@@ -337,12 +338,12 @@ export default function ProfilePage() {
 
       {/* ─── Personal tab content ─── */}
       {activeTab === 'personal' && (
-        <div className="space-y-[0.8rem]">
+        <div className="p-5 space-y-[0.8rem]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-[0.8rem]">
           {/* Left: Form thông tin cá nhân */}
           <form
             onSubmit={handleSave}
-            className="glass-content-card rounded-xl p-6 space-y-6"
+            className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6 space-y-6"
           >
             {/* ── Avatar ── */}
             <div className="flex items-center gap-5 pb-6 border-b border-gray-200">
@@ -555,7 +556,7 @@ export default function ProfilePage() {
           </form>
 
           {/* Right: Documents */}
-          <div className="glass-content-card rounded-xl p-6 space-y-4">
+          <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6 space-y-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 {t('profile.section.documents')}
@@ -580,9 +581,23 @@ export default function ProfilePage() {
           </div>
         </div>
 
+          {/* Workspace search & join section */}
+          <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6">
+            <WorkspaceSearchSection
+              userFullName={profile?.fullName ?? null}
+              userPhone={profile?.phone ?? null}
+              existingWorkspaceIds={workspaces.map((ws) => ws.id)}
+              userAddressLine={profile?.addressLine ?? null}
+              userProvinceCode={profile?.provinceCode ?? ''}
+              userProvinceName={profile?.provinceName ?? ''}
+              userWardCode={profile?.wardCode ?? ''}
+              userWardName={profile?.wardName ?? ''}
+            />
+          </div>
+
           {/* Workspace info settings — only for workspaces user owns */}
           {workspaces.filter((ws) => ws.role === 'OWNER').length > 0 && (
-            <div className="glass-content-card rounded-xl p-6 space-y-6">
+            <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6 space-y-6">
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="h-4 w-4 text-[#CFAF6E]" />
                 <h3 className="text-sm font-semibold text-gray-900">
@@ -760,12 +775,13 @@ export default function ProfilePage() {
       {workspaces.map(
         (ws) =>
           activeTab === ws.id && (
-            <WorkspaceProfileTab
-              key={ws.id}
-              workspaceId={ws.id}
-              workspaceName={ws.name}
-              workspaceType={ws.type}
-            />
+            <div key={ws.id} className="p-5 space-y-[0.8rem]">
+              <WorkspaceProfileTab
+                workspaceId={ws.id}
+                workspaceName={ws.name}
+                workspaceType={ws.type}
+              />
+            </div>
           ),
       )}
 

@@ -13,6 +13,9 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SwitchWorkspaceDto } from './dto/switch-workspace.dto';
+import { LinkPhoneForGoogleDto } from './dto/link-phone-for-google.dto';
+import { VerifyEmailLinkGoogleDto } from './dto/verify-email-link-google.dto';
+import { EmailVerifySendOtpDto } from './dto/email-verify-send-otp.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import type { User, Workspace } from '@prisma/client';
 
@@ -147,10 +150,12 @@ export class AuthService {
 
     // Detect Google orphan account (phone=null) sharing the same verified email
     // If found, propose a merge so both identities resolve to one account.
-    let mergeSuggestion: {
-      mergeToken: string;
-      googleAccount: { fullName: string | null; email: string; avatarUrl: string | null };
-    } | undefined;
+    let mergeSuggestion:
+      | {
+          mergeToken: string;
+          googleAccount: { fullName: string | null; email: string; avatarUrl: string | null };
+        }
+      | undefined;
 
     if (user.email && user.emailVerifiedAt) {
       const googleOrphan = await this.prisma.user.findFirst({
@@ -270,7 +275,12 @@ export class AuthService {
         name: string;
         picture?: string;
       };
-      googlePayload = { googleId: info.sub, email: info.email, name: info.name, picture: info.picture };
+      googlePayload = {
+        googleId: info.sub,
+        email: info.email,
+        name: info.name,
+        picture: info.picture,
+      };
     } catch {
       throw new HttpException(
         { code: 'GOOGLE_TOKEN_INVALID', message: 'Invalid or expired Google token' },
@@ -285,17 +295,25 @@ export class AuthService {
       : await this.userService.findByEmail(googlePayload.email);
 
     // If email matches an unverified account that was not created via Google,
-    // block auto-linking to prevent account hijacking.
+    // offer phone-OTP verification to verify email and link Google in one step.
     if (userByEmail && !userByEmail.emailVerifiedAt) {
-      throw new HttpException(
-        {
-          code: 'EMAIL_EXISTS_UNVERIFIED',
-          email: googlePayload.email,
-          message:
-            'Email này đã được đăng ký nhưng chưa xác thực. Vui lòng đăng nhập bằng số điện thoại và OTP, sau đó xác thực email trong phần Hồ sơ để liên kết tài khoản Google.',
-        },
-        HttpStatus.CONFLICT,
+      const tempToken = uuidv4();
+      await this.cacheManager.set(
+        `google:email_verify:${tempToken}`,
+        JSON.stringify({ userId: userByEmail.id, googlePayload }),
+        10 * 60 * 1000, // 10 minutes
       );
+      // Mask phone: show only last 3 digits (e.g. *******521)
+      const rawPhone = userByEmail.phone ?? '';
+      const digits = rawPhone.replace(/\D/g, '');
+      const maskedPhone =
+        digits.length >= 3 ? '*'.repeat(Math.max(0, digits.length - 3)) + digits.slice(-3) : '***';
+      return {
+        code: 'EMAIL_EXISTS_UNVERIFIED',
+        email: googlePayload.email,
+        maskedPhone,
+        temp_token: tempToken,
+      };
     }
 
     let user = userByGoogleId || userByEmail;
@@ -349,8 +367,245 @@ export class AuthService {
       where: { ownerUserId: user.id, type: 'PERSONAL' },
     });
 
+    // If user has no verified phone, require phone linking before issuing tokens
+    if (!user.phone) {
+      const tempToken = uuidv4();
+      await this.cacheManager.set(
+        `google:phone_required:${tempToken}`,
+        JSON.stringify({ userId: user.id }),
+        10 * 60 * 1000, // 10 minutes
+      );
+      return { code: 'PHONE_REQUIRED', temp_token: tempToken };
+    }
+
     const device = await this.userService.upsertDevice(user.id, device_hash, platform);
     return this.issueTokenResponse(user, workspace, device.id);
+  }
+
+  // ============================================================
+  // GOOGLE: LINK PHONE (completes login after PHONE_REQUIRED)
+  // ============================================================
+
+  async linkPhoneForGoogleUser(dto: LinkPhoneForGoogleDto) {
+    const { temp_token, phone, otp, device_hash, platform } = dto;
+
+    // Validate temp_token
+    const tempKey = `google:phone_required:${temp_token}`;
+    const tempRaw = await this.cacheManager.get<string>(tempKey);
+    if (!tempRaw) {
+      throw new HttpException(
+        {
+          code: 'TEMP_TOKEN_INVALID',
+          message: 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại với Google',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const { userId } = JSON.parse(tempRaw) as { userId: string };
+
+    // Verify OTP
+    const otpKey = `otp:${phone}`;
+    const otpRaw = await this.cacheManager.get<string>(otpKey);
+    if (!otpRaw) {
+      throw new HttpException(
+        { code: 'OTP_EXPIRED', message: 'Mã OTP đã hết hạn' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const otpRecord: OtpRecord = JSON.parse(otpRaw);
+    if (otpRecord.code !== otp) {
+      otpRecord.attempts += 1;
+      if (otpRecord.attempts >= 5) {
+        await this.cacheManager.del(otpKey);
+        throw new HttpException(
+          { code: 'OTP_MAX_ATTEMPTS', message: 'Too many failed attempts' },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      await this.cacheManager.set(otpKey, JSON.stringify(otpRecord), 120000);
+      throw new HttpException(
+        { code: 'OTP_INVALID', message: 'Invalid OTP' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    await this.cacheManager.del(otpKey);
+
+    // Check phone not already used by another account
+    const phoneUser = await this.userService.findByPhone(phone);
+    if (phoneUser && phoneUser.id !== userId) {
+      throw new HttpException(
+        { code: 'PHONE_TAKEN', message: 'Số điện thoại đã được sử dụng bởi tài khoản khác' },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    // Link phone to user
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { phone },
+    });
+
+    // Clean up temp session
+    await this.cacheManager.del(tempKey);
+
+    // Issue tokens
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { ownerUserId: userId, type: 'PERSONAL' },
+    });
+    const device = await this.userService.upsertDevice(userId, device_hash, platform);
+    return this.issueTokenResponse(updatedUser, workspace, device.id);
+  }
+
+  // ============================================================
+  // GOOGLE: EMAIL-VERIFY-SEND-OTP (validates phone, then sends OTP)
+  // ============================================================
+
+  async emailVerifySendOtp(dto: EmailVerifySendOtpDto) {
+    const { temp_token, phone } = dto;
+
+    // Validate temp_token — return 400 (not 401) so api-client won't redirect
+    const tempKey = `google:email_verify:${temp_token}`;
+    const tempRaw = await this.cacheManager.get<string>(tempKey);
+    if (!tempRaw) {
+      throw new HttpException(
+        {
+          code: 'TEMP_TOKEN_INVALID',
+          message: 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại với Google',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const { userId } = JSON.parse(tempRaw) as { userId: string };
+
+    // Fetch user
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new HttpException(
+        { code: 'USER_NOT_FOUND', message: 'Không tìm thấy người dùng' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Phone must match the account's registered phone
+    if (user.phone !== phone) {
+      throw new HttpException(
+        {
+          code: 'PHONE_MISMATCH',
+          message: 'Số điện thoại không khớp với tài khoản đăng ký email này',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Send OTP
+    const isDev = this.configService.get<string>('nodeEnv') !== 'production';
+    const otpCode = isDev ? '999999' : Math.floor(100000 + Math.random() * 900000).toString();
+    const otpKey = `otp:${phone}`;
+    const record: OtpRecord = { code: otpCode, attempts: 0 };
+    await this.cacheManager.set(otpKey, JSON.stringify(record), 120000);
+
+    if (isDev) {
+      console.log(`[DEV] OTP for ${phone}: ${otpCode}`);
+    } else {
+      console.log(`[SMS stub] Sending OTP ${otpCode} to ${phone}`);
+    }
+
+    return { data: { message: 'OTP sent', expires_in: 120 } };
+  }
+
+  // ============================================================
+  // GOOGLE: VERIFY EMAIL + LINK (EMAIL_EXISTS_UNVERIFIED path)
+  // ============================================================
+
+  async verifyEmailAndLinkGoogle(dto: VerifyEmailLinkGoogleDto) {
+    const { temp_token, phone, otp, device_hash, platform } = dto;
+
+    // Validate temp_token
+    const tempKey = `google:email_verify:${temp_token}`;
+    const tempRaw = await this.cacheManager.get<string>(tempKey);
+    if (!tempRaw) {
+      throw new HttpException(
+        {
+          code: 'TEMP_TOKEN_INVALID',
+          message: 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại với Google',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const { userId, googlePayload } = JSON.parse(tempRaw) as {
+      userId: string;
+      googlePayload: { googleId: string; email: string; name: string; picture?: string };
+    };
+
+    // Fetch user to validate phone
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new HttpException(
+        { code: 'USER_NOT_FOUND', message: 'Không tìm thấy người dùng' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Verify OTP
+    const otpKey = `otp:${phone}`;
+    const otpRaw = await this.cacheManager.get<string>(otpKey);
+    if (!otpRaw) {
+      throw new HttpException(
+        { code: 'OTP_EXPIRED', message: 'Mã OTP đã hết hạn' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const otpRecord: OtpRecord = JSON.parse(otpRaw);
+    if (otpRecord.code !== otp) {
+      otpRecord.attempts += 1;
+      if (otpRecord.attempts >= 5) {
+        await this.cacheManager.del(otpKey);
+        throw new HttpException(
+          { code: 'OTP_MAX_ATTEMPTS', message: 'Too many failed attempts' },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      await this.cacheManager.set(otpKey, JSON.stringify(otpRecord), 120000);
+      throw new HttpException(
+        { code: 'OTP_INVALID', message: 'Invalid OTP' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    await this.cacheManager.del(otpKey);
+
+    // Phone must match the account's registered phone
+    if (user.phone !== phone) {
+      throw new HttpException(
+        {
+          code: 'PHONE_MISMATCH',
+          message: 'Số điện thoại không khớp với tài khoản đăng ký email này',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Update user: verify email + link Google
+    const updates: Record<string, unknown> = {
+      emailVerifiedAt: new Date(),
+      googleId: googlePayload.googleId,
+    };
+    if (!user.fullName && googlePayload.name) updates.fullName = googlePayload.name;
+    if (!user.avatarUrl && googlePayload.picture) updates.avatarUrl = googlePayload.picture;
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: updates,
+    });
+
+    // Clean up temp session
+    await this.cacheManager.del(tempKey);
+
+    // Issue tokens
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { ownerUserId: userId, type: 'PERSONAL' },
+    });
+    const device = await this.userService.upsertDevice(userId, device_hash, platform);
+    return this.issueTokenResponse(updatedUser, workspace, device.id);
   }
 
   // ============================================================

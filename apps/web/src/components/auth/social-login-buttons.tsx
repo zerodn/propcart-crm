@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Loader2, Phone, X, ChevronDown } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'sonner';
 import { useI18n } from '@/providers/i18n-provider';
@@ -19,6 +20,506 @@ interface SocialLoginButtonsProps {
     workspace: Workspace,
   ) => void;
 }
+
+const COUNTRIES = [
+  { code: 'vn', countryCode: '+84', flag: '🇻🇳', name: 'Việt Nam' },
+  { code: 'th', countryCode: '+66', flag: '🇹🇭', name: 'Thailand' },
+  { code: 'us', countryCode: '+1',  flag: '🇺🇸', name: 'USA' },
+  { code: 'sg', countryCode: '+65', flag: '🇸🇬', name: 'Singapore' },
+  { code: 'ph', countryCode: '+63', flag: '🇵🇭', name: 'Philippines' },
+  { code: 'my', countryCode: '+60', flag: '🇲🇾', name: 'Malaysia' },
+] as const;
+
+// ─── Phone Link Dialog ──────────────────────────────────────────────────────
+
+interface PhoneLinkDialogProps {
+  tempToken: string;
+  onSuccess: SocialLoginButtonsProps['onSuccess'];
+  onClose: () => void;
+}
+
+function PhoneLinkDialog({ tempToken, onSuccess, onClose }: PhoneLinkDialogProps) {
+  const { t } = useI18n();
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0] as typeof COUNTRIES[number]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [fullPhone, setFullPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const startCountdown = (seconds = 120) => {
+    setCountdown(seconds);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) { clearInterval(timerRef.current!); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  };
+
+  const buildFullPhone = () => {
+    let clean = phone.trim();
+    if (clean.startsWith('0')) clean = clean.slice(1);
+    return `${selectedCountry.countryCode}${clean}`;
+  };
+
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!phone.trim()) return;
+    const fp = buildFullPhone();
+    setLoading(true);
+    try {
+      await apiClient.post('/auth/phone/send-otp', { phone: fp });
+      setFullPhone(fp);
+      setStep('otp');
+      startCountdown(120);
+      toast.success(t('auth.login.sendOtp'));
+    } catch (err: unknown) {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === 'USER_BANNED') toast.error(t('auth.errors.userBanned'));
+      else toast.error(t('auth.login.sendOtpFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirm = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (otp.length !== 6) return;
+    setLoading(true);
+    try {
+      const { data } = await apiClient.post('/auth/google/link-phone', {
+        temp_token: tempToken,
+        phone: fullPhone,
+        otp,
+        device_hash: getDeviceHash(),
+        platform: 'web',
+      });
+      const { access_token, refresh_token, user, workspace } = data.data;
+      toast.success(t('auth.login.phoneLinkSuccess'));
+      login(access_token, refresh_token, user, workspace);
+      onSuccess(access_token, refresh_token, user, workspace);
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === 'OTP_EXPIRED') toast.error(t('auth.login.otpExpired'));
+      else if (code === 'OTP_INVALID') toast.error(t('auth.login.otpInvalid'));
+      else if (code === 'OTP_MAX_ATTEMPTS') toast.error(t('auth.login.otpMaxAttempts'));
+      else if (code === 'TEMP_TOKEN_INVALID') {
+        toast.error(t('auth.login.phoneLinkSessionExpired'));
+        setStep('phone');
+        setOtp('');
+      } else if (code === 'PHONE_TAKEN') {
+        toast.error(t('auth.login.phoneTaken'));
+        setStep('phone');
+        setOtp('');
+      } else {
+        toast.error(t('auth.errors.loginFailed'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-sm bg-[#0B1F3A] rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+          <div>
+            <h2 className="text-base font-semibold text-white">{t('auth.login.phoneLinkTitle')}</h2>
+            <p className="text-xs text-white/50 mt-0.5">
+              {step === 'phone' ? t('auth.login.phoneLinkDescription') : fullPhone}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label={t('common.close')}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-6 space-y-4">
+          {step === 'phone' ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div className="flex gap-2">
+                {/* Country selector */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen((v) => !v)}
+                    className="h-12 flex items-center gap-1.5 px-3 rounded-xl border border-white/20 bg-white/5 text-sm text-white whitespace-nowrap hover:border-white/40 transition-colors"
+                  >
+                    <span>{selectedCountry.flag}</span>
+                    <span className="text-white/70">{selectedCountry.countryCode}</span>
+                    <ChevronDown className="h-3 w-3 text-white/40" />
+                  </button>
+                  {dropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-xl shadow-xl z-10 py-1.5 border border-gray-100">
+                      {COUNTRIES.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => { setSelectedCountry(c); setDropdownOpen(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                        >
+                          <span>{c.flag}</span>
+                          <span className="font-medium">{c.countryCode}</span>
+                          <span className="text-gray-400 text-xs">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Phone input */}
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="905xxxxxx"
+                  autoFocus
+                  className="flex-1 h-12 px-4 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-[#CFAF6E] transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !phone.trim()}
+                className="w-full h-12 rounded-xl bg-[#CFAF6E] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
+                {t('auth.login.phoneLinkSendOtp')}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleConfirm} className="space-y-4">
+              {/* OTP input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+                  {t('auth.login.phoneLinkOtpLabel')}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="• • • • • •"
+                  autoFocus
+                  className="w-full h-14 px-4 rounded-xl bg-white/5 border border-white/20 text-white text-center text-2xl tracking-[0.5em] placeholder-white/20 focus:outline-none focus:border-[#CFAF6E] transition-colors"
+                />
+              </div>
+
+              {/* Countdown + resend */}
+              <div className="flex items-center justify-between text-xs text-white/40">
+                {countdown > 0 ? (
+                  <span>{t('auth.login.timeRemaining')}: {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSendOtp()}
+                    disabled={loading}
+                    className="text-[#CFAF6E] hover:underline disabled:opacity-50"
+                  >
+                    {t('auth.login.phoneLinkResend')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setStep('phone'); setOtp(''); }}
+                  className="text-white/40 hover:text-white/70 transition-colors"
+                >
+                  {t('auth.login.phoneLinkChangePhone')}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || otp.length !== 6}
+                className="w-full h-12 rounded-xl bg-[#CFAF6E] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t('auth.login.phoneLinkConfirm')}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+interface EmailVerifyLinkDialogProps {
+  tempToken: string;
+  email: string;
+  maskedPhone: string;
+  onSuccess: SocialLoginButtonsProps['onSuccess'];
+  onClose: () => void;
+}
+
+function EmailVerifyLinkDialog({ tempToken, email, maskedPhone, onSuccess, onClose }: EmailVerifyLinkDialogProps) {
+  const { t } = useI18n();
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0] as typeof COUNTRIES[number]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [fullPhone, setFullPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const startCountdown = (seconds = 120) => {
+    setCountdown(seconds);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) { clearInterval(timerRef.current!); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  };
+
+  const buildFullPhone = () => {
+    let clean = phone.trim();
+    if (clean.startsWith('0')) clean = clean.slice(1);
+    return `${selectedCountry.countryCode}${clean}`;
+  };
+
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (phone.length < 8) return;
+    const fp = buildFullPhone();
+    setLoading(true);
+    setPhoneError('');
+    try {
+      await apiClient.post('/auth/google/email-verify-send-otp', {
+        temp_token: tempToken,
+        phone: fp,
+      });
+      setFullPhone(fp);
+      setStep('otp');
+      startCountdown(120);
+      toast.success(t('auth.login.sendOtp'));
+    } catch (err: unknown) {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === 'PHONE_MISMATCH') {
+        setPhoneError(t('auth.login.phoneMismatch'));
+      } else if (code === 'TEMP_TOKEN_INVALID') {
+        setPhoneError(t('auth.login.phoneLinkSessionExpired'));
+      } else {
+        toast.error(t('auth.login.sendOtpFailed'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirm = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (otp.length !== 6) return;
+    setLoading(true);
+    try {
+      const { data } = await apiClient.post('/auth/google/verify-email-link', {
+        temp_token: tempToken,
+        phone: fullPhone,
+        otp,
+        device_hash: getDeviceHash(),
+        platform: 'web',
+      });
+      const { access_token, refresh_token, user, workspace } = data.data;
+      toast.success(t('auth.login.emailVerifyLinkSuccess'));
+      login(access_token, refresh_token, user, workspace);
+      onSuccess(access_token, refresh_token, user, workspace);
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === 'OTP_EXPIRED') toast.error(t('auth.login.otpExpired'));
+      else if (code === 'OTP_INVALID') toast.error(t('auth.login.otpInvalid'));
+      else if (code === 'OTP_MAX_ATTEMPTS') toast.error(t('auth.login.otpMaxAttempts'));
+      else if (code === 'TEMP_TOKEN_INVALID') {
+        toast.error(t('auth.login.phoneLinkSessionExpired'));
+        setStep('phone');
+        setOtp('');
+      } else if (code === 'PHONE_MISMATCH') {
+        // Shouldn't happen (caught at send-otp step), but handle defensively
+        toast.error(t('auth.login.phoneMismatch'));
+        setStep('phone');
+        setOtp('');
+      } else {
+        toast.error(t('auth.errors.loginFailed'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-sm bg-[#0B1F3A] rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+          <div>
+            <h2 className="text-base font-semibold text-white">{t('auth.login.emailVerifyLinkTitle')}</h2>
+            <p className="text-xs text-white/50 mt-0.5">
+              {step === 'phone' ? email : fullPhone}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label={t('common.close')}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-6 space-y-4">
+          {step === 'phone' ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              {/* Masked phone hint */}
+              <p className="text-xs text-white/60 leading-relaxed">
+                {t('auth.login.emailVerifyLinkDescription').replace('{{maskedPhone}}', maskedPhone)}
+              </p>
+
+              <div className="flex gap-2">
+                {/* Country selector */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen((v) => !v)}
+                    className="h-12 flex items-center gap-1.5 px-3 rounded-xl border border-white/20 bg-white/5 text-sm text-white whitespace-nowrap hover:border-white/40 transition-colors"
+                  >
+                    <span>{selectedCountry.flag}</span>
+                    <span className="text-white/70">{selectedCountry.countryCode}</span>
+                    <ChevronDown className="h-3 w-3 text-white/40" />
+                  </button>
+                  {dropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-xl shadow-xl z-10 py-1.5 border border-gray-100">
+                      {COUNTRIES.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => { setSelectedCountry(c); setDropdownOpen(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                        >
+                          <span>{c.flag}</span>
+                          <span className="font-medium">{c.countryCode}</span>
+                          <span className="text-gray-400 text-xs">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Phone input */}
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '')); setPhoneError(''); }}
+                  placeholder="905xxxxxx"
+                  autoFocus
+                  className="flex-1 h-12 px-4 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-[#CFAF6E] transition-colors"
+                />
+              </div>
+              {phoneError && (
+                <p className="text-xs text-red-400 -mt-1">{phoneError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loading || phone.length < 8}
+                className="w-full h-12 rounded-xl bg-[#CFAF6E] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
+                {t('auth.login.phoneLinkSendOtp')}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleConfirm} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+                  {t('auth.login.phoneLinkOtpLabel')}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="• • • • • •"
+                  autoFocus
+                  className="w-full h-14 px-4 rounded-xl bg-white/5 border border-white/20 text-white text-center text-2xl tracking-[0.5em] placeholder-white/20 focus:outline-none focus:border-[#CFAF6E] transition-colors"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-white/40">
+                {countdown > 0 ? (
+                  <span>{t('auth.login.timeRemaining')}: {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSendOtp()}
+                    disabled={loading}
+                    className="text-[#CFAF6E] hover:underline disabled:opacity-50"
+                  >
+                    {t('auth.login.phoneLinkResend')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setStep('phone'); setOtp(''); setPhoneError(''); }}
+                  className="text-white/40 hover:text-white/70 transition-colors"
+                >
+                  {t('auth.login.phoneLinkChangePhone')}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || otp.length !== 6}
+                className="w-full h-12 rounded-xl bg-[#CFAF6E] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#B89655] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t('auth.login.phoneLinkConfirm')}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ─── Google icon ────────────────────────────────────────────────────────────
 
 /** Google "G" logo SVG (official brand colors) */
 function GoogleIcon() {
@@ -41,15 +542,17 @@ function AppleIcon() {
   );
 }
 
-/**
- * Inner component — uses useGoogleLogin hook (requires GoogleOAuthProvider ancestor).
- * Only mounted when GoogleOAuthProvider is present (i.e. clientId is configured).
- */
+// ─── Google button (inner — requires GoogleOAuthProvider) ───────────────────
+
 function GoogleButton({
   disabled,
+  onPhoneRequired,
+  onEmailVerifyRequired,
   onSuccess,
 }: {
   disabled: boolean;
+  onPhoneRequired: (tempToken: string) => void;
+  onEmailVerifyRequired: (data: { tempToken: string; email: string; maskedPhone: string }) => void;
   onSuccess: SocialLoginButtonsProps['onSuccess'];
 }) {
   const { t } = useI18n();
@@ -67,46 +570,31 @@ function GoogleButton({
           device_hash: deviceHash,
           platform: 'web',
         });
+
+        const responseData = data?.data ?? data;
+
+        // PHONE_REQUIRED: show phone-link dialog
+        if (responseData?.code === 'PHONE_REQUIRED' && responseData?.temp_token) {
+          onPhoneRequired(responseData.temp_token as string);
+          return;
+        }
+
+        // EMAIL_EXISTS_UNVERIFIED: show email-verify-link dialog
+        if (responseData?.code === 'EMAIL_EXISTS_UNVERIFIED' && responseData?.temp_token) {
+          onEmailVerifyRequired({
+            tempToken: responseData.temp_token as string,
+            email: (responseData.email as string) ?? '',
+            maskedPhone: (responseData.maskedPhone as string) ?? '***',
+          });
+          return;
+        }
+
         const { access_token, refresh_token, user, workspace } = data.data;
         login(access_token, refresh_token, user, workspace);
         router.push('/dashboard');
         onSuccess(access_token, refresh_token, user, workspace);
-      } catch (err: unknown) {
-        const errData = (err as { response?: { data?: { code?: string; email?: string } } })?.response?.data;
-        if (errData?.code === 'EMAIL_EXISTS_UNVERIFIED') {
-          const email = errData.email ?? '';
-          const msg = email
-            ? t('auth.login.unverifiedEmailBlockMessage').replace('{{email}}', email)
-            : t('auth.login.emailExistsUnverified');
-          toast.custom(
-            (toastId) => (
-              <div className="flex flex-col gap-2 rounded-xl bg-white shadow-lg border border-red-100 p-4 w-[356px]">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-red-50 flex items-center justify-center">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                      <circle cx="6" cy="6" r="6" fill="#EF4444" opacity="0.15" />
-                      <path d="M6 3.5v3M6 8.5h.01" stroke="#EF4444" strokeWidth="1.4" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-semibold text-gray-900">{t('auth.login.unverifiedEmailBlockTitle')}</p>
-                    <p className="text-sm text-gray-600 leading-snug">{msg}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toast.dismiss(toastId)}
-                  className="self-end mt-1 px-4 py-1.5 rounded-lg bg-[#0B1F3A] text-white text-sm font-medium hover:bg-[#0F2A52] transition-colors"
-                >
-                  {t('auth.login.loginWithPhoneCta')}
-                </button>
-              </div>
-            ),
-            { duration: 8000 },
-          );
-        } else {
-          toast.error(t('auth.login.googleLoginFailed'));
-        }
+      } catch {
+        toast.error(t('auth.login.googleLoginFailed'));
       } finally {
         setLoading(false);
       }
@@ -132,9 +620,17 @@ function GoogleButton({
   );
 }
 
+// ─── SocialLoginButtons ──────────────────────────────────────────────────────
+
 export function SocialLoginButtons({ onSuccess }: SocialLoginButtonsProps) {
   const { t } = useI18n();
   const [appleLoading, setAppleLoading] = useState(false);
+  const [phoneLinkTempToken, setPhoneLinkTempToken] = useState<string | null>(null);
+  const [emailVerifyData, setEmailVerifyData] = useState<{
+    tempToken: string;
+    email: string;
+    maskedPhone: string;
+  } | null>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
   const appleClientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID ?? '';
@@ -161,50 +657,78 @@ export function SocialLoginButtons({ onSuccess }: SocialLoginButtonsProps) {
   };
 
   return (
-    <div className="space-y-3">
-      {/* OR divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-white/15" />
-        <span className="text-xs text-white/40 font-medium">{t('auth.login.orContinueWith')}</span>
-        <div className="flex-1 h-px bg-white/15" />
-      </div>
+    <>
+      <div className="space-y-3">
+        {/* OR divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-white/15" />
+          <span className="text-xs text-white/40 font-medium">{t('auth.login.orContinueWith')}</span>
+          <div className="flex-1 h-px bg-white/15" />
+        </div>
 
-      {/* Social buttons — icon only, always shown */}
-      <div className="flex items-center justify-center gap-3">
-        {/* Google */}
-        {googleClientId ? (
-          <GoogleButton disabled={appleLoading} onSuccess={onSuccess} />
-        ) : (
+        {/* Social buttons — icon only, always shown */}
+        <div className="flex items-center justify-center gap-3">
+          {/* Google */}
+          {googleClientId ? (
+            <GoogleButton
+              disabled={appleLoading}
+              onPhoneRequired={(token) => setPhoneLinkTempToken(token)}
+              onEmailVerifyRequired={(d) => setEmailVerifyData(d)}
+              onSuccess={onSuccess}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={handleGoogleUnconfigured}
+              className="flex items-center justify-center w-11 h-11 rounded-xl
+                bg-white hover:bg-gray-50 active:bg-gray-100
+                transition-all duration-150 shadow-sm"
+              aria-label={t('auth.login.continueWithGoogle')}
+            >
+              <GoogleIcon />
+            </button>
+          )}
+
+          {/* Apple */}
           <button
             type="button"
-            onClick={handleGoogleUnconfigured}
+            onClick={handleAppleLogin}
+            disabled={appleLoading}
             className="flex items-center justify-center w-11 h-11 rounded-xl
-              bg-white hover:bg-gray-50 active:bg-gray-100
-              transition-all duration-150 shadow-sm"
-            aria-label={t('auth.login.continueWithGoogle')}
+              bg-black text-white hover:bg-gray-900 active:bg-gray-800
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-all duration-150 shadow-sm border border-white/10"
+            aria-label={t('auth.login.continueWithApple')}
           >
-            <GoogleIcon />
+            {appleLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-white" />
+            ) : (
+              <AppleIcon />
+            )}
           </button>
-        )}
-
-        {/* Apple */}
-        <button
-          type="button"
-          onClick={handleAppleLogin}
-          disabled={appleLoading}
-          className="flex items-center justify-center w-11 h-11 rounded-xl
-            bg-black text-white hover:bg-gray-900 active:bg-gray-800
-            disabled:opacity-50 disabled:cursor-not-allowed
-            transition-all duration-150 shadow-sm border border-white/10"
-          aria-label={t('auth.login.continueWithApple')}
-        >
-          {appleLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-white" />
-          ) : (
-            <AppleIcon />
-          )}
-        </button>
+        </div>
       </div>
-    </div>
+
+      {/* Phone link dialog — shown when Google login returns PHONE_REQUIRED */}
+      {phoneLinkTempToken && (
+        <PhoneLinkDialog
+          tempToken={phoneLinkTempToken}
+          onSuccess={onSuccess}
+          onClose={() => setPhoneLinkTempToken(null)}
+        />
+      )}
+
+      {/* Email verify + link dialog — shown when Google login returns EMAIL_EXISTS_UNVERIFIED */}
+      {emailVerifyData && (
+        <EmailVerifyLinkDialog
+          tempToken={emailVerifyData.tempToken}
+          email={emailVerifyData.email}
+          maskedPhone={emailVerifyData.maskedPhone}
+          onSuccess={onSuccess}
+          onClose={() => setEmailVerifyData(null)}
+        />
+      )}
+    </>
   );
 }
+

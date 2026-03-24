@@ -172,6 +172,31 @@ export class MinioService implements OnModuleInit {
     return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
   }
 
+  async uploadJoinRequestDocument(workspaceId: string, userId: string, file: UploadFile) {
+    const ext = this.getFileExtension(file.originalname);
+    const date = new Date().toISOString().slice(0, 10);
+
+    // Join-request document: {workspace_id}/join-requests/{userId}/{date}/{uuid}.{ext}
+    const objectKey = `${workspaceId}/join-requests/${userId}/${date}/${randomUUID()}${ext}`;
+
+    try {
+      await this.client.putObject(this.bucket, objectKey, this.toStream(file), file.size, {
+        'Content-Type': file.mimetype,
+        'X-Original-Name': encodeURIComponent(file.originalname),
+      });
+    } catch (error) {
+      this.logger.error('Upload join-request document to MinIO failed', error as Error);
+      throw new InternalServerErrorException({
+        code: 'DOCUMENT_UPLOAD_FAILED',
+        message: 'Cannot upload document right now',
+      });
+    } finally {
+      this.cleanupDisk(file);
+    }
+
+    return { objectKey, fileUrl: this.buildObjectUrl(objectKey) };
+  }
+
   async uploadTemporaryFile(workspaceId: string, file: UploadFile) {
     const ext = this.getFileExtension(file.originalname);
 

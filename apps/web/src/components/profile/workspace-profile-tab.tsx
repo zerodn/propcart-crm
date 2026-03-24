@@ -7,6 +7,7 @@ import { useI18n } from '@/providers/i18n-provider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
+import { JoinRequestsPanel } from '@/components/workspace/join-requests-panel';
 
 interface Department {
   departmentId: string;
@@ -119,7 +120,7 @@ export function WorkspaceProfileTab({
 
   if (isLoading) {
     return (
-      <div className="glass-content-card rounded-xl p-10 flex items-center justify-center gap-3">
+      <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-10 flex items-center justify-center gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-[#CFAF6E]" />
         <span className="text-sm text-gray-500">{t('profile.workspace.loading')}</span>
       </div>
@@ -128,7 +129,7 @@ export function WorkspaceProfileTab({
 
   if (!member) {
     return (
-      <div className="glass-content-card rounded-xl p-10 text-center">
+      <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-10 text-center">
         <p className="text-sm text-gray-400">{t('profile.workspace.noMemberData')}</p>
       </div>
     );
@@ -144,7 +145,7 @@ export function WorkspaceProfileTab({
       {/* ─── Left column ─── */}
       <div className="space-y-[0.8rem]">
         {/* Identity card */}
-        <div className="glass-content-card rounded-xl p-6 space-y-4">
+        <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6 space-y-4">
           {/* Section header */}
           <h3 className="text-sm font-semibold text-[#0B1F3A] flex items-center gap-2 pb-3 border-b border-gray-100">
             {workspaceType === 'COMPANY' ? (
@@ -209,7 +210,7 @@ export function WorkspaceProfileTab({
         </div>
 
         {/* Employment card */}
-        <div className="glass-content-card rounded-xl p-6 space-y-4">
+        <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6 space-y-4">
           <h3 className="text-sm font-semibold text-[#0B1F3A] pb-3 border-b border-gray-100">
             {t('profile.workspace.section.employment')}
           </h3>
@@ -251,7 +252,7 @@ export function WorkspaceProfileTab({
       {/* ─── Right column ─── */}
       <div className="space-y-[0.8rem]">
         {/* Personal info in workspace */}
-        <div className="glass-content-card rounded-xl p-6 space-y-4">
+        <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6 space-y-4">
           <h3 className="text-sm font-semibold text-[#0B1F3A] pb-3 border-b border-gray-100">
             {t('profile.workspace.section.personalInfo')}
           </h3>
@@ -274,8 +275,13 @@ export function WorkspaceProfileTab({
           <InfoRow label={t('profile.workspace.address')} value={member.addressLine} />
         </div>
 
+        {/* Join Requests admin panel — visible to OWNER/ADMIN/MANAGER */}
+        {['OWNER', 'ADMIN', 'MANAGER'].includes(member.role.code) && (
+          <JoinRequestsPanel workspaceId={workspaceId} />
+        )}
+
         {/* Departments */}
-        <div className="glass-content-card rounded-xl p-6">
+        <div className="border border-gray-200 dark:border-white/[0.15] bg-white/70 dark:bg-white/[0.07] rounded-xl p-6">
           <h3 className="text-sm font-semibold text-[#0B1F3A] pb-3 border-b border-gray-100 mb-4">
             {t('profile.workspace.section.departments')}
           </h3>

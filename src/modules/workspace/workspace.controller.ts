@@ -16,10 +16,12 @@ import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InvitationService } from './invitation.service';
 import { WorkspaceService } from './workspace.service';
+import { JoinRequestService } from './join-request.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { CreateJoinRequestDto } from './dto/create-join-request.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../auth/guards/workspace.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
@@ -32,6 +34,7 @@ export class WorkspaceController {
   constructor(
     private readonly invitationService: InvitationService,
     private readonly workspaceService: WorkspaceService,
+    private readonly joinRequestService: JoinRequestService,
   ) {}
 
   // POST /workspaces/:workspaceId/invitations — OWNER/ADMIN only
@@ -210,6 +213,20 @@ export class WorkspaceController {
     return this.invitationService.listPendingInvitations(user.sub);
   }
 
+  // GET /me/join-requests — List my own join requests
+  @Get('me/join-requests')
+  @UseGuards(JwtAuthGuard)
+  getMyJoinRequests(@CurrentUser() user: JwtPayload) {
+    return this.joinRequestService.getUserJoinRequests(user.sub);
+  }
+
+  // DELETE /me/join-requests/:requestId — Cancel a pending join request
+  @Delete('me/join-requests/:requestId')
+  @UseGuards(JwtAuthGuard)
+  cancelMyJoinRequest(@CurrentUser() user: JwtPayload, @Param('requestId') requestId: string) {
+    return this.joinRequestService.cancelJoinRequest(user.sub, requestId);
+  }
+
   // POST /invitations/:token/accept — Any authenticated user
   @Post('invitations/:token/accept')
   @UseGuards(JwtAuthGuard)
@@ -247,5 +264,72 @@ export class WorkspaceController {
     @Param('invitationId') invitationId: string,
   ) {
     return this.invitationService.cancelInvitation(workspaceId, invitationId);
+  }
+
+  // ─── Join Requests ────────────────────────────────────────────────────────
+
+  // GET /workspaces/search — Search public workspaces (JWT only)
+  @Get('workspaces/search')
+  @UseGuards(JwtAuthGuard)
+  searchPublicWorkspaces(@Query('q') q: string) {
+    return this.joinRequestService.searchPublicWorkspaces(q ?? '');
+  }
+
+  // POST /workspaces/:workspaceId/join-requests — Any authenticated user
+  @Post('workspaces/:workspaceId/join-requests')
+  @UseGuards(JwtAuthGuard)
+  createJoinRequest(
+    @Param('workspaceId') workspaceId: string,
+    @Body() dto: CreateJoinRequestDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.joinRequestService.createJoinRequest(user.sub, workspaceId, dto);
+  }
+
+  // POST /workspaces/:workspaceId/join-requests/:requestId/documents — Upload doc
+  @Post('workspaces/:workspaceId/join-requests/:requestId/documents')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadJoinRequestDocument(
+    @Param('requestId') requestId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.joinRequestService.uploadJoinRequestDocument(user.sub, requestId, file);
+  }
+
+  // GET /workspaces/:workspaceId/join-requests — Admin: list requests
+  @Get('workspaces/:workspaceId/join-requests')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  getWorkspaceJoinRequests(
+    @Param('workspaceId') workspaceId: string,
+    @Query('status') status: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.joinRequestService.getWorkspaceJoinRequests(workspaceId, user.sub, status);
+  }
+
+  // POST /workspaces/:workspaceId/join-requests/:requestId/approve — Admin: approve
+  @Post('workspaces/:workspaceId/join-requests/:requestId/approve')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  approveJoinRequest(
+    @Param('workspaceId') workspaceId: string,
+    @Param('requestId') requestId: string,
+    @Body('role') role: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.joinRequestService.approveJoinRequest(workspaceId, requestId, user.sub, role);
+  }
+
+  // POST /workspaces/:workspaceId/join-requests/:requestId/reject — Admin: reject
+  @Post('workspaces/:workspaceId/join-requests/:requestId/reject')
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
+  rejectJoinRequest(
+    @Param('workspaceId') workspaceId: string,
+    @Param('requestId') requestId: string,
+    @Body('reason') reason: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.joinRequestService.rejectJoinRequest(workspaceId, requestId, user.sub, reason);
   }
 }

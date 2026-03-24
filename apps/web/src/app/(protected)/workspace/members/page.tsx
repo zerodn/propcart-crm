@@ -34,6 +34,7 @@ import {
   type DataGridColumn,
   type DataGridAction,
 } from '@/components/common/base-data-grid';
+import { JoinRequestsPanel } from '@/components/workspace/join-requests-panel';
 
 export default function MembersPage() {
   const { workspace, role, user } = useAuth();
@@ -350,6 +351,11 @@ export default function MembersPage() {
         currentPage={memberPage}
         onPageChange={setMemberPage}
       />
+
+      {/* Join requests (users requesting to join this workspace) */}
+      {isAdminOrOwner && workspace?.id && (
+        <JoinRequestsPanel workspaceId={workspace.id} />
+      )}
 
       {/* Pending invitations sent from this workspace */}
       {isAdminOrOwner && (

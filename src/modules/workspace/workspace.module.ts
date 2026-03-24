@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { InvitationService } from './invitation.service';
+import { JoinRequestService } from './join-request.service';
 import { WorkspaceController } from './workspace.controller';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
@@ -10,7 +11,7 @@ import { MinioModule } from '../../common/storage/minio.module';
 @Module({
   imports: [UserModule, AuthModule, MailModule, MinioModule],
   controllers: [WorkspaceController],
-  providers: [WorkspaceService, InvitationService],
-  exports: [WorkspaceService, InvitationService],
+  providers: [WorkspaceService, InvitationService, JoinRequestService],
+  exports: [WorkspaceService, InvitationService, JoinRequestService],
 })
 export class WorkspaceModule {}

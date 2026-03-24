@@ -43,15 +43,18 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  ownedWorkspaces     Workspace[]
-  memberships         WorkspaceMember[]
-  devices             UserDevice[]
-  refreshTokens       RefreshToken[]
-  sentInvitations     WorkspaceInvitation[] @relation("InvitedBy")
-  receivedInvitations WorkspaceInvitation[] @relation("InvitedUser")
-  notifications       Notification[]
-  departmentMembers   DepartmentMember[]
-  documents           UserDocument[]
+  ownedWorkspaces       Workspace[]
+  memberships           WorkspaceMember[]
+  devices               UserDevice[]
+  refreshTokens         RefreshToken[]
+  sentInvitations       WorkspaceInvitation[]   @relation("InvitedBy")
+  receivedInvitations   WorkspaceInvitation[]   @relation("InvitedUser")
+  notifications         Notification[]
+  departmentMembers     DepartmentMember[]
+  documents             UserDocument[]
+  joinRequests          WorkspaceJoinRequest[]  @relation("JoinRequestUser")
+  reviewedJoinRequests  WorkspaceJoinRequest[]  @relation("JoinRequestReviewer")
+  joinRequestRejections WorkspaceJoinRequestRejectionHistory[]
   createdWarehouses   PropertyWarehouse[] @relation("WarehouseCreator")
   createdProducts     PropertyProduct[]   @relation("ProductCreator")
   createdProjects     Project[]           @relation("ProjectCreator")
@@ -92,6 +95,7 @@ model Workspace {
   owner        User                  @relation(fields: [ownerUserId], references: [id])
   members      WorkspaceMember[]
   invitations  WorkspaceInvitation[]
+  joinRequests WorkspaceJoinRequest[]
   documents    UserDocument[]
   warehouses   PropertyWarehouse[]
   products     PropertyProduct[]
@@ -253,6 +257,70 @@ model WorkspaceInvitation {
   @@index([invitedPhone, status])
   @@index([invitedUserId, status])
   @@map("workspace_invitations")
+}
+
+// ============================================================
+// WORKSPACE JOIN REQUESTS
+// ============================================================
+
+model WorkspaceJoinRequest {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  userId          String
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  message         String?   @db.Text
+  rejectionReason String?   @db.Text
+  requestedRole   String?
+  provinceCode    String?   @db.VarChar(20)
+  provinceName    String?   @db.VarChar(100)
+  wardCode        String?   @db.VarChar(20)
+  wardName        String?   @db.VarChar(100)
+  addressLine     String?   @db.VarChar(500)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspace   Workspace                      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User                           @relation("JoinRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer    User?                          @relation("JoinRequestReviewer", fields: [reviewedBy], references: [id])
+  documents        WorkspaceJoinRequestDocument[]
+  rejectionHistory WorkspaceJoinRequestRejectionHistory[]
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId, status])
+  @@index([userId])
+  @@map("workspace_join_requests")
+}
+
+model WorkspaceJoinRequestDocument {
+  id        String   @id @default(uuid())
+  requestId String
+  fileName  String
+  fileType  String
+  fileSize  Int
+  objectKey String
+  fileUrl   String
+  createdAt DateTime @default(now())
+
+  request   WorkspaceJoinRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("workspace_join_request_documents")
+}
+
+model WorkspaceJoinRequestRejectionHistory {
+  id         String   @id @default(uuid())
+  requestId  String
+  reason     String?  @db.Text
+  rejectedBy String
+  rejectedAt DateTime @default(now())
+
+  request  WorkspaceJoinRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  reviewer User                 @relation(fields: [rejectedBy], references: [id])
+
+  @@index([requestId])
+  @@map("workspace_join_request_rejection_history")
 }
 
 // ============================================================
